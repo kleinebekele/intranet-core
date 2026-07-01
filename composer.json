@@ -7,16 +7,10 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "do1emu/module-news": "*",
+        "do1emu/module-news": "^1.0",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0"
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../intranet-module-news"
-        }
-    ],
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "laravel/breeze": "^2.4",

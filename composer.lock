@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "986c141e67424206e69af60cd9e1fbe0",
+    "content-hash": "fd4555d54c74707140f321b568fba88a",
     "packages": [
         {
             "name": "brick/math",
@@ -211,11 +211,17 @@
         },
         {
             "name": "do1emu/module-news",
-            "version": "1.0.0",
+            "version": "v1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/kleinebekele/intranet-module-news.git",
+                "reference": "9b7d4fbecf6b55d353ce66c3b820f5533e80295d"
+            },
             "dist": {
-                "type": "path",
-                "url": "../intranet-module-news",
-                "reference": "340cf4cb53dbb35bf7136a765ce00f81ef4f7dcd"
+                "type": "zip",
+                "url": "https://api.github.com/repos/kleinebekele/intranet-module-news/zipball/9b7d4fbecf6b55d353ce66c3b820f5533e80295d",
+                "reference": "9b7d4fbecf6b55d353ce66c3b820f5533e80295d",
+                "shasum": ""
             },
             "require": {
                 "php": "^8.3"
@@ -233,6 +239,7 @@
                     "Intranet\\Modules\\News\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -248,9 +255,11 @@
                 "modul",
                 "news"
             ],
-            "transport-options": {
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/kleinebekele/intranet-module-news/issues",
+                "source": "https://github.com/kleinebekele/intranet-module-news/tree/v1.0.1"
+            },
+            "time": "2026-07-01T20:06:08+00:00"
         },
         {
             "name": "doctrine/inflector",
