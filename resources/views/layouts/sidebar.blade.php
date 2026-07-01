@@ -1,0 +1,87 @@
+{{--
+    Linke Navigation mit zwei Zuständen:
+    1. Startseite  -> Liste aller aktiven Module
+    2. Im Modul    -> Modulname + "Zurück" + Unterseiten des Moduls
+
+    $sidebarModules und $currentModule kommen aus dem NavigationComposer.
+--}}
+<nav class="h-full py-4 px-3 flex flex-col">
+
+    @if ($currentModule)
+        {{-- ===== Modul-Kontext ===== --}}
+        <a href="{{ route('dashboard') }}"
+           class="group flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Zurück zur Startseite
+        </a>
+
+        <div class="mt-2 mb-3 px-3 flex items-center gap-2.5">
+            <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                <x-module-icon :name="$currentModule->icon" class="h-5 w-5" />
+            </span>
+            <span class="text-base font-semibold text-gray-800">{{ $currentModule->name }}</span>
+        </div>
+
+        <div class="space-y-1">
+            @foreach ($currentModule->menuItems as $item)
+                <a href="{{ $item->url() ?? '#' }}"
+                   @class([
+                       'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+                       'bg-indigo-50 text-indigo-700' => $item->isActive(),
+                       'text-gray-600 hover:bg-gray-100 hover:text-gray-900' => ! $item->isActive(),
+                   ])>
+                    <span @class([
+                        'h-1.5 w-1.5 rounded-full',
+                        'bg-indigo-600' => $item->isActive(),
+                        'bg-gray-300' => ! $item->isActive(),
+                    ])></span>
+                    {{ $item->label }}
+                </a>
+            @endforeach
+        </div>
+
+    @else
+        {{-- ===== Startseiten-Kontext ===== --}}
+        <a href="{{ route('dashboard') }}"
+           @class([
+               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+               'bg-indigo-50 text-indigo-700' => request()->routeIs('dashboard'),
+               'text-gray-600 hover:bg-gray-100 hover:text-gray-900' => ! request()->routeIs('dashboard'),
+           ])>
+            <x-module-icon name="home" class="h-5 w-5" />
+            Startseite
+        </a>
+
+        <p class="mt-6 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Module
+        </p>
+
+        <div class="space-y-1">
+            @forelse ($sidebarModules as $module)
+                <a href="{{ $module->homeUrl() ?? '#' }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition">
+                    <x-module-icon :name="$module->icon" class="h-5 w-5 text-gray-400" />
+                    {{ $module->name }}
+                </a>
+            @empty
+                <p class="px-3 py-2 text-sm text-gray-400">
+                    Noch keine Module installiert.
+                </p>
+            @endforelse
+        </div>
+
+        @auth
+            @if (auth()->user()->isAdmin())
+                <div class="mt-auto pt-4 border-t border-gray-100">
+                    <a href="{{ route('admin.modules.index') }}"
+                       class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition">
+                        <x-module-icon name="cog" class="h-5 w-5 text-gray-400" />
+                        Modul-Verwaltung
+                    </a>
+                </div>
+            @endif
+        @endauth
+    @endif
+</nav>

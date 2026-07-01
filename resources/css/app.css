@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Elemente mit x-cloak bleiben ausgeblendet, bis Alpine.js geladen ist. */
+[x-cloak] {
+    display: none !important;
+}
