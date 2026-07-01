@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "intranet/core",
+    "name": "do1emu/intranet-core",
     "type": "project",
     "description": "Modulare Intranet-Plattform (Core-Grundgerüst).",
     "keywords": ["laravel", "intranet"],
