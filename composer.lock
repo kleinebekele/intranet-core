@@ -215,10 +215,10 @@
             "dist": {
                 "type": "path",
                 "url": "../intranet-module-news",
-                "reference": "2a72991017233cd1c8931ccf70ef75bbb292f9f7"
+                "reference": "340cf4cb53dbb35bf7136a765ce00f81ef4f7dcd"
             },
             "require": {
-                "php": "^8.2"
+                "php": "^8.3"
             },
             "type": "library",
             "extra": {

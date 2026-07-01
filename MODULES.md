@@ -105,7 +105,7 @@ Die Menü-Punkte im Manifest müssen exakt auf diese Routen-Namen zeigen
 {
     "name": "do1emu/module-news",
     "type": "library",
-    "require": { "php": "^8.2" },
+    "require": { "php": "^8.3" },
     "autoload": {
         "psr-4": { "Intranet\\Modules\\News\\": "src/" }
     },
