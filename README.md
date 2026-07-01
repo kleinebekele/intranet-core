@@ -80,4 +80,4 @@ MIT
 ---
 
 > Hinweise zur lokalen Entwicklungsumgebung und interne Konventionen (auch für
-> KI-Assistenten) stehen in **[KIKNOWLEGE.md](KIKNOWLEGE.md)**.
+> KI-Assistenten) stehen in **[CLAUDE.md](CLAUDE.md)**.

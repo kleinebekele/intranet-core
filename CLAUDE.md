@@ -4,10 +4,6 @@ Interne Hinweise für die Arbeit an diesem Repository – gedacht für Entwickle
 KI-Assistenten. Nichts hier ist zum Betrieb nötig; die öffentliche Kurzfassung steht
 in der [README.md](README.md).
 
-> Hinweis: Claude Code lädt automatisch eine Datei namens `CLAUDE.md`. Wer diese Notizen
-> automatisch im Kontext haben möchte, kann diese Datei so umbenennen oder aus `CLAUDE.md`
-> darauf verweisen.
-
 ## Entwicklungsumgebung
 
 - **Stack:** Laravel 13, Breeze (Blade + Tailwind + Alpine), SortableJS fürs Drag & Drop.
