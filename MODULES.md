@@ -103,7 +103,7 @@ Die Menü-Punkte im Manifest müssen exakt auf diese Routen-Namen zeigen
 
 ```json
 {
-    "name": "intranet/module-news",
+    "name": "do1emu/module-news",
     "type": "library",
     "require": { "php": "^8.2" },
     "autoload": {
@@ -163,7 +163,7 @@ Solange ein Modul lokal (noch nicht auf einem Git-Server) liegt, wird es über e
 Danach im Core-Verzeichnis:
 
 ```bash
-composer require intranet/module-news:*   # Modul installieren
+composer require do1emu/module-news:*   # Modul installieren
 php artisan modules:sync                   # Modul in die Datenbank übernehmen
 php artisan migrate                        # Modul-Tabellen anlegen
 ```

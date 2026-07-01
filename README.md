@@ -41,7 +41,7 @@ Kurzfassung – Modul installieren:
 
 ```bash
 # in composer.json des Core einen repositories-Eintrag auf das Modul-Repo, dann:
-composer require intranet/module-news:*
+composer require do1emu/module-news:*
 php artisan modules:sync   # Modul in die DB übernehmen (Reihenfolge/An-Aus bleiben erhalten)
 php artisan migrate        # ggf. Modul-Tabellen anlegen
 ```

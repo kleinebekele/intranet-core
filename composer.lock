@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c558742fc4b80917c2ad3f4205df5984",
+    "content-hash": "986c141e67424206e69af60cd9e1fbe0",
     "packages": [
         {
             "name": "brick/math",
@@ -208,6 +208,49 @@
                 "source": "https://github.com/dflydev/dflydev-dot-access-data/tree/v3.0.3"
             },
             "time": "2024-07-08T12:26:09+00:00"
+        },
+        {
+            "name": "do1emu/module-news",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "../intranet-module-news",
+                "reference": "2a72991017233cd1c8931ccf70ef75bbb292f9f7"
+            },
+            "require": {
+                "php": "^8.2"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Intranet\\Modules\\News\\NewsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Intranet\\Modules\\News\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "kleinebekele"
+                }
+            ],
+            "description": "Neuigkeiten-Modul für die modulare Intranet-Plattform (intranet-core).",
+            "keywords": [
+                "intranet",
+                "laravel",
+                "modul",
+                "news"
+            ],
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "doctrine/inflector",
@@ -1056,38 +1099,6 @@
                 }
             ],
             "time": "2026-06-23T13:02:23+00:00"
-        },
-        {
-            "name": "intranet/module-news",
-            "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "../intranet-module-news",
-                "reference": "7433252328432e5cdf44f70412a0e32c443dceee"
-            },
-            "require": {
-                "php": "^8.2"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Intranet\\Modules\\News\\NewsServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Intranet\\Modules\\News\\": "src/"
-                }
-            },
-            "license": [
-                "MIT"
-            ],
-            "description": "Neuigkeiten-Modul für die Intranet-Plattform.",
-            "transport-options": {
-                "relative": true
-            }
         },
         {
             "name": "laravel/framework",
