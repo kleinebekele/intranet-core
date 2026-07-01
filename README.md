@@ -1,47 +1,57 @@
-# Intranet – Core (Grundgerüst)
+# Intranet – Modulare Plattform (Core)
 
-Modulare Intranet-Plattform auf Basis von **Laravel 13** + **Breeze** (Blade, Tailwind, Alpine).
-Der Core bringt Login, das Layout (Header · linke Navigation · Inhalt · Footer) und ein
-**Modul-System** mit: Funktionen werden als eigenständige Module (Plugins) per Composer
-nachinstalliert.
+Ein schlankes, **modulares Intranet-Grundgerüst** auf Basis von Laravel und
+[Breeze](https://laravel.com/docs/starter-kits) (Blade, Tailwind, Alpine).
+Der Core bringt Anmeldung, ein responsives Layout (Header · linke Navigation ·
+Inhalt · Footer) und ein **Modul-System** mit: Funktionen werden als eigenständige
+Module (Composer-Pakete) nachinstalliert – der Core selbst bleibt schlank.
 
 ## Funktionen
 
-- 🔐 Benutzer-Anmeldung (Breeze). Der erste registrierte Benutzer wird automatisch Administrator.
+- 🔐 Benutzer-Anmeldung. Der erste registrierte Benutzer wird automatisch Administrator.
 - 🧭 Dynamische linke Navigation:
   - **Startseite** → Liste aller aktiven Module
   - **im Modul** → Modulname + „Zurück" + die Unterseiten des Moduls
-- 🧩 Modul-System: jedes Modul ist ein eigenes Composer-Paket / Git-Repo
-- ⚙️ Admin-Panel („Verwaltung"): Module und Unterseiten per Drag & Drop sortieren, Module an/aus
+- 🧩 Modul-System: jedes Modul ist ein eigenes Composer-Paket
+- ⚙️ Admin-Panel: Module und Unterseiten per Drag & Drop sortieren, aktivieren/deaktivieren
 
-## Einrichtung
+## Voraussetzungen
+
+- PHP ≥ 8.3 und [Composer](https://getcomposer.org)
+- Node.js & npm (zum Bauen der Oberflächen-Assets)
+- Eine Datenbank – standardmäßig **SQLite** (keine Einrichtung nötig); MySQL/MariaDB
+  und PostgreSQL werden ebenso unterstützt (Verbindung in der `.env` einstellen).
+
+## Installation
 
 ```bash
+git clone <repo-url> intranet-core
+cd intranet-core
+
 composer install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate
+
 npm install
 npm run build
+
 php artisan serve
 ```
 
-Dann `http://127.0.0.1:8000` öffnen und den ersten Benutzer registrieren (= Admin).
-
-> **Hinweis (Herd/Windows):** PHP, Composer und Node liegen unter `~/.config/herd/bin`
-> und sind in Tool-Shells ggf. nicht im PATH. Voranstellen:
-> `~/.config/herd/bin` (+ `nvm/<version>` für Node).
+Anschließend `http://127.0.0.1:8000` öffnen und den ersten Benutzer registrieren –
+dieser wird automatisch Administrator.
 
 ## Module entwickeln
 
-Wie man ein Modul baut, das sich korrekt integriert, steht ausführlich in **[MODULES.md](MODULES.md)**.
-Als vollständiges Beispiel dient das Repo [`intranet-module-news`](../intranet-module-news).
+Der Core ist ohne Module lauffähig; Funktionen kommen als Module hinzu. Wie man ein
+Modul baut, das sich automatisch integriert, beschreibt **[MODULES.md](MODULES.md)**
+Schritt für Schritt (inkl. Checkliste).
 
-Kurzfassung – Modul installieren:
+Ein installierbares Beispiel-Modul ist [`do1emu/module-news`](https://packagist.org/packages/do1emu/module-news):
 
 ```bash
-# in composer.json des Core einen repositories-Eintrag auf das Modul-Repo, dann:
-composer require do1emu/module-news:*
+composer require do1emu/module-news
 php artisan modules:sync   # Modul in die DB übernehmen (Reihenfolge/An-Aus bleiben erhalten)
 php artisan migrate        # ggf. Modul-Tabellen anlegen
 ```
@@ -62,3 +72,12 @@ php artisan migrate        # ggf. Modul-Tabellen anlegen
 | Navigation (Sidebar-Logik) | `app/Modules/Support/Navigation.php` + `app/View/Composers/` |
 | Admin-Panel | `app/Http/Controllers/Admin/ModuleController.php`, `resources/views/admin/` |
 | Layout | `resources/views/layouts/` (app, header, sidebar, footer) |
+
+## Lizenz
+
+MIT
+
+---
+
+> Hinweise zur lokalen Entwicklungsumgebung und interne Konventionen (auch für
+> KI-Assistenten) stehen in **[KIKNOWLEGE.md](KIKNOWLEGE.md)**.
