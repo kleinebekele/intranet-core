@@ -22,11 +22,27 @@ use Illuminate\View\View;
  */
 class UserController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $users = User::with('roles')->orderBy('name')->get();
+        $search = trim((string) $request->query('search', ''));
+        $roleFilter = (string) $request->query('role', '');
 
-        return view('admin.users.index', compact('users'));
+        $users = User::with('roles')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->when($roleFilter !== '', function ($query) use ($roleFilter) {
+                $query->whereHas('roles', fn ($q) => $q->where('roles.role_id', $roleFilter));
+            })
+            ->orderBy('name')
+            ->get();
+
+        $roles = Role::orderBy('role_id')->get();
+
+        return view('admin.users.index', compact('users', 'roles', 'search', 'roleFilter'));
     }
 
     public function create(): View
