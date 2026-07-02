@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
 
         // Rollen-Verwaltung (CRUD). {role} bindet automatisch über role_id.
         Route::resource('roles', RoleController::class)->except(['show']);
+        Route::post('roles/{role}/detach-all', [RoleController::class, 'detachAll'])->name('roles.detach-all');
 
         // Benutzer-Verwaltung (CRUD) + Passwort-Reset-Link.
         Route::resource('users', UserController::class)->except(['show']);

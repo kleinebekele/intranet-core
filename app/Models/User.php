@@ -46,6 +46,15 @@ class User extends Authenticatable
                 $user->is_admin = true;
             }
         });
+
+        static::created(function (User $user): void {
+            // Grundregel: jeder Benutzer erhält automatisch die Rolle "user"
+            // (gilt auch für importierte Benutzer, da diese über dieses Model
+            // angelegt werden). Guard, falls die Rolle noch nicht existiert.
+            if (Role::whereKey('user')->exists()) {
+                $user->roles()->syncWithoutDetaching(['user']);
+            }
+        });
     }
 
     public function isAdmin(): bool

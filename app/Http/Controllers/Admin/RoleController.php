@@ -61,10 +61,32 @@ class RoleController extends Controller
 
     public function destroy(Role $role): RedirectResponse
     {
+        if ($role->isSystem()) {
+            return back()->withErrors(['role' => "Die System-Rolle \"{$role->role_id}\" kann nicht gelöscht werden."]);
+        }
+
+        if ($role->users()->exists()) {
+            return back()->withErrors(['role' => 'Rollen mit Zuweisungen können nicht gelöscht werden. Hebe zuerst alle Zuweisungen auf.']);
+        }
+
         $roleId = $role->role_id;
-        $role->delete(); // user_roles-Einträge verschwinden per cascadeOnDelete
+        $role->delete();
 
         return redirect()->route('admin.roles.index')
             ->with('status', "Rolle \"{$roleId}\" wurde gelöscht.");
+    }
+
+    /** Alle Benutzer-Zuweisungen einer (Nicht-System-)Rolle aufheben. */
+    public function detachAll(Role $role): RedirectResponse
+    {
+        if ($role->isSystem()) {
+            return back()->withErrors(['role' => "Bei der System-Rolle \"{$role->role_id}\" können Zuweisungen nicht aufgehoben werden."]);
+        }
+
+        $count = $role->users()->count();
+        $role->users()->detach();
+
+        return redirect()->route('admin.roles.index')
+            ->with('status', "Alle {$count} Zuweisung(en) der Rolle \"{$role->name}\" wurden aufgehoben.");
     }
 }

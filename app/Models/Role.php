@@ -20,6 +20,21 @@ class Role extends Model
     protected $fillable = ['role_id', 'name'];
 
     /**
+     * `is_system` ist bewusst NICHT mass-assignable – System-Rollen werden
+     * nur per Migration gesetzt und können im Panel nicht verändert werden.
+     */
+    protected function casts(): array
+    {
+        return ['is_system' => 'boolean'];
+    }
+
+    /** System-Rollen (z. B. admin, user) sind fest und dürfen nicht gelöscht werden. */
+    public function isSystem(): bool
+    {
+        return (bool) $this->is_system;
+    }
+
+    /**
      * Alle Benutzer, die diese Rolle besitzen (n:n über user_roles).
      */
     public function users(): BelongsToMany

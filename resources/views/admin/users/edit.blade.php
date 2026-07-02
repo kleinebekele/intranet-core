@@ -37,11 +37,15 @@
                 @else
                     <div class="mt-2 grid grid-cols-2 gap-2">
                         @foreach ($roles as $role)
-                            <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2">
+                            @php($isBaseline = $role->role_id === 'user')
+                            <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 {{ $isBaseline ? 'bg-gray-50' : '' }}">
                                 <input type="checkbox" name="roles[]" value="{{ $role->role_id }}"
-                                       @checked(in_array($role->role_id, $selectedRoles))
+                                       @checked($isBaseline || in_array($role->role_id, $selectedRoles))
+                                       @disabled($isBaseline)
                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                <span class="text-sm text-gray-700">{{ $role->name }}</span>
+                                <span class="text-sm text-gray-700">
+                                    {{ $role->name }}@if ($isBaseline) <span class="text-xs text-gray-400">(automatisch)</span>@endif
+                                </span>
                             </label>
                         @endforeach
                     </div>

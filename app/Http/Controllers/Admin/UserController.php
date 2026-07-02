@@ -72,7 +72,7 @@ class UserController extends Controller
             'email_verified_at' => now(), // vom Admin angelegt = vertrauenswürdig
         ])->save();
 
-        $user->roles()->sync($data['roles'] ?? []);
+        $user->roles()->sync($this->rolesWithBaseline($data['roles'] ?? []));
 
         // Willkommens-Mail mit Link zum Passwort-Setzen.
         $token = Password::broker()->createToken($user);
@@ -110,7 +110,7 @@ class UserController extends Controller
         $user->is_admin = $isAdmin;
         $user->save();
 
-        $user->roles()->sync($data['roles'] ?? []);
+        $user->roles()->sync($this->rolesWithBaseline($data['roles'] ?? []));
 
         return redirect()->route('admin.users.index')
             ->with('status', "Benutzer \"{$user->name}\" wurde aktualisiert.");
@@ -128,6 +128,18 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('status', "Benutzer \"{$name}\" wurde gelöscht.");
+    }
+
+    /**
+     * Stellt sicher, dass die Baseline-Rolle "user" immer enthalten ist –
+     * jeder Benutzer hat sie automatisch.
+     *
+     * @param  array<int, string>  $roles
+     * @return array<int, string>
+     */
+    private function rolesWithBaseline(array $roles): array
+    {
+        return array_values(array_unique([...$roles, 'user']));
     }
 
     /** Einen Passwort-Reset-Link an den Benutzer versenden. */
