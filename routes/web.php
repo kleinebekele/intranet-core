@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/modules/reorder', [ModuleController::class, 'reorder'])->name('modules.reorder');
         Route::post('/modules/{module}/toggle', [ModuleController::class, 'toggle'])->name('modules.toggle');
         Route::post('/modules/{module}/menu/reorder', [ModuleController::class, 'reorderItems'])->name('modules.menu.reorder');
+
+        // Rollen-Verwaltung (CRUD). {role} bindet automatisch über role_id.
+        Route::resource('roles', RoleController::class)->except(['show']);
     });
 });
 

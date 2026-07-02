@@ -4,6 +4,8 @@
     </x-slot>
 
     <div class="max-w-3xl">
+        @include('admin.partials.tabs')
+
         <p class="text-gray-600 mb-6">
             Ziehe Module am <span class="font-medium">⠿</span>-Griff, um ihre Reihenfolge im Menü zu ändern.
             Klappe ein Modul auf, um seine Unterseiten zu sortieren. Die Reihenfolge wird sofort gespeichert.
