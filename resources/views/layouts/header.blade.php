@@ -33,7 +33,7 @@
                         class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('admin.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100' }}"
                         title="Verwaltung"
                     >
-                        <x-module-icon name="cog" class="h-5 w-5" />
+                        <x-module-icon name="cog" class="text-xl" />
                         <span class="hidden sm:inline">Verwaltung</span>
                     </a>
                 @endif

@@ -35,7 +35,7 @@
                             </button>
 
                             <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                                <x-module-icon :name="$module->icon" class="h-5 w-5" />
+                                <x-module-icon :name="$module->icon" class="text-xl" />
                             </span>
 
                             <div class="min-w-0 flex-1">
