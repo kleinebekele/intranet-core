@@ -19,7 +19,10 @@ class RoleController extends Controller
 {
     public function index(): View
     {
-        $roles = Role::withCount('users')->orderBy('role_id')->get();
+        $roles = Role::withCount('users')
+            ->orderByDesc('is_system') // System-Rollen (admin, user) zuerst
+            ->orderBy('role_id')
+            ->get();
 
         return view('admin.roles.index', compact('roles'));
     }

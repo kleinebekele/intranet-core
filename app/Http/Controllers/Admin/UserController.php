@@ -40,14 +40,14 @@ class UserController extends Controller
             ->orderBy('name')
             ->get();
 
-        $roles = Role::orderBy('role_id')->get();
+        $roles = Role::orderByDesc('is_system')->orderBy('role_id')->get();
 
         return view('admin.users.index', compact('users', 'roles', 'search', 'roleFilter'));
     }
 
     public function create(): View
     {
-        $roles = Role::orderBy('role_id')->get();
+        $roles = Role::orderByDesc('is_system')->orderBy('role_id')->get();
 
         return view('admin.users.create', compact('roles'));
     }
@@ -84,7 +84,7 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        $roles = Role::orderBy('role_id')->get();
+        $roles = Role::orderByDesc('is_system')->orderBy('role_id')->get();
         $user->load('roles');
 
         return view('admin.users.edit', compact('user', 'roles'));
