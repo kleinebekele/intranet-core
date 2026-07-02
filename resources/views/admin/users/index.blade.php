@@ -7,8 +7,9 @@
         @include('admin.partials.tabs')
 
         @if ($errors->any())
-            <div class="mb-4 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-                {{ $errors->first() }}
+            <div class="mb-4 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+                <i class='bx bx-error-circle text-lg leading-none'></i>
+                <span>{{ $errors->first() }}</span>
             </div>
         @endif
 

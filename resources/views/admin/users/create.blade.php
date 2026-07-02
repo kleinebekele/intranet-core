@@ -53,7 +53,8 @@
 
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit"
-                        class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                    <i class='bx bx-user-plus text-base'></i>
                     Anlegen &amp; einladen
                 </button>
                 <a href="{{ route('admin.users.index') }}" class="text-sm text-gray-500 hover:text-gray-700">Abbrechen</a>

@@ -49,8 +49,9 @@
 
                     @if (session('status'))
                         <div class="px-4 sm:px-6 lg:px-8 pt-4">
-                            <div class="rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">
-                                {{ session('status') }}
+                            <div class="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">
+                                <i class='bx bx-check-circle text-lg leading-none'></i>
+                                <span>{{ session('status') }}</span>
                             </div>
                         </div>
                     @endif

@@ -57,7 +57,8 @@
 
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit"
-                        class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                        class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                    <i class='bx bx-save text-base'></i>
                     Speichern
                 </button>
                 <a href="{{ route('admin.users.index') }}" class="text-sm text-gray-500 hover:text-gray-700">Abbrechen</a>
@@ -72,7 +73,8 @@
                 Passwort-Reset-Link an <span class="font-medium">{{ $user->email }}</span> senden.
             </div>
             <button type="submit"
-                    class="rounded-lg border border-indigo-200 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50">
+                    class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50">
+                <i class='bx bx-mail-send text-base'></i>
                 Link senden
             </button>
         </form>
