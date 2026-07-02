@@ -263,16 +263,16 @@
         },
         {
             "name": "do1emu/module-userimport",
-            "version": "v1.0.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/kleinebekele/intranet-module-userimport.git",
-                "reference": "2e0cac1d4a0737c35798c99daa5034124b11a065"
+                "reference": "09332e96b53ff2afb648b25f96aa461873a75cbf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/kleinebekele/intranet-module-userimport/zipball/2e0cac1d4a0737c35798c99daa5034124b11a065",
-                "reference": "2e0cac1d4a0737c35798c99daa5034124b11a065",
+                "url": "https://api.github.com/repos/kleinebekele/intranet-module-userimport/zipball/09332e96b53ff2afb648b25f96aa461873a75cbf",
+                "reference": "09332e96b53ff2afb648b25f96aa461873a75cbf",
                 "shasum": ""
             },
             "require": {
@@ -310,9 +310,9 @@
             ],
             "support": {
                 "issues": "https://github.com/kleinebekele/intranet-module-userimport/issues",
-                "source": "https://github.com/kleinebekele/intranet-module-userimport/tree/v1.0.0"
+                "source": "https://github.com/kleinebekele/intranet-module-userimport/tree/v1.0.1"
             },
-            "time": "2026-07-02T14:12:25+00:00"
+            "time": "2026-07-02T15:53:01+00:00"
         },
         {
             "name": "doctrine/inflector",
