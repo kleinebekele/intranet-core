@@ -5,9 +5,6 @@
     "description": "Modulare Intranet-Plattform (Core-Grundgerüst).",
     "keywords": ["laravel", "intranet"],
     "license": "MIT",
-    "repositories": [
-        { "type": "vcs", "url": "https://github.com/kleinebekele/intranet-module-userimport" }
-    ],
     "require": {
         "php": "^8.3",
         "do1emu/module-news": "^1.0",

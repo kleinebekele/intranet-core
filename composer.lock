@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "70766b82b27e9638a2164ed98905432c",
+    "content-hash": "778d6e47aff3b5a4a5014f82ad7adf38",
     "packages": [
         {
             "name": "brick/math",
@@ -291,6 +291,7 @@
                     "Intranet\\Modules\\UserImport\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -301,15 +302,15 @@
             ],
             "description": "Benutzer-Import-Modul für die modulare Intranet-Plattform: CSV-Import mit Rollen und Einladungslink. https://github.com/kleinebekele/intranet-core",
             "keywords": [
+                "Users",
                 "import",
                 "intranet",
                 "laravel",
-                "modul",
-                "users"
+                "modul"
             ],
             "support": {
-                "source": "https://github.com/kleinebekele/intranet-module-userimport/tree/v1.0.0",
-                "issues": "https://github.com/kleinebekele/intranet-module-userimport/issues"
+                "issues": "https://github.com/kleinebekele/intranet-module-userimport/issues",
+                "source": "https://github.com/kleinebekele/intranet-module-userimport/tree/v1.0.0"
             },
             "time": "2026-07-02T14:12:25+00:00"
         },
