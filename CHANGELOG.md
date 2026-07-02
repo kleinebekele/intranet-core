@@ -7,7 +7,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
-## 2026-07-02
+## [0.2.0] - 2026-07-02
 
 ### Hinzugefügt
 - **Rollen-System:** Tabellen `roles` (mit sprechendem Schlüssel `role_id`) und
@@ -33,7 +33,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - Komponente `module-icon` auf Boxicons umgestellt; Größe/Farbe über Utility-Klassen.
 - Import-Modul `do1emu/module-userimport` auf **v1.0.1** aktualisiert (über Packagist).
 
-## 2026-07-01
+## [0.1.0] - 2026-07-01
 
 ### Hinzugefügt
 - **Initiales Grundgerüst** der modularen Intranet-Plattform (Laravel + Breeze):
@@ -45,3 +45,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - News-Modul wird über **Packagist** bezogen (`do1emu/module-news` `^1.0`).
 - Entwickler-/KI-Wissen nach `CLAUDE.md` ausgelagert, öffentliche `README.md` neutralisiert;
   Modul-Vorlage und Lock auf PHP `^8.3` angepasst.
+
+[Unveröffentlicht]: https://github.com/kleinebekele/intranet-core/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/kleinebekele/intranet-core/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/kleinebekele/intranet-core/releases/tag/v0.1.0

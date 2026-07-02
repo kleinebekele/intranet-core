@@ -73,6 +73,11 @@ php artisan migrate        # ggf. Modul-Tabellen anlegen
 | Admin-Panel | `app/Http/Controllers/Admin/ModuleController.php`, `resources/views/admin/` |
 | Layout | `resources/views/layouts/` (app, header, sidebar, footer) |
 
+## Änderungshistorie
+
+Alle nennenswerten Änderungen am Core – gruppiert nach Version und Datum – stehen in
+**[CHANGELOG.md](CHANGELOG.md)**.
+
 ## Lizenz
 
 MIT
