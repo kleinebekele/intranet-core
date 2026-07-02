@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,10 @@ Route::middleware('auth')->group(function () {
 
         // Rollen-Verwaltung (CRUD). {role} bindet automatisch über role_id.
         Route::resource('roles', RoleController::class)->except(['show']);
+
+        // Benutzer-Verwaltung (CRUD) + Passwort-Reset-Link.
+        Route::resource('users', UserController::class)->except(['show']);
+        Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
     });
 });
 

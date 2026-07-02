@@ -29,7 +29,7 @@
             @auth
                 @if (auth()->user()->isAdmin())
                     <a
-                        href="{{ route('admin.modules.index') }}"
+                        href="{{ route('admin.users.index') }}"
                         class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('admin.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100' }}"
                         title="Verwaltung"
                     >
