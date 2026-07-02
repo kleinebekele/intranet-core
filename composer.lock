@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fd4555d54c74707140f321b568fba88a",
+    "content-hash": "70766b82b27e9638a2164ed98905432c",
     "packages": [
         {
             "name": "brick/math",
@@ -260,6 +260,58 @@
                 "source": "https://github.com/kleinebekele/intranet-module-news/tree/v1.0.1"
             },
             "time": "2026-07-01T20:06:08+00:00"
+        },
+        {
+            "name": "do1emu/module-userimport",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/kleinebekele/intranet-module-userimport.git",
+                "reference": "2e0cac1d4a0737c35798c99daa5034124b11a065"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/kleinebekele/intranet-module-userimport/zipball/2e0cac1d4a0737c35798c99daa5034124b11a065",
+                "reference": "2e0cac1d4a0737c35798c99daa5034124b11a065",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Intranet\\Modules\\UserImport\\UserImportServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Intranet\\Modules\\UserImport\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "do1emu"
+                }
+            ],
+            "description": "Benutzer-Import-Modul für die modulare Intranet-Plattform: CSV-Import mit Rollen und Einladungslink. https://github.com/kleinebekele/intranet-core",
+            "keywords": [
+                "import",
+                "intranet",
+                "laravel",
+                "modul",
+                "users"
+            ],
+            "support": {
+                "source": "https://github.com/kleinebekele/intranet-module-userimport/tree/v1.0.0",
+                "issues": "https://github.com/kleinebekele/intranet-module-userimport/issues"
+            },
+            "time": "2026-07-02T14:12:25+00:00"
         },
         {
             "name": "doctrine/inflector",
