@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,35 @@ class Module extends Model
     public function menuItems(): HasMany
     {
         return $this->hasMany(ModuleMenuItem::class)->orderBy('position');
+    }
+
+    /** Rollen, die dieses Modul in der Navigation sehen dürfen (leer = alle). */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'module_role', 'module_id', 'role_id', 'id', 'role_id');
+    }
+
+    /**
+     * Darf der Benutzer dieses Modul sehen?
+     *  - Admins sehen immer alles.
+     *  - Ohne zugewiesene Rollen ist das Modul für alle sichtbar.
+     *  - Sonst genügt eine übereinstimmende Rolle.
+     */
+    public function isVisibleTo(?User $user): bool
+    {
+        if ($user?->is_admin) {
+            return true;
+        }
+        if ($this->roles->isEmpty()) {
+            return true;
+        }
+        if (! $user) {
+            return false;
+        }
+
+        return $user->roles->pluck('role_id')
+            ->intersect($this->roles->pluck('role_id'))
+            ->isNotEmpty();
     }
 
     /**

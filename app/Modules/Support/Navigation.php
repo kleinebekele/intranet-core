@@ -22,15 +22,23 @@ class Navigation
     {
     }
 
-    /** @return Collection<int, Module> Enabled + installed modules, in admin order. */
+    /** @return Collection<int, Module> Enabled + installed modules the current user may see, in admin order. */
     public function modules(): Collection
     {
+        $user = auth()->user();
+
         return Module::query()
-            ->with('menuItems')
+            ->with(['menuItems.roles', 'roles'])
             ->where('is_enabled', true)
             ->whereIn('key', $this->registry->keys())
             ->orderBy('position')
-            ->get();
+            ->get()
+            ->filter(fn (Module $module) => $module->isVisibleTo($user))
+            ->each(fn (Module $module) => $module->setRelation(
+                'menuItems',
+                $module->menuItems->filter(fn ($item) => $item->isVisibleTo($user))->values()
+            ))
+            ->values();
     }
 
     public function currentModuleKey(): ?string
@@ -47,9 +55,19 @@ class Navigation
             return null;
         }
 
-        return Module::query()
-            ->with('menuItems')
+        $module = Module::query()
+            ->with(['menuItems.roles', 'roles'])
             ->where('key', $key)
             ->first();
+
+        if ($module) {
+            $user = auth()->user();
+            $module->setRelation(
+                'menuItems',
+                $module->menuItems->filter(fn ($item) => $item->isVisibleTo($user))->values()
+            );
+        }
+
+        return $module;
     }
 }
