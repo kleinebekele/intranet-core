@@ -22,7 +22,13 @@ class ModuleController extends Controller
     public function index(): View
     {
         $modules = Module::with(['menuItems.roles', 'roles'])->orderBy('position')->get();
-        $roles = Role::orderByDesc('is_system')->orderBy('role_id')->get();
+
+        // "admin" wird bewusst NICHT als Sichtbarkeits-Rolle angeboten – Admins
+        // sehen ohnehin alles; "nur für Admins" regelt der separate Schalter.
+        $roles = Role::where('role_id', '!=', 'admin')
+            ->orderByDesc('is_system')
+            ->orderBy('role_id')
+            ->get();
 
         return view('admin.modules.index', compact('modules', 'roles'));
     }
@@ -34,18 +40,26 @@ class ModuleController extends Controller
     public function visibility(Request $request, Module $module): RedirectResponse
     {
         $data = $request->validate([
-            'module_roles'     => ['array'],
-            'module_roles.*'   => ['string', 'exists:roles,role_id'],
-            'item_roles'       => ['array'],
-            'item_roles.*'     => ['array'],
-            'item_roles.*.*'   => ['string', 'exists:roles,role_id'],
+            'module_admins_only' => ['sometimes', 'boolean'],
+            'module_roles'       => ['array'],
+            'module_roles.*'     => ['string', 'exists:roles,role_id'],
+            'item_admins_only'   => ['array'],
+            'item_admins_only.*' => ['boolean'],
+            'item_roles'         => ['array'],
+            'item_roles.*'       => ['array'],
+            'item_roles.*.*'     => ['string', 'exists:roles,role_id'],
         ]);
 
+        $module->admins_only = (bool) ($data['module_admins_only'] ?? false);
+        $module->save();
         $module->roles()->sync($data['module_roles'] ?? []);
 
         // Nur die Unterpunkte dieses Moduls anfassen.
         $itemRoles = $data['item_roles'] ?? [];
+        $itemAdminsOnly = $data['item_admins_only'] ?? [];
         foreach ($module->menuItems as $item) {
+            $item->admins_only = (bool) ($itemAdminsOnly[$item->id] ?? false);
+            $item->save();
             $item->roles()->sync($itemRoles[$item->id] ?? []);
         }
 

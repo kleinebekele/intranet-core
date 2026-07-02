@@ -9,7 +9,8 @@
         <p class="text-gray-600 mb-6">
             Ziehe Module am Griff, um ihre Reihenfolge zu ändern (wird sofort gespeichert). Klappe ein Modul auf,
             um seine Unterseiten zu sortieren und festzulegen, <span class="font-medium">welche Rollen</span>
-            das Modul bzw. einzelne Unterpunkte in der Navigation sehen.
+            das Modul bzw. einzelne Unterpunkte in der Navigation sehen. Ist <span class="font-medium">keine Rolle</span>
+            ausgewählt, ist der Eintrag für alle sichtbar. Admins sehen ohnehin immer alles.
         </p>
 
         @if ($modules->isEmpty())
@@ -74,12 +75,20 @@
 
                         <!-- Aufgeklappt: Sichtbarkeit (Modul + Unterseiten) -->
                         <div x-show="open" x-cloak class="border-t border-gray-100 px-4 py-4">
-                            <form method="POST" action="{{ route('admin.modules.visibility', $module) }}" class="space-y-4">
+                            <form method="POST" action="{{ route('admin.modules.visibility', $module) }}" class="space-y-4"
+                                  x-data="{ adminsOnly: {{ $module->admins_only ? 'true' : 'false' }} }">
                                 @csrf
                                 @method('PUT')
 
-                                {{-- Modul-Sichtbarkeit --}}
-                                <div>
+                                {{-- Nur für Admins (Modul) --}}
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="checkbox" name="module_admins_only" value="1" x-model="adminsOnly"
+                                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span class="inline-flex items-center gap-1"><i class='bx bx-lock-alt'></i> Nur für Admins sichtbar</span>
+                                </label>
+
+                                {{-- Modul-Sichtbarkeit (Rollen) --}}
+                                <div :class="adminsOnly && 'opacity-40 pointer-events-none'">
                                     <p class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">Modul sichtbar für</p>
                                     <div class="flex flex-wrap gap-1.5">
                                         @foreach ($roles as $role)
@@ -101,7 +110,8 @@
                                         <p class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">Unterseiten sichtbar für</p>
                                         <ul class="space-y-2" data-sortable="{{ route('admin.modules.menu.reorder', $module) }}" data-handle="[data-drag-handle=item]">
                                             @foreach ($module->menuItems as $item)
-                                                <li data-id="{{ $item->id }}" class="rounded-lg bg-gray-50 px-3 py-2">
+                                                <li data-id="{{ $item->id }}" class="rounded-lg bg-gray-50 px-3 py-2"
+                                                    x-data="{ itemAdminsOnly: {{ $item->admins_only ? 'true' : 'false' }} }">
                                                     <div class="flex items-center gap-2">
                                                         <button type="button" data-drag-handle="item" title="Ziehen zum Sortieren"
                                                                 class="cursor-grab active:cursor-grabbing text-lg leading-none text-gray-300 hover:text-gray-500">
@@ -110,15 +120,22 @@
                                                         <span class="text-sm font-medium text-gray-700">{{ $item->label }}</span>
                                                         <span class="ml-auto text-xs text-gray-400">{{ $item->route_name }}</span>
                                                     </div>
-                                                    <div class="mt-2 flex flex-wrap gap-1.5 pl-7">
-                                                        @foreach ($roles as $role)
-                                                            <label class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-700">
-                                                                <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
-                                                                       @checked($item->roles->contains('role_id', $role->role_id))
-                                                                       class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                                                {{ $role->name }}
-                                                            </label>
-                                                        @endforeach
+                                                    <div class="mt-2 space-y-2 pl-7">
+                                                        <label class="inline-flex items-center gap-2 text-sm text-gray-600">
+                                                            <input type="checkbox" name="item_admins_only[{{ $item->id }}]" value="1" x-model="itemAdminsOnly"
+                                                                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                            <span class="inline-flex items-center gap-1"><i class='bx bx-lock-alt'></i> Nur für Admins</span>
+                                                        </label>
+                                                        <div class="flex flex-wrap gap-1.5" :class="itemAdminsOnly && 'opacity-40 pointer-events-none'">
+                                                            @foreach ($roles as $role)
+                                                                <label class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-700">
+                                                                    <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
+                                                                           @checked($item->roles->contains('role_id', $role->role_id))
+                                                                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                                    {{ $role->name }}
+                                                                </label>
+                                                            @endforeach
+                                                        </div>
                                                     </div>
                                                 </li>
                                             @endforeach

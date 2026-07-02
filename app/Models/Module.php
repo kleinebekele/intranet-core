@@ -18,6 +18,7 @@ class Module extends Model
 
     protected $casts = [
         'is_enabled' => 'boolean',
+        'admins_only' => 'boolean',
         'position' => 'integer',
     ];
 
@@ -35,6 +36,7 @@ class Module extends Model
     /**
      * Darf der Benutzer dieses Modul sehen?
      *  - Admins sehen immer alles.
+     *  - `admins_only` -> nur Admins.
      *  - Ohne zugewiesene Rollen ist das Modul für alle sichtbar.
      *  - Sonst genügt eine übereinstimmende Rolle.
      */
@@ -42,6 +44,9 @@ class Module extends Model
     {
         if ($user?->is_admin) {
             return true;
+        }
+        if ($this->admins_only) {
+            return false;
         }
         if ($this->roles->isEmpty()) {
             return true;

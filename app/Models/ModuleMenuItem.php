@@ -16,6 +16,7 @@ class ModuleMenuItem extends Model
 
     protected $casts = [
         'position' => 'integer',
+        'admins_only' => 'boolean',
     ];
 
     public function module(): BelongsTo
@@ -32,6 +33,7 @@ class ModuleMenuItem extends Model
     /**
      * Darf der Benutzer diesen Unterpunkt sehen?
      *  - Admins sehen immer alles.
+     *  - `admins_only` -> nur Admins.
      *  - Ohne zugewiesene Rollen ist der Punkt für alle sichtbar.
      *  - Sonst genügt eine übereinstimmende Rolle.
      */
@@ -39,6 +41,9 @@ class ModuleMenuItem extends Model
     {
         if ($user?->is_admin) {
             return true;
+        }
+        if ($this->admins_only) {
+            return false;
         }
         if ($this->roles->isEmpty()) {
             return true;
