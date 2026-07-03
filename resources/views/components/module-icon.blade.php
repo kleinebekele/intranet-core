@@ -19,6 +19,15 @@
         'calendar'  => 'bx-calendar',
         'document'  => 'bx-file',
         'chat'      => 'bx-chat',
+        'restaurant' => 'bx-restaurant',
+        'edit'      => 'bx-edit',
+        'back'      => 'bx-arrow-back',
+        'plus'      => 'bx-plus',
+        'trash'     => 'bx-trash',
+        'download'  => 'bx-download',
+        'search'    => 'bx-search',
+        'save'      => 'bx-save',
+        'x'         => 'bx-x',
         'default'   => 'bx-grid-alt',
     ];
     $icon = $icons[$name] ?? $icons['default'];

@@ -7,6 +7,14 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- Weitere Icons in der `module-icon`-Whitelist (`restaurant`, `edit`, `back`, `plus`,
+  `trash`, `download`, `search`, `save`, `x`) – für die Oberflächen der Module.
+
+### Geändert
+- Tailwind-`content` scannt jetzt auch die Blade-Views installierter Module
+  (`vendor/do1emu/module-*/resources/views`), damit deren CSS-Klassen im Build landen.
+
 ## [0.2.0] - 2026-07-02
 
 ### Hinzugefügt
