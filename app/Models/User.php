@@ -72,4 +72,22 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id', 'id', 'role_id');
     }
+
+    /**
+     * Die Eltern / Vormunde dieses Benutzers (n:m über users_parents).
+     * Dieser Benutzer ist das Kind (user_id), die Beziehung zeigt auf parent_id.
+     */
+    public function parents(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'users_parents', 'user_id', 'parent_id');
+    }
+
+    /**
+     * Die Kinder / Mündel dieses Benutzers (Gegenrichtung von parents()).
+     * Dieser Benutzer ist das Elternteil (parent_id).
+     */
+    public function children(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'users_parents', 'parent_id', 'user_id');
+    }
 }
