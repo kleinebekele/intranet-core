@@ -21,6 +21,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/framework/adminer-sessions
 /storage/pail
 /vendor
 _ide_helper.php
