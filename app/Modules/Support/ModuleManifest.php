@@ -37,8 +37,9 @@ class ModuleManifest
      * @param  string       $routeName   Laravel route name this item links to.
      * @param  string|null  $icon        Icon-Name (siehe x-module-icon); null = neutraler Punkt.
      * @param  int          $position    Default order (admin can override later).
+     * @param  bool         $adminsOnly  Nur für Admins sichtbar (beim Anlegen via modules:sync gesetzt).
      */
-    public function item(string $key, string $label, string $routeName, ?string $icon = null, int $position = 0): static
+    public function item(string $key, string $label, string $routeName, ?string $icon = null, int $position = 0, bool $adminsOnly = false): static
     {
         $this->items[] = new MenuItem(
             key: $key,
@@ -46,6 +47,7 @@ class ModuleManifest
             routeName: $routeName,
             position: $position ?: count($this->items),
             icon: $icon,
+            adminsOnly: $adminsOnly,
         );
 
         return $this;

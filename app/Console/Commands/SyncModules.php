@@ -60,6 +60,9 @@ class SyncModules extends Command
                 if (! $menuItem->exists) {
                     // Use the manifest's 0-based position directly (0 is valid!).
                     $menuItem->position = $item->position;
+                    // Manifest-Vorgabe nur beim Anlegen übernehmen – danach gehört
+                    // die Sichtbarkeit dem Admin (im Panel umschaltbar).
+                    $menuItem->admins_only = $item->adminsOnly;
                 }
 
                 $menuItem->save();

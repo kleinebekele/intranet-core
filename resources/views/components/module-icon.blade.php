@@ -40,6 +40,7 @@
         'user'      => 'bx-user',
         'like'      => 'bx-like',
         'trophy'    => 'bx-trophy',
+        'book'      => 'bx-book-open',
         'default'   => 'bx-grid-alt',
     ];
     $icon = $icons[$name] ?? $icons['default'];

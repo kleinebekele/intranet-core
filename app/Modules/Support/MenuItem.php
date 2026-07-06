@@ -15,6 +15,7 @@ class MenuItem
         public string $routeName,
         public int $position = 0,
         public ?string $icon = null,
+        public bool $adminsOnly = false,
     ) {
     }
 }
