@@ -14,6 +14,7 @@ class MenuItem
         public string $label,
         public string $routeName,
         public int $position = 0,
+        public ?string $icon = null,
     ) {
     }
 }

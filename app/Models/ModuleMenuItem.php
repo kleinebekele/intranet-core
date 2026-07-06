@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
  */
 class ModuleMenuItem extends Model
 {
-    protected $fillable = ['module_id', 'key', 'label', 'route_name', 'position'];
+    protected $fillable = ['module_id', 'key', 'label', 'route_name', 'icon', 'position'];
 
     protected $casts = [
         'position' => 'integer',
@@ -62,8 +62,40 @@ class ModuleMenuItem extends Model
         return Route::has($this->route_name) ? route($this->route_name) : null;
     }
 
-    public function isActive(): bool
+    /**
+     * Wie gut passt dieser Menüpunkt auf die gerade aufgerufene Route?
+     * 0 = kein Treffer; ein höherer Wert bedeutet „spezifischer".
+     *
+     * Ein „Sammel"-Punkt (…{resource}.index) bleibt auch auf seinen
+     * Unterseiten markiert (…{resource}.show / .edit / …), damit der Nutzer
+     * beim Öffnen z. B. einer einzelnen Saison weiterhin sieht, wo er ist.
+     * Der Modul-Start (module.{key}.index) ist davon ausgenommen – sonst
+     * würde er auf jeder Modulseite leuchten. Bei konkurrierenden Treffern
+     * gewinnt der spezifischste (siehe Module::activeMenuItem), damit etwa
+     * auf der OGS-Seite nicht zusätzlich „Ausgabe" markiert wird.
+     */
+    public function activeScore(): int
     {
-        return request()->routeIs($this->route_name);
+        $current = request()->route()?->getName();
+
+        if (! $current) {
+            return 0;
+        }
+
+        if ($current === $this->route_name) {
+            return PHP_INT_MAX;
+        }
+
+        if (str_ends_with($this->route_name, '.index')) {
+            $base = substr($this->route_name, 0, -strlen('.index'));
+
+            // Nur echte Ressourcen (module.{key}.{resource}) auf ihre Unterseiten
+            // erweitern – nicht den Modul-Start (module.{key}).
+            if (substr_count($base, '.') >= 2 && str_starts_with($current, $base.'.')) {
+                return strlen($base);
+            }
+        }
+
+        return 0;
     }
 }

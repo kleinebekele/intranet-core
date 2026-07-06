@@ -22,19 +22,28 @@
             <span class="text-base font-semibold text-gray-800">{{ $currentModule->name }}</span>
         </div>
 
+        @php $activeItem = $currentModule->activeMenuItem(); @endphp
         <div class="space-y-1">
             @foreach ($currentModule->menuItems as $item)
                 <a href="{{ $item->url() ?? '#' }}"
                    @class([
                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
-                       'bg-indigo-50 text-indigo-700' => $item->isActive(),
-                       'text-gray-600 hover:bg-gray-100 hover:text-gray-900' => ! $item->isActive(),
+                       'bg-indigo-50 text-indigo-700' => $item->is($activeItem),
+                       'text-gray-600 hover:bg-gray-100 hover:text-gray-900' => ! $item->is($activeItem),
                    ])>
-                    <span @class([
-                        'h-1.5 w-1.5 rounded-full',
-                        'bg-indigo-600' => $item->isActive(),
-                        'bg-gray-300' => ! $item->isActive(),
-                    ])></span>
+                    @if ($item->icon)
+                        <x-module-icon :name="$item->icon" @class([
+                            'text-lg',
+                            'text-indigo-600' => $item->is($activeItem),
+                            'text-gray-400' => ! $item->is($activeItem),
+                        ]) />
+                    @else
+                        <span @class([
+                            'h-1.5 w-1.5 rounded-full',
+                            'bg-indigo-600' => $item->is($activeItem),
+                            'bg-gray-300' => ! $item->is($activeItem),
+                        ])></span>
+                    @endif
                     {{ $item->label }}
                 </a>
             @endforeach

@@ -32,18 +32,20 @@ class ModuleManifest
     /**
      * Register a sub-page (menu item) of this module.
      *
-     * @param  string  $key         Stable identifier, unique within the module.
-     * @param  string  $label       Text shown in the left menu.
-     * @param  string  $routeName   Laravel route name this item links to.
-     * @param  int     $position    Default order (admin can override later).
+     * @param  string       $key         Stable identifier, unique within the module.
+     * @param  string       $label       Text shown in the left menu.
+     * @param  string       $routeName   Laravel route name this item links to.
+     * @param  string|null  $icon        Icon-Name (siehe x-module-icon); null = neutraler Punkt.
+     * @param  int          $position    Default order (admin can override later).
      */
-    public function item(string $key, string $label, string $routeName, int $position = 0): static
+    public function item(string $key, string $label, string $routeName, ?string $icon = null, int $position = 0): static
     {
         $this->items[] = new MenuItem(
             key: $key,
             label: $label,
             routeName: $routeName,
             position: $position ?: count($this->items),
+            icon: $icon,
         );
 
         return $this;

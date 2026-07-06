@@ -61,6 +61,28 @@ class Module extends Model
     }
 
     /**
+     * Der aktuell aktive Menüpunkt: der spezifischste Treffer auf die laufende
+     * Route (siehe ModuleMenuItem::activeScore). Arbeitet auf der bereits
+     * geladenen menuItems-Beziehung, damit die Sidebar keine Extra-Abfragen
+     * auslöst. null, wenn kein Punkt passt.
+     */
+    public function activeMenuItem(): ?ModuleMenuItem
+    {
+        $best = null;
+        $bestScore = 0;
+
+        foreach ($this->menuItems as $item) {
+            $score = $item->activeScore();
+            if ($score > $bestScore) {
+                $best = $item;
+                $bestScore = $score;
+            }
+        }
+
+        return $best;
+    }
+
+    /**
      * Where clicking the module in the main sidebar should take you:
      * its first sub-page (the module's landing page).
      */

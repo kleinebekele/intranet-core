@@ -28,6 +28,18 @@
         'search'    => 'bx-search',
         'save'      => 'bx-save',
         'x'         => 'bx-x',
+        // Menü-Icons (Modul-Unterpunkte)
+        'grid'      => 'bx-grid-alt',
+        'cart'      => 'bx-cart',
+        'diet'      => 'bx-heart',
+        'serving'   => 'bx-bowl-hot',
+        'list'      => 'bx-list-check',
+        'category'  => 'bx-category',
+        'dish'      => 'bx-dish',
+        'menu-card' => 'bx-food-menu',
+        'user'      => 'bx-user',
+        'like'      => 'bx-like',
+        'trophy'    => 'bx-trophy',
         'default'   => 'bx-grid-alt',
     ];
     $icon = $icons[$name] ?? $icons['default'];

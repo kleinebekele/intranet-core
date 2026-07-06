@@ -9,7 +9,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ### Hinzugefügt
 - Weitere Icons in der `module-icon`-Whitelist (`restaurant`, `edit`, `back`, `plus`,
-  `trash`, `download`, `search`, `save`, `x`) – für die Oberflächen der Module.
+  `trash`, `download`, `search`, `save`, `x`, `like`, `trophy`) – für die Oberflächen der Module.
 
 ### Geändert
 - Tailwind-`content` scannt jetzt auch die Blade-Views installierter Module
