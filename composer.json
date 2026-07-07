@@ -7,6 +7,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "do1emu/module-news": "@dev",
+        "do1emu/module-userimport": "@dev",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0"
     },
@@ -83,5 +85,14 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": [{
+        "name": "userimport",
+        "type": "path",
+        "url": "../intranet-module-userimport"
+    },{
+        "name": "news",
+        "type": "path",
+        "url": "../intranet-module-news"
+    }]
 }

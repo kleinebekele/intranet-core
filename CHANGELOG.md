@@ -7,6 +7,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- **Zeitzone konfigurierbar:** `APP_TIMEZONE` in der `.env` (Default weiterhin `UTC`,
+  Empfehlung `Europe/Berlin`). Wirkt auf Anzeige, `now()` und den Task-Scheduler.
+
 ### Geändert (Sicherheit)
 - **Modul-Sichtbarkeit = Zugriffsrecht (Default-Deny):** Die Rollen an den Menü-Unterpunkten
   (Verwaltung → Module) steuern jetzt Navigation UND Seitenzugriff (neue Middleware

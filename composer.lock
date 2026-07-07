@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9970af28495b844f7d9f260055a8a96a",
+    "content-hash": "93868065e562cbd70967e2b84004686d",
     "packages": [
         {
             "name": "brick/math",
@@ -208,6 +208,93 @@
                 "source": "https://github.com/dflydev/dflydev-dot-access-data/tree/v3.0.3"
             },
             "time": "2024-07-08T12:26:09+00:00"
+        },
+        {
+            "name": "do1emu/module-news",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../intranet-module-news",
+                "reference": "ea29dc99bc7911260314a81ac2b9faad2e0e64bd"
+            },
+            "require": {
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Intranet\\Modules\\News\\NewsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Intranet\\Modules\\News\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "do1emu"
+                }
+            ],
+            "description": "Neuigkeiten-Modul für die modulare Intranet-Plattform: https://github.com/kleinebekele/intranet-core",
+            "keywords": [
+                "intranet",
+                "laravel",
+                "modul",
+                "news"
+            ],
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "do1emu/module-userimport",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../intranet-module-userimport",
+                "reference": "20e76c637319ca3f27f160c6a49f373c5076ae4c"
+            },
+            "require": {
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Intranet\\Modules\\UserImport\\UserImportServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Intranet\\Modules\\UserImport\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "do1emu"
+                }
+            ],
+            "description": "Benutzer-Import-Modul für die modulare Intranet-Plattform: CSV-Import mit Rollen und Einladungslink. https://github.com/kleinebekele/intranet-core",
+            "keywords": [
+                "import",
+                "intranet",
+                "laravel",
+                "modul",
+                "users"
+            ],
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "doctrine/inflector",
@@ -8345,7 +8432,10 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "do1emu/module-news": 20,
+        "do1emu/module-userimport": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
