@@ -7,6 +7,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Geändert (Sicherheit)
+- **Selbst-Registrierung standardmäßig geschlossen:** `/register` leitet zum Login um,
+  sobald mindestens ein Benutzer existiert. `REGISTRATION_ENABLED=true` in der `.env`
+  öffnet sie wieder. Ausnahme: auf frischen Installationen (0 Benutzer) bleibt sie offen,
+  damit der erste Admin angelegt werden kann.
+
 ### Hinzugefügt
 - **Zwei-Faktor-Authentifizierung** — immer verfügbar, **Opt-in je Benutzer** im Profil:
   Standard-Faktor ist ein 6-stelliger Code per E-Mail (10 Min gültig, max. 5 Versuche,

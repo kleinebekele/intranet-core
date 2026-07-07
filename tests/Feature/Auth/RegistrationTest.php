@@ -28,4 +28,51 @@ class RegistrationTest extends TestCase
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
     }
+
+    public function test_registrierung_ist_geschlossen_sobald_benutzer_existieren(): void
+    {
+        \App\Models\User::factory()->create();
+
+        $this->get('/register')->assertRedirect(route('login'));
+
+        $this->post('/register', [
+            'name' => 'Eindringling',
+            'email' => 'boese@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertRedirect(route('login'));
+
+        $this->assertGuest();
+        $this->assertDatabaseMissing('users', ['email' => 'boese@example.com']);
+    }
+
+    public function test_registrierung_laesst_sich_per_env_oeffnen(): void
+    {
+        config(['intranet.registration_enabled' => true]);
+        \App\Models\User::factory()->create();
+
+        $this->get('/register')->assertOk();
+
+        $this->post('/register', [
+            'name' => 'Neuer Kollege',
+            'email' => 'neu@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_erste_registrierung_ist_trotz_schalter_offen(): void
+    {
+        // Kein Benutzer vorhanden (frische Installation) → offen, wird Admin.
+        $this->get('/register')->assertOk();
+
+        $this->post('/register', [
+            'name' => 'Erster Admin',
+            'email' => 'admin@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $this->assertTrue(\App\Models\User::first()->is_admin);
+    }
 }

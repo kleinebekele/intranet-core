@@ -18,8 +18,12 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if (! $this->registrationAllowed()) {
+            return redirect()->route('login');
+        }
+
         return view('auth.register');
     }
 
@@ -30,6 +34,10 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (! $this->registrationAllowed()) {
+            return redirect()->route('login');
+        }
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
@@ -47,5 +55,15 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Registrierung offen? Per .env (REGISTRATION_ENABLED) — oder immer,
+     * solange noch kein Benutzer existiert (Erstinstallation braucht
+     * einen Weg zum ersten Admin).
+     */
+    private function registrationAllowed(): bool
+    {
+        return config('intranet.registration_enabled') || User::count() === 0;
     }
 }
