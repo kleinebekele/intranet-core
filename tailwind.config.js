@@ -8,6 +8,9 @@ export default {
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
         './vendor/do1emu/module-*/resources/views/**/*.blade.php',
+        // Module dürfen Tailwind-Klassen auch aus PHP-Code liefern
+        // (z. B. Farbcodierung der Ekkon-Laufzeiten in EkkonTask).
+        './vendor/do1emu/module-*/src/**/*.php',
     ],
 
     theme: {

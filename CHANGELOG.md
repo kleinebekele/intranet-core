@@ -11,6 +11,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Zeitzone konfigurierbar:** `APP_TIMEZONE` in der `.env` (Default weiterhin `UTC`,
   Empfehlung `Europe/Berlin`). Wirkt auf Anzeige, `now()` und den Task-Scheduler.
 
+### Behoben
+- **Tailwind scannt Modul-PHP:** Klassen, die Module aus PHP-Code liefern (nicht nur
+  aus Blade-Views), landen jetzt im CSS-Build (`vendor/do1emu/module-*/src/**/*.php`).
+
 ### Geändert (Sicherheit)
 - **Modul-Sichtbarkeit = Zugriffsrecht (Default-Deny):** Die Rollen an den Menü-Unterpunkten
   (Verwaltung → Module) steuern jetzt Navigation UND Seitenzugriff (neue Middleware
