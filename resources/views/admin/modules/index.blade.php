@@ -9,8 +9,10 @@
         <p class="text-gray-600 mb-6">
             Ziehe Module am Griff, um ihre Reihenfolge zu ändern (wird sofort gespeichert). Klappe ein Modul auf,
             um seine Unterseiten zu sortieren und festzulegen, <span class="font-medium">welche Rollen</span>
-            das Modul bzw. einzelne Unterpunkte in der Navigation sehen. Ist <span class="font-medium">keine Rolle</span>
-            ausgewählt, ist der Eintrag für alle sichtbar. Admins sehen ohnehin immer alles.
+            die einzelnen Unterseiten sehen <span class="font-medium">und aufrufen</span> dürfen.
+            Ist <span class="font-medium">keine Rolle</span> ausgewählt, ist die Seite <span class="font-medium">nur für
+            Administratoren</span> zugänglich — „für alle" wählst du über die Basis-Rolle <span class="font-medium">Benutzer</span>,
+            die jeder automatisch hat. Ein Modul erscheint im Menü, sobald jemand mindestens eine seiner Unterseiten sehen darf.
         </p>
 
         @if ($modules->isEmpty())
@@ -87,21 +89,6 @@
                                     <span class="inline-flex items-center gap-1"><i class='bx bx-lock-alt'></i> Nur für Admins sichtbar</span>
                                 </label>
 
-                                {{-- Modul-Sichtbarkeit (Rollen) --}}
-                                <div :class="adminsOnly && 'opacity-40 pointer-events-none'">
-                                    <p class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">Modul sichtbar für</p>
-                                    <div class="flex flex-wrap gap-1.5">
-                                        @foreach ($roles as $role)
-                                            <label class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1 text-sm text-gray-700">
-                                                <input type="checkbox" name="module_roles[]" value="{{ $role->role_id }}"
-                                                       @checked($module->roles->contains('role_id', $role->role_id))
-                                                       class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                                {{ $role->name }}
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </div>
-
                                 {{-- Unterseiten: Reihenfolge (ziehen) + Sichtbarkeit --}}
                                 @if ($module->menuItems->isEmpty())
                                     <p class="text-sm text-gray-400">Dieses Modul hat keine Unterseiten.</p>
@@ -149,7 +136,7 @@
                                         <i class='bx bx-save text-base'></i>
                                         Sichtbarkeit speichern
                                     </button>
-                                    <span class="text-xs text-gray-400">Keine Auswahl = für alle sichtbar · Admins sehen immer alles</span>
+                                    <span class="text-xs text-gray-400">Keine Auswahl = nur Administratoren · „Benutzer" = alle · gilt für Menü und Zugriff</span>
                                 </div>
                             </form>
                         </div>

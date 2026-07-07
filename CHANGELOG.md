@@ -8,6 +8,15 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Geändert (Sicherheit)
+- **Modul-Sichtbarkeit = Zugriffsrecht (Default-Deny):** Die Rollen an den Menü-Unterpunkten
+  (Verwaltung → Module) steuern jetzt Navigation UND Seitenzugriff (neue Middleware
+  `EnsureModuleAccess` an der `web`-Gruppe, greift für alle `module.{key}.*`-Routen).
+  Neue Regel: **keine Rolle am Punkt = nur Administratoren**; „für alle" wählt man explizit
+  über die Basis-Rolle `user`. Technische Routen ohne eigenen Menüpunkt sind erreichbar,
+  wenn der Benutzer mindestens einen Punkt des Moduls sehen darf. Ein Modul erscheint im
+  Menü, sobald ein Unterpunkt sichtbar ist (Modul-Rollen entfallen; `admins_only` bleibt
+  als harte Sperre). **Bestands-Migration:** vorhandene rollenlose Punkte erhalten einmalig
+  die Rolle `user`, damit sich bestehende Installationen nicht ändern.
 - **Selbst-Registrierung standardmäßig geschlossen:** `/register` leitet zum Login um,
   sobald mindestens ein Benutzer existiert. `REGISTRATION_ENABLED=true` in der `.env`
   öffnet sie wieder. Ausnahme: auf frischen Installationen (0 Benutzer) bleibt sie offen,

@@ -27,18 +27,22 @@ class Module extends Model
         return $this->hasMany(ModuleMenuItem::class)->orderBy('position');
     }
 
-    /** Rollen, die dieses Modul in der Navigation sehen dürfen (leer = alle). */
+    /**
+     * Rollen-Zuordnung auf Modul-Ebene (veraltet): Sichtbarkeit wird seit der
+     * Default-Deny-Umstellung allein über die Unterpunkte gesteuert. Die
+     * Beziehung bleibt nur erhalten, damit Altdaten nicht verwaisen.
+     */
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'module_role', 'module_id', 'role_id', 'id', 'role_id');
     }
 
     /**
-     * Darf der Benutzer dieses Modul sehen?
+     * Darf der Benutzer dieses Modul sehen (Navigation UND Zugriff)?
      *  - Admins sehen immer alles.
-     *  - `admins_only` -> nur Admins.
-     *  - Ohne zugewiesene Rollen ist das Modul für alle sichtbar.
-     *  - Sonst genügt eine übereinstimmende Rolle.
+     *  - `admins_only` -> nur Admins (harte Sperre, Rollen egal).
+     *  - Sonst: sichtbar, wenn der Benutzer mindestens EINEN Unterpunkt
+     *    sehen darf (die Rollen hängen an den Unterpunkten).
      */
     public function isVisibleTo(?User $user): bool
     {
@@ -48,16 +52,10 @@ class Module extends Model
         if ($this->admins_only) {
             return false;
         }
-        if ($this->roles->isEmpty()) {
-            return true;
-        }
-        if (! $user) {
-            return false;
-        }
 
-        return $user->roles->pluck('role_id')
-            ->intersect($this->roles->pluck('role_id'))
-            ->isNotEmpty();
+        return $this->menuItems->contains(
+            fn (ModuleMenuItem $item) => $item->isVisibleTo($user),
+        );
     }
 
     /**

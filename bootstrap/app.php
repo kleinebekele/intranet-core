@@ -19,6 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // 2FA-Sperre global an der web-Gruppe: schützt automatisch auch alle
         // Modul-Routen, ohne dass Module etwas davon wissen müssen.
         $middleware->web(append: \App\Http\Middleware\EnsureTwoFactorChallenge::class);
+
+        // Sichtbarkeits-Einstellungen der Modul-Verwaltung als Zugriffs-Regel
+        // für alle module.{key}.*-Routen (nicht nur fürs Menü).
+        $middleware->web(append: \App\Http\Middleware\EnsureModuleAccess::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

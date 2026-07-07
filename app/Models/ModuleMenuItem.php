@@ -24,17 +24,18 @@ class ModuleMenuItem extends Model
         return $this->belongsTo(Module::class);
     }
 
-    /** Rollen, die diesen Unterpunkt sehen dürfen (leer = alle). */
+    /** Rollen, die diesen Unterpunkt sehen dürfen (keine = nur Administratoren). */
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'module_menu_item_role', 'module_menu_item_id', 'role_id', 'id', 'role_id');
     }
 
     /**
-     * Darf der Benutzer diesen Unterpunkt sehen?
+     * Darf der Benutzer diesen Unterpunkt sehen (Navigation UND Zugriff)?
      *  - Admins sehen immer alles.
      *  - `admins_only` -> nur Admins.
-     *  - Ohne zugewiesene Rollen ist der Punkt für alle sichtbar.
+     *  - Ohne zugewiesene Rollen -> nur Admins (sicherer Standard;
+     *    "für alle" drückt man explizit über die Basis-Rolle `user` aus).
      *  - Sonst genügt eine übereinstimmende Rolle.
      */
     public function isVisibleTo(?User $user): bool
@@ -42,13 +43,7 @@ class ModuleMenuItem extends Model
         if ($user?->is_admin) {
             return true;
         }
-        if ($this->admins_only) {
-            return false;
-        }
-        if ($this->roles->isEmpty()) {
-            return true;
-        }
-        if (! $user) {
+        if ($this->admins_only || $this->roles->isEmpty() || ! $user) {
             return false;
         }
 

@@ -34,15 +34,14 @@ class ModuleController extends Controller
     }
 
     /**
-     * Speichert, welche Rollen ein Modul und seine Unterpunkte in der
-     * Navigation sehen dürfen. Leere Auswahl = für alle sichtbar.
+     * Speichert, welche Rollen die Unterpunkte eines Moduls sehen dürfen
+     * (Navigation UND Zugriff). Leere Auswahl = nur Administratoren;
+     * "für alle" wählt man explizit über die Basis-Rolle `user`.
      */
     public function visibility(Request $request, Module $module): RedirectResponse
     {
         $data = $request->validate([
             'module_admins_only' => ['sometimes', 'boolean'],
-            'module_roles'       => ['array'],
-            'module_roles.*'     => ['string', 'exists:roles,role_id'],
             'item_admins_only'   => ['array'],
             'item_admins_only.*' => ['boolean'],
             'item_roles'         => ['array'],
@@ -52,7 +51,6 @@ class ModuleController extends Controller
 
         $module->admins_only = (bool) ($data['module_admins_only'] ?? false);
         $module->save();
-        $module->roles()->sync($data['module_roles'] ?? []);
 
         // Nur die Unterpunkte dieses Moduls anfassen.
         $itemRoles = $data['item_roles'] ?? [];
