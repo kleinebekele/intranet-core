@@ -31,6 +31,7 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
             'totp_secret' => 'encrypted',
             'totp_confirmed_at' => 'datetime',
+            'two_factor_enabled' => 'boolean',
         ];
     }
 
@@ -41,6 +42,15 @@ class User extends Authenticatable
     public function hasTotp(): bool
     {
         return $this->totp_secret !== null && $this->totp_confirmed_at !== null;
+    }
+
+    /**
+     * Braucht dieser Benutzer beim Login einen zweiten Faktor?
+     * Eigene Entscheidung (Profil) — oder FORCE_2FA erzwingt es für alle.
+     */
+    public function needsTwoFactor(): bool
+    {
+        return $this->two_factor_enabled || config('intranet.two_factor_forced');
     }
 
     /**

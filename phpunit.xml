@@ -29,7 +29,8 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
-        <env name="TWO_FACTOR" value="off"/>
+        <env name="FORCE_2FA" value="false"/>
+        <env name="TWO_FACTOR_REMEMBER_DAYS" value="30"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

@@ -23,6 +23,14 @@
             <x-input-error :messages="$errors->get('code')" class="mt-2" />
         </div>
 
+        @if ($rememberDays > 0)
+            <label class="mt-4 flex items-center gap-2">
+                <input type="checkbox" name="remember_device" value="1" checked
+                       class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                <span class="text-sm text-gray-600">Dieses Gerät {{ $rememberDays }} Tage merken</span>
+            </label>
+        @endif
+
         <div class="mt-4 flex items-center justify-end gap-4">
             <x-primary-button>Bestätigen</x-primary-button>
         </div>

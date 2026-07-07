@@ -28,12 +28,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // Zweiter Faktor nötig? Direkt zur Abfrage statt zum Dashboard —
-        // die EnsureTwoFactorChallenge-Middleware erzwingt es ohnehin.
-        if (config('intranet.two_factor')) {
-            return redirect()->route('two-factor.challenge');
-        }
-
+        // Braucht der Benutzer einen zweiten Faktor, fängt die
+        // EnsureTwoFactorChallenge-Middleware die Ziel-Seite ab und leitet
+        // zur Code-Abfrage um (bekannte Geräte lässt sie direkt durch).
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

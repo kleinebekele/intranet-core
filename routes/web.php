@@ -26,11 +26,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // TOTP-Verwaltung im eigenen Profil.
+    // 2FA-Verwaltung im eigenen Profil (Opt-in + TOTP).
+    Route::post('/profile/two-factor/enable', [TwoFactorController::class, 'enable'])->name('profile.two-factor.enable');
+    Route::delete('/profile/two-factor', [TwoFactorController::class, 'disable'])->name('profile.two-factor.disable');
     Route::post('/profile/two-factor', [TwoFactorController::class, 'setup'])->name('profile.two-factor.setup');
     Route::post('/profile/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('profile.two-factor.confirm');
     Route::get('/profile/two-factor/cancel', [TwoFactorController::class, 'cancel'])->name('profile.two-factor.cancel');
-    Route::delete('/profile/two-factor', [TwoFactorController::class, 'disable'])->name('profile.two-factor.disable');
+    Route::delete('/profile/two-factor/totp', [TwoFactorController::class, 'removeTotp'])->name('profile.two-factor.remove-totp');
 
     // Admin panel: arrange the module navigation.
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Support\Totp;
 use App\Support\TwoFactorMailCode;
+use App\Support\TwoFactorTrust;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,17 +16,20 @@ use Illuminate\View\View;
  */
 class TwoFactorChallengeController extends Controller
 {
-    public function __construct(private readonly TwoFactorMailCode $mailCode)
-    {
+    public function __construct(
+        private readonly TwoFactorMailCode $mailCode,
+        private readonly TwoFactorTrust $trust,
+    ) {
     }
 
     public function show(Request $request): View|RedirectResponse
     {
-        if ($request->session()->get('two_factor_passed') === true || ! config('intranet.two_factor')) {
+        $user = $request->user();
+
+        if ($request->session()->get('two_factor_passed') === true || ! $user->needsTwoFactor()) {
             return redirect()->route('dashboard');
         }
 
-        $user = $request->user();
         $usesTotp = $user->hasTotp();
 
         if (! $usesTotp) {
@@ -35,6 +39,7 @@ class TwoFactorChallengeController extends Controller
         return view('auth.two-factor-challenge', [
             'usesTotp' => $usesTotp,
             'canResend' => ! $usesTotp && $this->mailCode->canResend($user),
+            'rememberDays' => $this->trust->enabled() ? $this->trust->days() : 0,
         ]);
     }
 
@@ -53,6 +58,10 @@ class TwoFactorChallengeController extends Controller
         }
 
         $request->session()->put('two_factor_passed', true);
+
+        if ($request->boolean('remember_device')) {
+            $this->trust->remember($user);
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

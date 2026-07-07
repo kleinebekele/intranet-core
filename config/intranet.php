@@ -3,16 +3,22 @@
 return [
 
     /*
-     * Zwei-Faktor-Authentifizierung (instanzweiter Schalter).
+     * Zwei-Faktor-Authentifizierung.
      *
-     * TWO_FACTOR=on  → nach dem Passwort ist ein zweiter Faktor nötig:
-     *                  standardmäßig ein Code per E-Mail; wer im Profil TOTP
-     *                  (Authenticator-App) eingerichtet hat, nutzt stattdessen TOTP.
-     * TWO_FACTOR=off → klassischer Login nur mit Passwort (Standard).
+     * 2FA ist immer verfügbar: jeder Benutzer aktiviert sie freiwillig in
+     * seinem Profil (Standard-Faktor: Code per E-Mail; optional TOTP per
+     * Authenticator-App, z. B. Vaultwarden).
      *
-     * Achtung: nur aktivieren, wenn alle Benutzer erreichbare E-Mail-Adressen
-     * haben und der Mail-Versand (MAIL_*) konfiguriert ist.
+     * FORCE_2FA=true            → 2FA ist für ALLE Benutzer verpflichtend
+     *                             (individuelles Abschalten nicht möglich).
+     * TWO_FACTOR_REMEMBER_DAYS  → "Dieses Gerät merken" bei der Code-Abfrage:
+     *                             so viele Tage keine erneute Abfrage auf dem
+     *                             Gerät. 0 = Funktion aus, bei jedem Login fragen.
+     *
+     * Voraussetzung für Mail-Codes: funktionierender Mail-Versand (MAIL_*).
      */
-    'two_factor' => filter_var(env('TWO_FACTOR', false), FILTER_VALIDATE_BOOL),
+    'two_factor_forced' => filter_var(env('FORCE_2FA', false), FILTER_VALIDATE_BOOL),
+
+    'two_factor_remember_days' => max(0, (int) env('TWO_FACTOR_REMEMBER_DAYS', 30)),
 
 ];

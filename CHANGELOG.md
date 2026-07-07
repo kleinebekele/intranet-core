@@ -8,13 +8,15 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
-- **Zwei-Faktor-Authentifizierung** (instanzweiter Schalter `TWO_FACTOR=on`, Standard off):
-  nach dem Passwort-Login ist ein zweiter Faktor nötig — standardmäßig ein 6-stelliger
-  Code per E-Mail (10 Min gültig, max. 5 Versuche, Neuversand-Drossel); optional kann
-  jeder Benutzer im Profil **TOTP** (Authenticator-App, z. B. Vaultwarden) einrichten
-  (QR-Code + Secret, Bestätigung per erstem Code) und ersetzt damit die Mail-Codes.
-  TOTP nach RFC 6238 ohne externe Abhängigkeit (`App\Support\Totp`). Die Sperre hängt
-  global an der `web`-Gruppe und schützt damit automatisch auch alle Modul-Routen.
+- **Zwei-Faktor-Authentifizierung** — immer verfügbar, **Opt-in je Benutzer** im Profil:
+  Standard-Faktor ist ein 6-stelliger Code per E-Mail (10 Min gültig, max. 5 Versuche,
+  Neuversand-Drossel); optional **TOTP** per Authenticator-App (z. B. Vaultwarden;
+  QR-Code + Secret, Bestätigung per erstem Code) statt Mail-Codes. TOTP nach RFC 6238
+  ohne externe Abhängigkeit (`App\Support\Totp`). Die Sperre hängt global an der
+  `web`-Gruppe und schützt automatisch auch alle Modul-Routen.
+  `.env`: **`FORCE_2FA=true`** macht 2FA für alle Benutzer verpflichtend;
+  **`TWO_FACTOR_REMEMBER_DAYS`** (Standard 30, 0 = aus) steuert „Dieses Gerät merken"
+  bei der Code-Abfrage (verschlüsseltes Cookie + serverseitige Gegenprüfung).
 - **Admin: „TOTP zurücksetzen"** in der Benutzer-Verwaltung (z. B. bei Handy-Verlust) —
   der Benutzer fällt auf Mail-Codes zurück und kann TOTP neu einrichten.
 - Feature-Tests für die komplette 2FA-Strecke (`tests/Feature/TwoFactorTest.php`).
