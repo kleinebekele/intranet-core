@@ -82,5 +82,23 @@
                 Link senden
             </button>
         </form>
+
+        {{-- TOTP-Reset: nur anzeigen, wenn der Benutzer eine Authenticator-App eingerichtet hat. --}}
+        @if ($user->hasTotp())
+            <form method="POST" action="{{ route('admin.users.reset-totp', $user) }}"
+                  onsubmit="return confirm('TOTP für {{ $user->email }} wirklich zurücksetzen? Der Benutzer meldet sich danach wieder mit Mail-Codes an.');"
+                  class="mt-4 flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 px-6 py-4">
+                @csrf
+                <div class="text-sm text-amber-800">
+                    Authenticator-App (TOTP) aktiv seit {{ $user->totp_confirmed_at->format('d.m.Y') }} —
+                    bei Handy-Verlust hier zurücksetzen.
+                </div>
+                <button type="submit"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100">
+                    <i class='bx bx-shield-x text-base'></i>
+                    TOTP zurücksetzen
+                </button>
+            </form>
+        @endif
     </div>
 </x-app-layout>

@@ -8,6 +8,16 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Zwei-Faktor-Authentifizierung** (instanzweiter Schalter `TWO_FACTOR=on`, Standard off):
+  nach dem Passwort-Login ist ein zweiter Faktor nötig — standardmäßig ein 6-stelliger
+  Code per E-Mail (10 Min gültig, max. 5 Versuche, Neuversand-Drossel); optional kann
+  jeder Benutzer im Profil **TOTP** (Authenticator-App, z. B. Vaultwarden) einrichten
+  (QR-Code + Secret, Bestätigung per erstem Code) und ersetzt damit die Mail-Codes.
+  TOTP nach RFC 6238 ohne externe Abhängigkeit (`App\Support\Totp`). Die Sperre hängt
+  global an der `web`-Gruppe und schützt damit automatisch auch alle Modul-Routen.
+- **Admin: „TOTP zurücksetzen"** in der Benutzer-Verwaltung (z. B. bei Handy-Verlust) —
+  der Benutzer fällt auf Mail-Codes zurück und kann TOTP neu einrichten.
+- Feature-Tests für die komplette 2FA-Strecke (`tests/Feature/TwoFactorTest.php`).
 - Weitere Icons in der `module-icon`-Whitelist (`restaurant`, `edit`, `back`, `plus`,
   `trash`, `download`, `search`, `save`, `x`, `like`, `trophy`) – für die Oberflächen der Module.
 

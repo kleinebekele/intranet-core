@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
+
+        // 2FA-Sperre global an der web-Gruppe: schützt automatisch auch alle
+        // Modul-Routen, ohne dass Module etwas davon wissen müssen.
+        $middleware->web(append: \App\Http\Middleware\EnsureTwoFactorChallenge::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

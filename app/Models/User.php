@@ -12,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'totp_secret'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -29,7 +29,18 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'totp_secret' => 'encrypted',
+            'totp_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Hat dieser Benutzer TOTP (Authenticator-App) fertig eingerichtet?
+     * Nur dann ersetzt TOTP den Standard-Mail-Code bei der 2FA-Anmeldung.
+     */
+    public function hasTotp(): bool
+    {
+        return $this->totp_secret !== null && $this->totp_confirmed_at !== null;
     }
 
     /**

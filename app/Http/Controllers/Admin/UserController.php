@@ -150,4 +150,18 @@ class UserController extends Controller
 
         return back()->with('status', "Passwort-Reset-Link an {$user->email} versendet.");
     }
+
+    /**
+     * TOTP zurücksetzen (z. B. Handy verloren): der Benutzer fällt auf den
+     * Standard-Mail-Code zurück und kann TOTP im Profil neu einrichten.
+     */
+    public function resetTotp(User $user): RedirectResponse
+    {
+        $user->forceFill([
+            'totp_secret' => null,
+            'totp_confirmed_at' => null,
+        ])->save();
+
+        return back()->with('status', "TOTP für {$user->email} zurückgesetzt – es gilt wieder der Code per E-Mail.");
+    }
 }

@@ -3,7 +3,9 @@
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 // The intranet has no public landing page: send visitors straight to the
@@ -15,9 +17,20 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    // Zwei-Faktor-Abfrage nach dem Passwort-Login.
+    Route::get('/two-factor', [TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
+    Route::post('/two-factor', [TwoFactorChallengeController::class, 'verify'])->name('two-factor.verify');
+    Route::post('/two-factor/resend', [TwoFactorChallengeController::class, 'resend'])->name('two-factor.resend');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // TOTP-Verwaltung im eigenen Profil.
+    Route::post('/profile/two-factor', [TwoFactorController::class, 'setup'])->name('profile.two-factor.setup');
+    Route::post('/profile/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('profile.two-factor.confirm');
+    Route::get('/profile/two-factor/cancel', [TwoFactorController::class, 'cancel'])->name('profile.two-factor.cancel');
+    Route::delete('/profile/two-factor', [TwoFactorController::class, 'disable'])->name('profile.two-factor.disable');
 
     // Admin panel: arrange the module navigation.
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
@@ -34,6 +47,7 @@ Route::middleware('auth')->group(function () {
         // Benutzer-Verwaltung (CRUD) + Passwort-Reset-Link.
         Route::resource('users', UserController::class)->except(['show']);
         Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
+        Route::post('users/{user}/reset-totp', [UserController::class, 'resetTotp'])->name('users.reset-totp');
     });
 });
 
