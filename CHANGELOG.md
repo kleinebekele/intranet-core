@@ -12,6 +12,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Empfehlung `Europe/Berlin`). Wirkt auf Anzeige, `now()` und den Task-Scheduler.
 
 ### Behoben
+- **„Dieses Gerät merken" (2FA) überlebt jetzt Deploys:** Der serverseitige Trust-Token
+  lag im App-Cache und wurde damit von `cache:clear`/`optimize:clear` (Teil jedes Deploys)
+  mitgelöscht — gemerkte Geräte wurden faktisch bei jedem Deploy vergessen. Der Token liegt
+  jetzt in einer eigenen Tabelle `two_factor_trusted_devices` und übersteht Cache-Leerungen.
+  Sicherheitsmodell (verschlüsseltes Cookie **+** serverseitiger Abgleich) unverändert.
 - **Tailwind scannt Modul-PHP:** Klassen, die Module aus PHP-Code liefern (nicht nur
   aus Blade-Views), landen jetzt im CSS-Build (`vendor/do1emu/module-*/src/**/*.php`).
 

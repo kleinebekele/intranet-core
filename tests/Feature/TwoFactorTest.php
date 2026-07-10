@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\Totp;
 use App\Support\TwoFactorTrust;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Mail;
 use ReflectionClass;
@@ -93,6 +94,23 @@ class TwoFactorTest extends TestCase
 
         app(TwoFactorTrust::class)->remember($user);
         $cookie = Cookie::queued('intranet_2fa_trusted')->getValue();
+
+        $this->actingAs($user)
+            ->withCookie('intranet_2fa_trusted', $cookie)
+            ->get('/dashboard')
+            ->assertOk();
+    }
+
+    public function test_gemerktes_geraet_ueberlebt_cache_leeren(): void
+    {
+        // Regression: früher lag der Trust-Token im App-Cache, sodass jeder
+        // Deploy (optimize:clear -> cache:clear) alle gemerkten Geräte vergaß.
+        $user = $this->userMit2fa();
+
+        app(TwoFactorTrust::class)->remember($user);
+        $cookie = Cookie::queued('intranet_2fa_trusted')->getValue();
+
+        Cache::flush();
 
         $this->actingAs($user)
             ->withCookie('intranet_2fa_trusted', $cookie)

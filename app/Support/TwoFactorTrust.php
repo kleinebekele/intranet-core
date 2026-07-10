@@ -4,8 +4,8 @@ namespace App\Support;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -13,12 +13,19 @@ use Illuminate\Support\Str;
  *
  * Beim Bestätigen mit Häkchen bekommt der Browser ein (von Laravel
  * verschlüsseltes) Cookie mit einem Zufalls-Token; serverseitig liegt der
- * Token-Hash im Cache. Nur wenn BEIDES zusammenpasst, entfällt die Abfrage —
- * ein gefälschtes Cookie allein reicht nicht.
+ * Token-Hash in der Tabelle `two_factor_trusted_devices`. Nur wenn BEIDES
+ * zusammenpasst, entfällt die Abfrage — ein gefälschtes Cookie allein reicht
+ * nicht.
+ *
+ * Der Server-Token liegt bewusst in einer eigenen Tabelle und NICHT im App-Cache:
+ * so übersteht ein vertrautes Gerät `cache:clear`/`optimize:clear` und damit
+ * jeden Deploy.
  */
 class TwoFactorTrust
 {
     private const COOKIE = 'intranet_2fa_trusted';
+
+    private const TABLE = 'two_factor_trusted_devices';
 
     public function days(): int
     {
@@ -37,10 +44,17 @@ class TwoFactorTrust
             return;
         }
 
+        $this->pruneExpired();
+
         $token = Str::random(40);
         $minutes = $this->days() * 24 * 60;
 
-        Cache::put($this->key($user, $token), true, now()->addMinutes($minutes));
+        DB::table(self::TABLE)->insert([
+            'user_id' => $user->id,
+            'token_hash' => $this->hash($token),
+            'expires_at' => now()->addMinutes($minutes),
+            'created_at' => now(),
+        ]);
 
         Cookie::queue(self::COOKIE, $user->id.'|'.$token, $minutes);
     }
@@ -54,13 +68,25 @@ class TwoFactorTrust
 
         [$id, $token] = array_pad(explode('|', (string) $request->cookie(self::COOKIE), 2), 2, null);
 
-        return (int) $id === $user->id
-            && $token !== null
-            && Cache::has($this->key($user, $token));
+        if ((int) $id !== $user->id || $token === null) {
+            return false;
+        }
+
+        return DB::table(self::TABLE)
+            ->where('user_id', $user->id)
+            ->where('token_hash', $this->hash($token))
+            ->where('expires_at', '>', now())
+            ->exists();
     }
 
-    private function key(User $user, string $token): string
+    /** Abgelaufene Einträge aufräumen, damit die Tabelle nicht anwächst. */
+    private function pruneExpired(): void
     {
-        return "two-factor:trusted:{$user->id}:".hash('sha256', $token);
+        DB::table(self::TABLE)->where('expires_at', '<=', now())->delete();
+    }
+
+    private function hash(string $token): string
+    {
+        return hash('sha256', $token);
     }
 }
