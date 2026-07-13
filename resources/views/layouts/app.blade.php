@@ -66,6 +66,8 @@
             </div>
         </div>
 
+        @include('layouts.cookie-notice')
+
         @stack('scripts')
     </body>
 </html>

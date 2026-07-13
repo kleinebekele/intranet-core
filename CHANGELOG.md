@@ -8,6 +8,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Cookie-Hinweis:** schlichtes Banner (unten), das darüber informiert, dass die Seite
+  ausschließlich technisch notwendige Cookies verwendet – ohne Ablehnen-Option. Erscheint
+  auf eingeloggten Seiten und der Login-Seite; die Bestätigung wird lokal im Browser
+  gemerkt (`localStorage`, kein zusätzliches Cookie). Partial `layouts/cookie-notice`.
 - **Zeitzone konfigurierbar:** `APP_TIMEZONE` in der `.env` (Default weiterhin `UTC`,
   Empfehlung `Europe/Berlin`). Wirkt auf Anzeige, `now()` und den Task-Scheduler.
 

@@ -26,5 +26,7 @@
                 {{ $slot }}
             </div>
         </div>
+
+        @include('layouts.cookie-notice')
     </body>
 </html>
