@@ -24,28 +24,28 @@
 
         @php $activeItem = $currentModule->activeMenuItem(); @endphp
         <div class="space-y-1">
-            @foreach ($currentModule->menuItems as $item)
-                <a href="{{ $item->url() ?? '#' }}"
-                   @class([
-                       'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
-                       'bg-indigo-50 text-indigo-700' => $item->is($activeItem),
-                       'text-gray-600 hover:bg-gray-100 hover:text-gray-900' => ! $item->is($activeItem),
-                   ])>
-                    @if ($item->icon)
-                        <x-module-icon :name="$item->icon" @class([
-                            'text-lg',
-                            'text-indigo-600' => $item->is($activeItem),
-                            'text-gray-400' => ! $item->is($activeItem),
-                        ]) />
-                    @else
-                        <span @class([
-                            'h-1.5 w-1.5 rounded-full',
-                            'bg-indigo-600' => $item->is($activeItem),
-                            'bg-gray-300' => ! $item->is($activeItem),
-                        ])></span>
-                    @endif
-                    {{ $item->label }}
-                </a>
+            @foreach ($currentModule->menuTree() as $node)
+                @if ($node['label'] === null)
+                    @include('layouts.partials.module-menu-item', ['item' => $node['items']->first(), 'activeItem' => $activeItem])
+                @else
+                    {{-- Aufklappbare Gruppe; offen, wenn der aktive Punkt darin liegt. --}}
+                    <div x-data="{ open: @js($node['items']->contains(fn ($i) => $i->is($activeItem))) }">
+                        <button type="button" x-on:click="open = ! open"
+                                class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+                                x-bind:aria-expanded="open ? 'true' : 'false'">
+                            <x-module-icon name="category" class="text-lg text-gray-400" />
+                            <span class="flex-1 text-left">{{ $node['label'] }}</span>
+                            <i class='bx bx-chevron-down text-lg leading-none transition-transform'
+                               x-bind:class="open && 'rotate-180'"></i>
+                        </button>
+
+                        <div x-show="open" x-cloak class="mt-1 space-y-1 border-l border-gray-200 pl-3 ml-4">
+                            @foreach ($node['items'] as $item)
+                                @include('layouts.partials.module-menu-item', ['item' => $item, 'activeItem' => $activeItem])
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             @endforeach
         </div>
 

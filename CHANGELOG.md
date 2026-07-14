@@ -8,6 +8,16 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Menü-Gruppen:** Module mit vielen Unterseiten können verwandte Punkte optisch unter
+  einer aufklappbaren Überschrift bündeln – im Manifest über den neuen Parameter
+  `group:` an `->item(...)`, z. B. `->item('schuljahre', 'Schuljahre', …, group: 'Verwaltung')`.
+  Neue Spalte `group_label` an `module_menu_items` (nullable, ohne Gruppe wie bisher eine
+  eigene Zeile). Die Gruppe erscheint an der Position ihres ersten Mitglieds und ist
+  aufgeklappt, wenn der aktive Punkt darin liegt.
+  Bewusst **rein optisch**: keine Eltern-Einträge, keine Verschachtelung in der Datenbank.
+  Jeder Menüpunkt bleibt ein eigener Eintrag mit eigenen Rollen – an `EnsureModuleAccess`,
+  `Module::homeUrl()` und der Modul-Verwaltung (Drag & Drop) ändert sich nichts. Eine Gruppe,
+  von der ein Benutzer keinen einzigen Punkt sehen darf, erscheint gar nicht erst.
 - **Cookie-Hinweis:** schlichtes Banner (unten), das darüber informiert, dass die Seite
   ausschließlich technisch notwendige Cookies verwendet – ohne Ablehnen-Option. Erscheint
   auf eingeloggten Seiten und der Login-Seite; die Bestätigung wird lokal im Browser

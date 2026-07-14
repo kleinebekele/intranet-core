@@ -81,6 +81,44 @@ class Module extends Model
     }
 
     /**
+     * Die Menüpunkte für die Sidebar, optische Gruppen zusammengefasst.
+     *
+     * Arbeitet auf der bereits geladenen (und von der Navigation auf die
+     * sichtbaren Punkte gefilterten) menuItems-Beziehung – eine Gruppe, von
+     * der ein Benutzer nichts sehen darf, taucht dadurch gar nicht erst auf.
+     *
+     * Eine Gruppe erscheint an der Position ihres ersten Mitglieds; verstreute
+     * Mitglieder sammeln sich dort ein, statt die Gruppe mehrfach zu rendern
+     * (die Reihenfolge gehört dem Admin, sie kann also beliebig sein).
+     *
+     * @return \Illuminate\Support\Collection<int, array{label: string|null, items: \Illuminate\Support\Collection<int, ModuleMenuItem>}>
+     */
+    public function menuTree(): \Illuminate\Support\Collection
+    {
+        $tree = collect();
+        $groups = [];
+
+        foreach ($this->menuItems as $item) {
+            $label = $item->group_label ?: null;
+
+            if ($label === null) {
+                $tree->push(['label' => null, 'items' => collect([$item])]);
+
+                continue;
+            }
+
+            if (! isset($groups[$label])) {
+                $groups[$label] = collect();
+                $tree->push(['label' => $label, 'items' => $groups[$label]]);
+            }
+
+            $groups[$label]->push($item);
+        }
+
+        return $tree;
+    }
+
+    /**
      * Where clicking the module in the main sidebar should take you:
      * its first sub-page (the module's landing page).
      */

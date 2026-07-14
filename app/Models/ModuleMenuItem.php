@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
  */
 class ModuleMenuItem extends Model
 {
-    protected $fillable = ['module_id', 'key', 'label', 'route_name', 'icon', 'position'];
+    protected $fillable = ['module_id', 'key', 'label', 'route_name', 'icon', 'group_label', 'position'];
 
     protected $casts = [
         'position' => 'integer',

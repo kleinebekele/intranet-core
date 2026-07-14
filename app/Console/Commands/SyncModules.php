@@ -56,6 +56,7 @@ class SyncModules extends Command
                 $menuItem->label = $item->label;
                 $menuItem->route_name = $item->routeName;
                 $menuItem->icon = $item->icon;
+                $menuItem->group_label = $item->group;
 
                 if (! $menuItem->exists) {
                     // Use the manifest's 0-based position directly (0 is valid!).

@@ -38,8 +38,13 @@ class ModuleManifest
      * @param  string|null  $icon        Icon-Name (siehe x-module-icon); null = neutraler Punkt.
      * @param  int          $position    Default order (admin can override later).
      * @param  bool         $adminsOnly  Nur für Admins sichtbar (beim Anlegen via modules:sync gesetzt).
+     * @param  string|null  $group       Überschrift, unter der dieser Punkt im Menü
+     *                                   aufklappbar gebündelt wird; null = eigene Zeile.
+     *                                   Rein optisch – der Punkt bleibt ein eigener
+     *                                   Eintrag mit eigenen Rollen und eigener
+     *                                   Zugriffsregel.
      */
-    public function item(string $key, string $label, string $routeName, ?string $icon = null, int $position = 0, bool $adminsOnly = false): static
+    public function item(string $key, string $label, string $routeName, ?string $icon = null, int $position = 0, bool $adminsOnly = false, ?string $group = null): static
     {
         $this->items[] = new MenuItem(
             key: $key,
@@ -48,6 +53,7 @@ class ModuleManifest
             position: $position ?: count($this->items),
             icon: $icon,
             adminsOnly: $adminsOnly,
+            group: $group,
         );
 
         return $this;
