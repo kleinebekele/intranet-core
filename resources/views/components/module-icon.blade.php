@@ -41,6 +41,16 @@
         'like'      => 'bx-like',
         'trophy'    => 'bx-trophy',
         'book'      => 'bx-book-open',
+        // Weitere Menü-Icons – damit Module mit vielen Unterpunkten nicht
+        // mehrere Zeilen mit demselben Symbol zeigen müssen.
+        'door'         => 'bx-door-open',
+        'layers'       => 'bx-layer',
+        'chalkboard'   => 'bx-chalkboard',
+        'book-content' => 'bx-book-content',
+        'quote'        => 'bx-comment-detail',
+        'layout'       => 'bx-layout',
+        'import'       => 'bx-import',
+        'transfer'     => 'bx-transfer-alt',
         'default'   => 'bx-grid-alt',
     ];
     $icon = $icons[$name] ?? $icons['default'];
