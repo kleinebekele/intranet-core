@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Module;
 use App\Models\RouteSetting;
 use App\Models\User;
-use App\Support\RoutenAliase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -33,24 +32,57 @@ class RoutenAliasTest extends TestCase
             // Sieht wie eine Unterseite aus, ist aber keine – der Test-Kniff.
             Route::get('kategorien-import', fn () => 'import')->name('import.index');
         });
+
+        // Erzeugt Verweise so, wie es das Menü tut: mitten in einer Anfrage.
+        Route::middleware('web')->get('verweise', fn () => implode('|', [
+            route('module.tm.categories.index', absolute: false),
+            route('module.tm.categories.edit', 7, absolute: false),
+        ]));
+
+        // Im Betrieb macht Laravel das selbst, nachdem alle Routen geladen sind.
+        // Hier kommen sie nachträglich dazu – ohne diese Zeile fände `route()`
+        // sie gar nicht erst, und der Test scheiterte an der Kulisse statt an
+        // der Sache.
+        Route::getRoutes()->refreshNameLookups();
     }
 
+    /**
+     * BEWUSST ohne Aufruf von `anwenden()`: Genau das war der Fehler, den die
+     * erste Fassung dieser Tests nicht gefunden hat. Sie riefen die Umschreibung
+     * von Hand auf und prüften damit nur die Logik – nicht, ob sie im echten
+     * Ablauf überhaupt jemals läuft (sie tat es nicht). Alles hier geht deshalb
+     * durch eine richtige Anfrage.
+     */
     private function aliasSetzen(string $routeName, string $pfad): void
     {
         RouteSetting::create(['route_name' => $routeName, 'pfad' => $pfad]);
+    }
 
-        app(RoutenAliase::class)->anwenden();
+    public function test_die_seite_ist_unter_der_neuen_adresse_erreichbar(): void
+    {
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+
+        $this->get('/kategorien')->assertOk()->assertSee('liste');
     }
 
     public function test_bereichsadresse_zieht_die_unterseiten_mit(): void
     {
         $this->aliasSetzen('module.tm.categories.index', 'kategorien');
 
-        $this->assertSame('/kategorien', route('module.tm.categories.index', absolute: false));
-        $this->assertSame('/kategorien/anlegen', route('module.tm.categories.create', absolute: false));
-        $this->assertSame('/kategorien/7/bearbeiten', route('module.tm.categories.edit', 7, absolute: false));
-
+        $this->get('/kategorien/anlegen')->assertOk()->assertSee('anlegen');
         $this->get('/kategorien/7/bearbeiten')->assertOk()->assertSee('bearbeiten 7');
+    }
+
+    public function test_erzeugte_verweise_zeigen_auf_die_neue_adresse(): void
+    {
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+
+        // Nicht `route()` im Test selbst: Die Adressen gelten innerhalb einer
+        // Anfrage. Genau so entstehen ja auch die Verweise im Menü.
+        $this->assertSame(
+            '/kategorien|/kategorien/7/bearbeiten',
+            $this->get('/verweise')->assertOk()->getContent(),
+        );
     }
 
     public function test_nur_der_gleiche_namensraum_zieht_mit(): void
@@ -60,20 +92,16 @@ class RoutenAliasTest extends TestCase
         // `kategorien-import` faengt zwar mit `kategorien` an, liegt aber nicht
         // darunter. Ohne den Schraegstrich im Vergleich waere daraus
         // `/kategorien-import` geworden – eine fremde Seite mitverschoben.
-        $this->assertSame(
-            '/modules/tm/kategorien-import',
-            route('module.tm.import.index', absolute: false),
-        );
+        $this->get('/kategorien-import')->assertNotFound();
+        $this->get('/modules/tm/kategorien-import')->assertOk()->assertSee('import');
     }
 
     public function test_eigener_eintrag_schlaegt_den_stammpfad(): void
     {
-        RouteSetting::create(['route_name' => 'module.tm.categories.index', 'pfad' => 'kategorien']);
-        RouteSetting::create(['route_name' => 'module.tm.categories.create', 'pfad' => 'neue-kategorie']);
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+        $this->aliasSetzen('module.tm.categories.create', 'neue-kategorie');
 
-        app(RoutenAliase::class)->anwenden();
-
-        $this->assertSame('/neue-kategorie', route('module.tm.categories.create', absolute: false));
+        $this->get('/neue-kategorie')->assertOk()->assertSee('anlegen');
     }
 
     public function test_die_alte_adresse_leitet_weiter(): void

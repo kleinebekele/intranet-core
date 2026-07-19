@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
         ]);
 
+        // GANZ vorne und global: Die sprechenden Adressen müssen stehen, bevor
+        // der Router die Anfrage einer Route zuordnet – und nicht nur für die
+        // web-Gruppe, denn die greift erst nach dem Zuordnen.
+        $middleware->prepend(\App\Http\Middleware\RoutenAliaseAnwenden::class);
+
         // 2FA-Sperre global an der web-Gruppe: schützt automatisch auch alle
         // Modul-Routen, ohne dass Module etwas davon wissen müssen.
         $middleware->web(append: \App\Http\Middleware\EnsureTwoFactorChallenge::class);

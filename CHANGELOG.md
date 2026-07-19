@@ -21,6 +21,13 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   nicht mitwandert, nur weil es gleich anfängt.
 
 ### Behoben
+- **Sprechende Adressen wirkten überhaupt nicht.** Menüpunkte zeigten weiter auf die
+  technische Adresse, der direkte Aufruf der neuen endete im 404. Ursache: Die Umschreibung
+  lief im `boot()` des `AppServiceProvider` – Laravel lädt die Routen aber erst in einem
+  `booted`-Callback, also **nach** allen Providern, bei aktivem `route:cache` sogar in einem
+  zweiten, noch später laufenden. Umgeschrieben wurde damit an einer Sammlung, die es zu dem
+  Zeitpunkt noch gar nicht gab. Jetzt erledigt das eine globale Middleware, die im Kernel vor
+  dem Routing läuft – dort sind die Routen garantiert da, mit und ohne Cache.
 - **`generated::…`-Einträge in der SEO-Liste.** `route:cache` vergibt unbenannten Routen selbst
   einen Namen; die Liste hielt sie deshalb für Seiten. Trat nur auf Servern mit Routen-Cache auf,
   lokal nie.
