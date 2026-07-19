@@ -8,6 +8,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **`deploy.sh`:** Ein Aufruf statt einer Handvoll getippter Befehle – Wartungsmodus,
+  `git pull`, Composer, Assets, Migrationen, Caches, und am Ende kommt die Seite auch dann
+  wieder hoch, wenn unterwegs etwas schiefgeht. Die Pfade zu PHP/Composer/npm unterscheiden
+  sich je Server (Plesk 8.5 per vollem Pfad, VM anders), deshalb stehen sie in einer
+  nicht versionierten `deploy.env` daneben; Vorlage: `deploy.env.example`.
 - **SEO (Verwaltung → Reiter SEO):** Jede Seite kann eine **sprechende Adresse** und einen
   **festen Titel** bekommen. Die Adresse **ersetzt** die bisherige – auch Menüpunkte und
   interne Verweise zeigen danach dorthin, ohne dass ein Modul etwas ändern muss. Möglich wird

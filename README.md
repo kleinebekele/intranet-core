@@ -42,6 +42,29 @@ php artisan serve
 Anschließend `http://127.0.0.1:8000` öffnen und den ersten Benutzer registrieren –
 dieser wird automatisch Administrator.
 
+## Deployment
+
+Auf dem Server erledigt **`deploy.sh`** den kompletten Ablauf (Wartungsmodus, `git pull`,
+Composer, Assets, Migrationen, Caches):
+
+```bash
+./deploy.sh
+```
+
+Die serverspezifischen Pfade stehen **nicht** im Skript, sondern einmalig in einer
+`deploy.env` neben dem Projekt – die liegt bewusst außerhalb der Versionsverwaltung.
+Einrichtung pro Server genau einmal:
+
+```bash
+cp deploy.env.example deploy.env
+nano deploy.env      # passende Zeilen einkommentieren
+```
+
+Nötig ist das, weil `php` nicht überall dasselbe meint: Auf Plesk zeigt das System-`php`
+auf 8.3, gebraucht wird aber der volle Pfad zu 8.5 – auf der Ubuntu-VM ist es wieder anders.
+Das Skript kennt nur die Variablen `PHP`, `COMPOSER` und `NPM`; welcher Befehl dahinter
+steckt, entscheidet der Server. Der Aufruf bleibt dadurch überall identisch.
+
 ## Module entwickeln
 
 Der Core ist ohne Module lauffähig; Funktionen kommen als Module hinzu. Wie man ein
