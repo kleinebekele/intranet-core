@@ -164,12 +164,11 @@
                                         {{ $umfang }}.
                                     </p>
 
-                                    @if ($vorschau && ! $vorschau['paket_installiert'])
+                                    @if ($vorschau && ! $vorschau['paket_installiert'] && count($vorschau['migrationen']))
                                         <p class="mt-2 text-sm text-gray-600">
-                                            Das Paket ist bereits deinstalliert – hier lassen sich nur noch die
-                                            zurückgebliebenen Einträge aufräumen. Die Tabellen des Moduls könnte
-                                            nur die Konsole abräumen, und auch das erst, wenn das Paket kurz
-                                            wieder eingebunden wird.
+                                            Das Paket ist bereits deinstalliert. Die Tabellen unten kennt der Core
+                                            noch aus seiner Aufzeichnung vom letzten <code class="rounded bg-white px-1 py-0.5">modules:sync</code>;
+                                            sie werden dann direkt verworfen, statt über die Migration zurückgerollt.
                                         </p>
                                     @endif
 
@@ -177,7 +176,7 @@
                                         @csrf
                                         @method('DELETE')
 
-                                        @if ($vorschau && $vorschau['paket_installiert'] && count($vorschau['migrationen']))
+                                        @if ($vorschau && count($vorschau['migrationen']))
                                             <div class="rounded-lg border border-red-200 bg-white p-3">
                                                 <label class="inline-flex items-start gap-2 text-sm text-gray-700">
                                                     <input type="checkbox" name="mit_daten" value="1" x-model="mitDaten"

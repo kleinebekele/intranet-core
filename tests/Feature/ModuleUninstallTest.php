@@ -125,15 +125,77 @@ class ModuleUninstallTest extends TestCase
         $this->assertTrue(Schema::hasTable('tm_dinge'));
     }
 
-    public function test_mit_daten_ohne_installiertes_paket_bricht_ab(): void
+    /** Aufzeichnung, wie sie `modules:sync` beim letzten Lauf hinterlassen hätte. */
+    private function aufzeichnungAusFrueheremSync(): void
     {
-        // Paket bewusst NICHT anmelden: die Migrationsdateien sind dann weg.
+        DB::table('module_migrations')->insert([
+            'module_key' => 'tm',
+            'migration' => '2026_01_01_000000_create_tm_dinge_table',
+            'tabellen' => json_encode(['tm_dinge']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * Der Kern der Sache: Ist das Paket weg, gibt es kein down() mehr – die
+     * Tabelle muss sich trotzdem entfernen lassen, sonst bleibt sie ewig stehen.
+     */
+    public function test_mit_daten_raeumt_auch_ohne_paket_auf(): void
+    {
+        $this->migrationLaufenLassen();
+        $this->aufzeichnungAusFrueheremSync();
+
+        $this->artisan('modules:uninstall tm --mit-daten')
+            ->expectsConfirmation('Modul „tm" entfernen UND seine Tabellen samt Inhalt löschen?', 'yes')
+            ->assertSuccessful();
+
+        $this->assertFalse(Schema::hasTable('tm_dinge'));
+        $this->assertDatabaseMissing('migrations', ['migration' => '2026_01_01_000000_create_tm_dinge_table']);
+        $this->assertDatabaseMissing('modules', ['key' => 'tm']);
+        // Die Aufzeichnung selbst wird mit weggeräumt.
+        $this->assertDatabaseMissing('module_migrations', ['module_key' => 'tm']);
+    }
+
+    /**
+     * Ohne Paket UND ohne Aufzeichnung weiß niemand, welche Tabelle dazugehört.
+     * Dann bleibt sie stehen – aber die Registrierung verschwindet trotzdem.
+     */
+    public function test_ohne_aufzeichnung_bleibt_die_tabelle_stehen(): void
+    {
         $this->migrationLaufenLassen();
 
-        $this->artisan('modules:uninstall tm --mit-daten')->assertFailed();
+        $this->artisan('modules:uninstall tm --mit-daten')
+            ->expectsConfirmation('Modul „tm" entfernen UND seine Tabellen samt Inhalt löschen?', 'yes')
+            ->assertSuccessful();
 
-        $this->assertDatabaseHas('modules', ['key' => 'tm']);
+        $this->assertDatabaseMissing('modules', ['key' => 'tm']);
         $this->assertTrue(Schema::hasTable('tm_dinge'));
+    }
+
+    public function test_sync_zeichnet_die_migrationen_des_moduls_auf(): void
+    {
+        $this->paketInstallieren();
+
+        $this->artisan('modules:sync')->assertSuccessful();
+
+        $this->assertDatabaseHas('module_migrations', [
+            'module_key' => 'tm',
+            'migration' => '2026_01_01_000000_create_tm_dinge_table',
+        ]);
+    }
+
+    public function test_knopf_raeumt_auch_ohne_paket_die_tabelle_ab(): void
+    {
+        $this->migrationLaufenLassen();
+        $this->aufzeichnungAusFrueheremSync();
+
+        $this->actingAs($this->admin())
+            ->delete(route('admin.modules.destroy', $this->module), ['mit_daten' => 1, 'bestaetigung' => 'tm'])
+            ->assertRedirect(route('admin.modules.index'));
+
+        $this->assertFalse(Schema::hasTable('tm_dinge'));
+        $this->assertDatabaseMissing('modules', ['key' => 'tm']);
     }
 
     public function test_verwaiste_registrierung_laesst_sich_aufraeumen(): void
@@ -197,14 +259,15 @@ class ModuleUninstallTest extends TestCase
         $this->assertDatabaseMissing('modules', ['key' => 'tm']);
     }
 
-    public function test_knopf_verweigert_datenloeschung_ohne_installiertes_paket(): void
+    public function test_knopf_verlangt_den_schluessel_auch_ohne_paket(): void
     {
-        $this->migrationLaufenLassen(); // Paket bewusst NICHT angemeldet
+        $this->migrationLaufenLassen();
+        $this->aufzeichnungAusFrueheremSync();
 
         $this->actingAs($this->admin())
             ->from(route('admin.modules.index'))
-            ->delete(route('admin.modules.destroy', $this->module), ['mit_daten' => 1, 'bestaetigung' => 'tm'])
-            ->assertSessionHas('error');
+            ->delete(route('admin.modules.destroy', $this->module), ['mit_daten' => 1, 'bestaetigung' => 'tippfehler'])
+            ->assertSessionHasErrors('bestaetigung');
 
         $this->assertDatabaseHas('modules', ['key' => 'tm']);
         $this->assertTrue(Schema::hasTable('tm_dinge'));

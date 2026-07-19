@@ -46,16 +46,6 @@ class UninstallModule extends Command
 
         $this->zusammenfassung($vorschau, $mitDaten);
 
-        if ($mitDaten && ! $vorschau['paket_installiert']) {
-            $this->newLine();
-            $this->error('Das Paket ist nicht mehr installiert – seine Migrationen sind weg und');
-            $this->error('können nicht zurückgerollt werden. Ohne --mit-daten räumt der Befehl');
-            $this->error('immerhin die Registrierung auf; für die Tabellen das Paket kurz erneut');
-            $this->error('einbinden (composer require …) und dann hier fortfahren.');
-
-            return self::FAILURE;
-        }
-
         if ($this->option('dry-run')) {
             $this->newLine();
             $this->comment('Probelauf – es wurde nichts verändert.');
@@ -120,11 +110,8 @@ class UninstallModule extends Command
             $this->line('  <comment>Keine Registrierung in der Datenbank (nur das Paket ist da).</comment>');
         }
 
-        if (! $vorschau['paket_installiert']) {
-            return;
-        }
-
-        $this->line('  Migrationen (gelaufen): '.count($vorschau['migrationen']));
+        $this->line('  Migrationen (gelaufen): '.count($vorschau['migrationen'])
+            .($vorschau['paket_installiert'] ? '' : ' – aus der Aufzeichnung, Paket ist weg'));
 
         foreach ($vorschau['migrationen'] as $migration) {
             $zusatz = array_map(
@@ -137,8 +124,16 @@ class UninstallModule extends Command
         }
 
         $this->newLine();
-        $this->line($mitDaten
+
+        if (! $mitDaten) {
+            $this->line('  <info>Die Tabellen des Moduls bleiben unangetastet (--mit-daten würde sie entfernen).</info>');
+
+            return;
+        }
+
+        $this->line($vorschau['paket_installiert']
             ? '  <fg=red;options=bold>--mit-daten: Diese Migrationen werden zurückgerollt – die Tabellen samt Inhalt sind danach weg.</>'
-            : '  <info>Die Tabellen des Moduls bleiben unangetastet (--mit-daten würde sie zurückrollen).</info>');
+            : '  <fg=red;options=bold>--mit-daten: Das Paket fehlt, also gibt es kein down() mehr – die oben genannten '
+                .'Tabellen werden direkt verworfen.</>');
     }
 }

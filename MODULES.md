@@ -208,16 +208,30 @@ php artisan modules:uninstall userimport --dry-run   # nur anschauen
 ```
 
 Ohne `--mit-daten` bleiben die Tabellen des Moduls stehen – Registrierung weg,
-Daten sicher. Erst `--mit-daten` rollt die Migrationen **dieses** Moduls zurück
-(neueste zuerst) und löscht damit seine Tabellen samt Inhalt.
+Daten sicher. Erst `--mit-daten` entfernt auch die Tabellen **dieses** Moduls.
 
-> ⚠️ **Reihenfolge:** erst `modules:uninstall`, **dann** `composer remove`.
-> Mit dem Paket verschwinden seine Migrationsdateien; danach lässt sich nichts
-> mehr zurückrollen und die Tabellen stehen für immer verwaist herum. Ist es
-> doch schon passiert, räumt der Befehl wenigstens die Registrierung auf – für
-> die Tabellen das Paket kurz erneut einbinden und dann deinstallieren.
+Wie das geschieht, hängt davon ab, was noch da ist:
 
-Der Befehl braucht `migrate:rollback --path` bewusst nicht: Das rollt immer den
+| Lage | Weg |
+|---|---|
+| Paket noch installiert | das echte `down()` der Migration, neueste zuerst |
+| Paket schon weg | die aufgezeichneten Tabellen werden direkt verworfen |
+
+Möglich macht das die Tabelle `module_migrations`: Bei **jedem `modules:sync`**
+merkt sich der Core, welche Migration zu welchem Modul gehört und welche
+Tabellen sie anlegt. Diese Aufzeichnung überlebt das Paket – deshalb lässt sich
+ein Modul auch dann noch vollständig entfernen, wenn `composer remove` längst
+gelaufen ist.
+
+> **Grenze:** Migrationen, die nur bestehende Tabellen *ändern*, lassen sich ohne
+> ihr `down()` nicht rückgängig machen – ohne Paket verschwindet nur ihr Eintrag
+> aus `migrations`. Wo es darauf ankommt, also weiterhin lieber erst
+> deinstallieren, dann `composer remove`.
+>
+> Module, die schon vor der Einführung von `module_migrations` verwaist waren,
+> haben keine Aufzeichnung; deren Tabellen muss man von Hand abräumen.
+
+`migrate:rollback --path` kommt für beides nicht in Frage: Das rollt immer den
 letzten *Stapel* zurück, und darin stecken typischerweise Migrationen ganz
 anderer Pakete.
 

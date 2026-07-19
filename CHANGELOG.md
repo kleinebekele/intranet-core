@@ -20,6 +20,15 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Damit der Core weiß, welche Migration zu welchem Modul gehört, trägt das `ModuleManifest`
   jetzt sein Paketverzeichnis (`basePath`) – gesetzt vom `ModuleServiceProvider`, Module
   müssen nichts tun.
+- **Deinstallieren räumt auch dann auf, wenn das Paket schon weg ist.** Neue Tabelle
+  `module_migrations`: Bei jedem `modules:sync` merkt sich der Core, welche Migration zu
+  welchem Modul gehört und welche Tabellen sie anlegt. Diese Aufzeichnung überlebt das Paket.
+  Vorher galt: kein Paket → keine Migrationsdatei → kein `down()` → die Tabelle blieb für
+  immer stehen, und der Haken *„Auch die Tabellen löschen"* wurde gar nicht erst angeboten.
+  Jetzt wird sie in dem Fall direkt verworfen; der Dialog sagt auch dazu, dass es diesmal ohne
+  `down()` geschieht. Bleibende Grenze: Migrationen, die nur bestehende Tabellen ändern, sind
+  ohne ihr `down()` nicht rückgängig zu machen – und wer vor dieser Änderung verwaist ist, hat
+  keine Aufzeichnung.
 - **Entfernen-Knopf unter Verwaltung → Module.** Derselbe Vorgang ohne Konsole: eingeklappt
   hinter *„Modul entfernen"*, zeigt vorher, was daran hängt – inklusive der Tabellen des
   Moduls mit ihrer aktuellen Zeilenzahl. Das Häkchen *„Auch die Tabellen des Moduls löschen"*

@@ -21,7 +21,10 @@ use RuntimeException;
  */
 class ModuleUninstaller
 {
-    public function __construct(private ModuleRegistry $registry) {}
+    public function __construct(
+        private ModuleRegistry $registry,
+        private ModuleMigrations $migrationen,
+    ) {}
 
     /**
      * Alles, was vor einer Entscheidung sichtbar sein sollte – inklusive der
@@ -46,7 +49,7 @@ class ModuleUninstaller
             'paket_name' => $manifest ? $this->paketName($manifest) : null,
             'menuepunkte' => $module?->menuItems ?? collect(),
             'adressen' => $this->routenEinstellungen($key)->count(),
-            'migrationen' => $manifest ? $this->migrationenMitTabellen($manifest) : [],
+            'migrationen' => $this->migrationenMitTabellen($key, $manifest),
         ];
     }
 
@@ -67,17 +70,10 @@ class ModuleUninstaller
             throw new RuntimeException("Kein Modul mit dem Schlüssel „{$key}\" gefunden.");
         }
 
-        if ($mitDaten && ! $vorschau['paket_installiert']) {
-            throw new RuntimeException(
-                "Das Paket zu „{$key}\" ist nicht mehr installiert – seine Migrationen können ".
-                'nicht zurückgerollt werden. Dafür das Paket kurz erneut einbinden.'
-            );
-        }
-
         // Erst die Migrationen: Schlägt das fehl, steht die Registrierung noch
         // und der Vorgang lässt sich unverändert wiederholen.
         $zurueckgerollt = $mitDaten
-            ? $this->migrationenZurueckrollen($this->registry->manifest($key))
+            ? $this->migrationenZurueckrollen($vorschau['migrationen'])
             : [];
 
         $adressen = $this->routenEinstellungen($key)->delete();
@@ -89,6 +85,8 @@ class ModuleUninstaller
             $punkte = $modul->menuItems->count();
             $modul->delete();
         }
+
+        $this->migrationen->vergessen($key);
 
         return [
             'name' => $vorschau['name'],
@@ -105,82 +103,62 @@ class ModuleUninstaller
      *
      * @return array<int, array{name: string, datei: string, tabellen: array<int, array{name: string, vorhanden: bool, zeilen: int}>}>
      */
-    private function migrationenMitTabellen(ModuleManifest $manifest): array
+    private function migrationenMitTabellen(string $key, ?ModuleManifest $manifest): array
     {
-        return array_map(function (string $datei): array {
-            $tabellen = array_map(fn (string $tabelle): array => [
+        return array_map(function (array $migration): array {
+            $migration['tabellen'] = array_map(fn (string $tabelle): array => [
                 'name' => $tabelle,
                 'vorhanden' => $vorhanden = Schema::hasTable($tabelle),
                 'zeilen' => $vorhanden ? DB::table($tabelle)->count() : 0,
-            ], $this->tabellenAus($datei));
+            ], $migration['tabellen']);
 
-            return [
-                'name' => basename($datei, '.php'),
-                'datei' => $datei,
-                'tabellen' => $tabellen,
-            ];
-        }, $this->gelaufeneMigrationen($manifest));
+            return $migration;
+        }, $this->migrationen->gelaufene($key, $manifest));
     }
 
     /**
-     * Migrationsdateien des Moduls, die laut `migrations`-Tabelle gelaufen sind.
+     * Macht die Migrationen des Moduls rückgängig – neueste zuerst, gezielt nur
+     * die dieses Moduls.
      *
-     * @return string[]
+     * Zwei Wege, je nachdem was noch da ist:
+     *  - Paket installiert: das echte `down()` der Migrationsdatei. Sauber, weil
+     *    es auch Änderungen an fremden Tabellen zurücknimmt.
+     *  - Paket weg: die aufgezeichneten Tabellen werden direkt verworfen. Gröber,
+     *    aber besser als eine Tabelle, die für immer stehen bleibt. Migrationen
+     *    ohne eigene Tabelle (reine Änderungen) lassen sich so nicht rückgängig
+     *    machen – ihr Eintrag verschwindet trotzdem, sonst gilt eine Migration
+     *    ewig als gelaufen.
+     *
+     * `migrate:rollback --path=…` kommt für beides nicht in Frage: Es rollt immer
+     * den letzten Stapel zurück, und der enthält typischerweise Migrationen ganz
+     * anderer Pakete.
+     *
+     * @param  array<int, array{name: string, datei: string|null, tabellen: array<int, array{name: string}>}>  $migrationen
+     * @return string[] Namen der rückgängig gemachten Migrationen
      */
-    private function gelaufeneMigrationen(ModuleManifest $manifest): array
-    {
-        $gelaufen = DB::table('migrations')->pluck('migration')->all();
-
-        return array_values(array_filter(
-            $manifest->migrationFiles(),
-            fn (string $datei) => in_array(basename($datei, '.php'), $gelaufen, true),
-        ));
-    }
-
-    /**
-     * Welche Tabellen legt diese Migration an? Aus `Schema::create('x', …)`
-     * gelesen – rein für die Anzeige vor der Entscheidung. Findet die Suche
-     * nichts, wird eben nur der Dateiname genannt.
-     *
-     * @return string[]
-     */
-    private function tabellenAus(string $datei): array
-    {
-        $inhalt = @file_get_contents($datei) ?: '';
-
-        preg_match_all('/Schema::create\(\s*[\'"]([^\'"]+)[\'"]/', $inhalt, $treffer);
-
-        return array_values(array_unique($treffer[1] ?? []));
-    }
-
-    /**
-     * Rollt die Migrationen des Moduls zurück – neueste zuerst, so wie Laravel
-     * es täte, aber gezielt nur die dieses Moduls.
-     *
-     * `migrate:rollback --path=…` kommt dafür nicht in Frage: Es rollt immer
-     * den letzten Stapel zurück, und der enthält typischerweise Migrationen
-     * ganz anderer Pakete.
-     *
-     * @return string[] Namen der zurückgerollten Migrationen
-     */
-    private function migrationenZurueckrollen(ModuleManifest $manifest): array
+    private function migrationenZurueckrollen(array $migrationen): array
     {
         $erledigt = [];
 
-        foreach (array_reverse($this->gelaufeneMigrationen($manifest)) as $datei) {
-            // Modul-Migrationen sind anonyme Klassen: Die Datei liefert das
-            // fertige Objekt zurück (nichts anderes macht Laravels Migrator).
-            $migration = require $datei;
+        foreach (array_reverse($migrationen) as $eintrag) {
+            if ($eintrag['datei']) {
+                // Modul-Migrationen sind anonyme Klassen: Die Datei liefert das
+                // fertige Objekt zurück (nichts anderes macht Laravels Migrator).
+                $migration = require $eintrag['datei'];
 
-            if (! is_object($migration) || ! method_exists($migration, 'down')) {
-                continue;
+                if (! is_object($migration) || ! method_exists($migration, 'down')) {
+                    continue;
+                }
+
+                $migration->down();
+            } else {
+                foreach ($eintrag['tabellen'] as $tabelle) {
+                    Schema::dropIfExists($tabelle['name']);
+                }
             }
 
-            $migration->down();
-
-            $name = basename($datei, '.php');
-            DB::table('migrations')->where('migration', $name)->delete();
-            $erledigt[] = $name;
+            DB::table('migrations')->where('migration', $eintrag['name'])->delete();
+            $erledigt[] = $eintrag['name'];
         }
 
         return $erledigt;

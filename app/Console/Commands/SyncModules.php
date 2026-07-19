@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Module;
 use App\Models\ModuleMenuItem;
+use App\Modules\Support\ModuleMigrations;
 use App\Modules\Support\ModuleRegistry;
 use Illuminate\Console\Command;
 
@@ -23,7 +24,7 @@ class SyncModules extends Command
 
     protected $description = 'Sync installed modules and their menu items into the database.';
 
-    public function handle(ModuleRegistry $registry): int
+    public function handle(ModuleRegistry $registry, ModuleMigrations $migrationen): int
     {
         if ($registry->manifests()->isEmpty()) {
             $this->warn('No modules are currently installed.');
@@ -43,6 +44,10 @@ class SyncModules extends Command
             }
 
             $module->save();
+
+            // Solange das Paket da ist, merken, welche Migration zu diesem
+            // Modul gehört – beim Deinstallieren ist es dafür zu spät.
+            $migrationen->aufzeichnen($manifest);
 
             $seen = [];
 
