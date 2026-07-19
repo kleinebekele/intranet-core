@@ -122,6 +122,18 @@ class MailVorlagenTest extends TestCase
         $this->assertSame('Angepasste Einladung', $eintrag->betreff);
     }
 
+    public function test_login_geaendert_vorlage_existiert_und_rendert(): void
+    {
+        $fertig = $this->mailer()->rendern('login_geaendert', [
+            'name' => 'Anna Beispiel',
+            'neue_mail' => 'neu@example.org',
+        ]);
+
+        $this->assertStringContainsString('Anna Beispiel', $fertig['html']);
+        $this->assertStringContainsString('neu@example.org', $fertig['html']);
+        $this->assertStringContainsString('neu@example.org', $fertig['text']);
+    }
+
     public function test_kuenstliche_adresse_bekommt_auch_ueber_vorlage_nichts(): void
     {
         $this->mailer()->senden('einladung', 'schueler-1@schueler.intern', ['name' => 'S', 'link' => 'x']);

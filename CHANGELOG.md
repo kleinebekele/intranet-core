@@ -8,6 +8,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Spalte `users.import_email`** + **Mailvorlage „Anmelde-Adresse geändert" (`login_geaendert`).**
+  Gegenstück zu `import_name` für die E-Mail; die neue Vorlage ist im Backend bearbeitbar wie die
+  anderen und geht an die **alte** Adresse, wenn ein Import die Anmelde-E-Mail eines bereits
+  registrierten Benutzers ändert. (Genutzt vom Linear-Benutzerabgleich.)
 - **Spalte `users.import_name`.** Merkt sich den Namen, den ein Import zuletzt gesetzt hat.
   Damit können importierende Module (z. B. der Linear-Benutzerabgleich) unterscheiden, ob ein
   Benutzer seinen Namen selbst geändert hat: Stimmt `name` noch mit `import_name` überein, zieht

@@ -107,6 +107,20 @@ class VorlagenRegister
             html: self::ZWEIFAKTOR_HTML,
             text: self::ZWEIFAKTOR_TEXT,
         ));
+
+        $this->registrieren(new VorlagenDefinition(
+            schluessel: 'login_geaendert',
+            titel: 'Anmelde-Adresse geändert',
+            beschreibung: 'Geht an die ALTE Adresse, wenn sich die Anmelde-E-Mail eines bereits '
+                .'registrierten Benutzers ändert (z. B. weil sie im Linear-Abgleich korrigiert wurde).',
+            platzhalter: [
+                'name' => 'Name des Empfängers',
+                'neue_mail' => 'Die neue Anmelde-Adresse',
+            ],
+            betreff: 'Deine Anmelde-Adresse hat sich geändert',
+            html: self::LOGIN_GEAENDERT_HTML,
+            text: self::LOGIN_GEAENDERT_TEXT,
+        ));
     }
 
     // ── Standardtexte ────────────────────────────────────────────────────────
@@ -200,5 +214,28 @@ Hallo {{ name }}!
 Dein Anmelde-Code lautet: {{ code }}
 
 Der Code ist {{ minuten }} Minuten gültig. Gib ihn niemandem weiter.
+TEXT;
+
+    private const LOGIN_GEAENDERT_HTML = <<<'HTML'
+<p style="margin:0 0 16px;font-size:16px;">Hallo {{ name }}!</p>
+<p style="margin:0 0 16px;">Deine Anmelde-Adresse für das Intranet wurde geändert. Ab sofort meldest du dich <strong>nur noch</strong> mit dieser Adresse an:</p>
+<p style="margin:0 0 24px;font-size:18px;font-weight:bold;color:#4f46e5;">{{ neue_mail }}</p>
+<p style="margin:0 0 16px;">Dein Passwort bleibt unverändert – nur die Adresse, mit der du dich anmeldest, ist neu.</p>
+<p style="margin:0;color:#6b7280;font-size:14px;">Diese Nachricht geht an deine bisherige Adresse. Hast du die Änderung nicht veranlasst, wende dich bitte an die Verwaltung.</p>
+HTML;
+
+    private const LOGIN_GEAENDERT_TEXT = <<<'TEXT'
+Hallo {{ name }}!
+
+Deine Anmelde-Adresse für das Intranet wurde geändert. Ab sofort meldest du
+dich NUR NOCH mit dieser Adresse an:
+
+{{ neue_mail }}
+
+Dein Passwort bleibt unverändert – nur die Adresse, mit der du dich anmeldest,
+ist neu.
+
+Diese Nachricht geht an deine bisherige Adresse. Hast du die Änderung nicht
+veranlasst, wende dich bitte an die Verwaltung.
 TEXT;
 }
