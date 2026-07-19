@@ -191,6 +191,34 @@ Führe den Befehl nach **jeder** Installation oder Aktualisierung eines Moduls a
 
 ---
 
+## 8a. Ein Modul wieder entfernen: `php artisan modules:uninstall <key>`
+
+Das Gegenstück zu `modules:sync`. Es zeigt zuerst, was am Modul hängt (Menüpunkte,
+Rollen, sprechende Adressen, gelaufene Migrationen samt Tabellen und Zeilenzahlen)
+und fragt dann nach.
+
+```bash
+php artisan modules:uninstall userimport            # nur die Registrierung
+php artisan modules:uninstall userimport --mit-daten # zusätzlich Tabellen zurückrollen
+php artisan modules:uninstall userimport --dry-run   # nur anschauen
+```
+
+Ohne `--mit-daten` bleiben die Tabellen des Moduls stehen – Registrierung weg,
+Daten sicher. Erst `--mit-daten` rollt die Migrationen **dieses** Moduls zurück
+(neueste zuerst) und löscht damit seine Tabellen samt Inhalt.
+
+> ⚠️ **Reihenfolge:** erst `modules:uninstall`, **dann** `composer remove`.
+> Mit dem Paket verschwinden seine Migrationsdateien; danach lässt sich nichts
+> mehr zurückrollen und die Tabellen stehen für immer verwaist herum. Ist es
+> doch schon passiert, räumt der Befehl wenigstens die Registrierung auf – für
+> die Tabellen das Paket kurz erneut einbinden und dann deinstallieren.
+
+Der Befehl braucht `migrate:rollback --path` bewusst nicht: Das rollt immer den
+letzten *Stapel* zurück, und darin stecken typischerweise Migrationen ganz
+anderer Pakete.
+
+---
+
 ## 9. Checkliste für ein neues Modul
 
 - [ ] Eigenes Repo mit der Ordnerstruktur aus Abschnitt 2

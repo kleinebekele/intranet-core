@@ -64,7 +64,13 @@ abstract class ModuleServiceProvider extends ServiceProvider
 
     protected function resolvedManifest(): ModuleManifest
     {
-        return $this->cachedManifest ??= $this->manifest();
+        if ($this->cachedManifest === null) {
+            $this->cachedManifest = $this->manifest();
+            // Das Modul beschreibt sich fachlich, den Ort kennt nur der Provider.
+            $this->cachedManifest->basePath ??= $this->moduleBasePath();
+        }
+
+        return $this->cachedManifest;
     }
 
     /**

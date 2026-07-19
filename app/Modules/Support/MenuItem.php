@@ -17,6 +17,5 @@ class MenuItem
         public ?string $icon = null,
         public bool $adminsOnly = false,
         public ?string $group = null,
-    ) {
-    }
+    ) {}
 }

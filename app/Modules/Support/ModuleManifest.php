@@ -14,6 +14,13 @@ namespace App\Modules\Support;
  */
 class ModuleManifest
 {
+    /**
+     * Wurzelverzeichnis des Pakets. Setzt der ModuleServiceProvider selbst –
+     * ein Modul muss sich darum nicht kümmern. Daran erkennt der Core, welche
+     * Migrationen zu diesem Modul gehören (siehe `modules:uninstall`).
+     */
+    public ?string $basePath = null;
+
     /** @param  MenuItem[]  $items */
     public function __construct(
         public string $key,
@@ -21,7 +28,23 @@ class ModuleManifest
         public ?string $icon = null,
         public int $position = 0,
         public array $items = [],
-    ) {
+    ) {}
+
+    /**
+     * Die Migrationsdateien dieses Moduls, aufsteigend sortiert.
+     *
+     * @return string[]
+     */
+    public function migrationFiles(): array
+    {
+        if (! $this->basePath || ! is_dir($dir = "{$this->basePath}/database/migrations")) {
+            return [];
+        }
+
+        $files = glob("{$dir}/*.php") ?: [];
+        sort($files);
+
+        return $files;
     }
 
     public static function make(string $key, string $name, ?string $icon = null, int $position = 0): static
@@ -32,17 +55,17 @@ class ModuleManifest
     /**
      * Register a sub-page (menu item) of this module.
      *
-     * @param  string       $key         Stable identifier, unique within the module.
-     * @param  string       $label       Text shown in the left menu.
-     * @param  string       $routeName   Laravel route name this item links to.
-     * @param  string|null  $icon        Icon-Name (siehe x-module-icon); null = neutraler Punkt.
-     * @param  int          $position    Default order (admin can override later).
-     * @param  bool         $adminsOnly  Nur für Admins sichtbar (beim Anlegen via modules:sync gesetzt).
-     * @param  string|null  $group       Überschrift, unter der dieser Punkt im Menü
-     *                                   aufklappbar gebündelt wird; null = eigene Zeile.
-     *                                   Rein optisch – der Punkt bleibt ein eigener
-     *                                   Eintrag mit eigenen Rollen und eigener
-     *                                   Zugriffsregel.
+     * @param  string  $key  Stable identifier, unique within the module.
+     * @param  string  $label  Text shown in the left menu.
+     * @param  string  $routeName  Laravel route name this item links to.
+     * @param  string|null  $icon  Icon-Name (siehe x-module-icon); null = neutraler Punkt.
+     * @param  int  $position  Default order (admin can override later).
+     * @param  bool  $adminsOnly  Nur für Admins sichtbar (beim Anlegen via modules:sync gesetzt).
+     * @param  string|null  $group  Überschrift, unter der dieser Punkt im Menü
+     *                              aufklappbar gebündelt wird; null = eigene Zeile.
+     *                              Rein optisch – der Punkt bleibt ein eigener
+     *                              Eintrag mit eigenen Rollen und eigener
+     *                              Zugriffsregel.
      */
     public function item(string $key, string $label, string $routeName, ?string $icon = null, int $position = 0, bool $adminsOnly = false, ?string $group = null): static
     {

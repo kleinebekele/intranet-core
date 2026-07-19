@@ -61,6 +61,7 @@ Für die Veröffentlichung eines Moduls: siehe [MODULES.md](MODULES.md) (Packagi
 | Befehl | Zweck |
 |--------|-------|
 | `php artisan modules:sync` | installierte Module in die DB übernehmen |
+| `php artisan modules:uninstall <key>` | Modul entfernen (`--mit-daten` rollt seine Migrationen zurück) – **vor** `composer remove` ausführen |
 | `php artisan intranet:admin <email>` | Benutzer zum Administrator machen |
 | `npm run build` | Assets (CSS/JS) neu bauen |
 | `npm run dev` | Assets im Watch-Modus während der Entwicklung |

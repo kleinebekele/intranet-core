@@ -18,9 +18,7 @@ use Illuminate\Support\Collection;
  */
 class Navigation
 {
-    public function __construct(protected ModuleRegistry $registry)
-    {
-    }
+    public function __construct(protected ModuleRegistry $registry) {}
 
     /** @return Collection<int, Module> Enabled + installed modules the current user may see, in admin order. */
     public function modules(): Collection

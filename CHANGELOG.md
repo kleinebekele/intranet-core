@@ -7,6 +7,20 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- **`php artisan modules:uninstall <key>` – das Gegenstück zu `modules:sync`.** Bisher gab es
+  nur den Weg hinein: `composer remove` ließ Modul-Zeile, Menüpunkte samt Rollen, sprechende
+  Adressen und die Tabellen des Moduls zurück. Der neue Befehl zeigt erst, was am Modul hängt
+  (inklusive Tabellen und deren Zeilenzahlen), fragt nach und räumt dann auf.
+  Standardmäßig **nur die Registrierung** – Tabellen fasst er erst mit `--mit-daten` an,
+  `--dry-run` zeigt alles nur an.
+  ⚠️ Reihenfolge: erst deinstallieren, **dann** `composer remove` – mit dem Paket verschwinden
+  seine Migrationsdateien, danach ist kein Zurückrollen mehr möglich. Der Befehl erkennt diesen
+  Fall und verweigert `--mit-daten`, statt stillschweigend nur die halbe Arbeit zu machen.
+  Damit der Core weiß, welche Migration zu welchem Modul gehört, trägt das `ModuleManifest`
+  jetzt sein Paketverzeichnis (`basePath`) – gesetzt vom `ModuleServiceProvider`, Module
+  müssen nichts tun.
+
 ### Geändert
 - **SEO-Liste nach Bereichen gebündelt.** Die Übersicht führt den Bereich an, alles darunter
   hängt eingeklappt daran – aufzuklappen über *„X Unterlinks"*. In einem gewachsenen System
