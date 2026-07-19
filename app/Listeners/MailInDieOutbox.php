@@ -3,9 +3,11 @@
 namespace App\Listeners;
 
 use App\Models\MailOutbox;
+use App\Support\Zustellbarkeit;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 
 /**
  * Fängt JEDE ausgehende E-Mail ab und legt sie in den Ausgangskorb.
@@ -23,13 +25,24 @@ class MailInDieOutbox
 {
     public function handle(MessageSending $event): bool
     {
+        $email = $event->message;
+
+        // Künstliche Adressen (z. B. `…@schueler.intern`) dürfen den Server nie
+        // verlassen. Diese Prüfung steht bewusst VOR dem Notausgang unten: Sie
+        // muss auch dann greifen, wenn der Ausgangskorb abgeschaltet ist.
+        if (! $this->empfaengerBereinigen($email)) {
+            Log::info('Mail nicht verschickt – kein zustellbarer Empfänger.', [
+                'betreff' => $email->getSubject(),
+            ]);
+
+            return false;
+        }
+
         // Notausgang: Ist der Ausgangskorb abgeschaltet, geht alles wie bisher
         // sofort raus. Wichtig fuer lokale Entwicklung ohne laufenden Scheduler.
         if (! config('mail.outbox.aktiv', true)) {
             return true;
         }
-
-        $email = $event->message;
         $quelle = $event->data['__laravel_mailable']
             ?? $event->data['__laravel_notification']
             ?? null;
@@ -57,6 +70,42 @@ class MailInDieOutbox
         }
 
         return false; // bricht den sofortigen Versand ab
+    }
+
+    /**
+     * Wirft unzustellbare Empfänger aus der Mail.
+     *
+     * Eine Rundmail an eine Klasse soll nicht daran scheitern, dass ein Schüler
+     * nur eine künstliche Adresse hat – die anderen bekommen sie trotzdem.
+     * Bleibt am Ende niemand übrig, gibt es nichts zu verschicken.
+     *
+     * @return bool ob noch ein zustellbarer Empfänger übrig ist
+     */
+    private function empfaengerBereinigen(Email $email): bool
+    {
+        $uebrig = 0;
+
+        foreach (['To', 'Cc', 'Bcc'] as $feld) {
+            $adressen = $email->{'get'.$feld}();
+
+            if ($adressen === []) {
+                continue;
+            }
+
+            $behalten = array_values(array_filter(
+                $adressen,
+                fn (Address $a) => Zustellbarkeit::zustellbar($a->getAddress()),
+            ));
+
+            if (count($behalten) !== count($adressen)) {
+                // Setzt das Feld neu; leeres Array leert es.
+                $email->{strtolower($feld)}(...$behalten);
+            }
+
+            $uebrig += count($behalten);
+        }
+
+        return $uebrig > 0;
     }
 
     /**

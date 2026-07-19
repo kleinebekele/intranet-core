@@ -130,6 +130,23 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Unzustellbare Endungen
+    |--------------------------------------------------------------------------
+    |
+    | Adressen mit diesen Endungen werden niemals verschickt – weder sofort noch
+    | über den Ausgangskorb. Gedacht für künstliche Adressen, die es nur gibt,
+    | damit sich jemand anmelden kann (z. B. importierte Schüler ohne eigene
+    | Mailadresse: `schueler-4711@schueler.intern`).
+    |
+    | `.intern` ist als Endung nicht vergeben; ein Zustellversuch könnte also
+    | ohnehin nie ankommen, würde aber Fehlzustellungen beim Provider erzeugen.
+    |
+    */
+
+    'unzustellbare_endungen' => ['.intern'],
+
     'outbox' => [
 
         // Aus = alles geht wie bisher sofort raus (lokale Entwicklung ohne Scheduler).

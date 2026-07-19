@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\MailOutbox;
+use App\Support\Zustellbarkeit;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -84,6 +85,20 @@ class MailAusliefern extends Command
     /** Eine einzelne Mail rausschicken und das Ergebnis festhalten. */
     private function versenden(MailOutbox $eintrag): bool
     {
+        // Zweiter Riegel gegen künstliche Adressen: Zeilen, die vor dieser
+        // Prüfung in den Korb gelangt sind, dürfen nicht doch noch rausgehen.
+        if (Zustellbarkeit::filtern((array) $eintrag->an) === []) {
+            $eintrag->update([
+                'status' => MailOutbox::FEHLGESCHLAGEN,
+                'versuche' => $eintrag->versuche + 1,
+                'fehler' => 'Kein zustellbarer Empfänger (künstliche Adresse).',
+            ]);
+
+            $this->warn("#{$eintrag->id} [{$eintrag->betreff}]: kein zustellbarer Empfänger – übersprungen.");
+
+            return false;
+        }
+
         try {
             // Direkt über den Transport, nicht über Mail::send – sonst würde
             // MailInDieOutbox die Mail sofort wieder einkassieren.
