@@ -74,7 +74,13 @@ artisan view:cache
 artisan event:cache
 
 schritt "Aufraeumen"
-artisan storage:link || true
+# Nur beim allerersten Deploy noetig; danach steht der Link und artisan wuerde
+# bei jedem Lauf einen roten ERROR ausgeben, der keiner ist.
+if [ ! -e public/storage ]; then
+    artisan storage:link
+else
+    echo "public/storage steht bereits."
+fi
 
 echo
 echo "Fertig. Aktueller Stand: $(git log --oneline -1)"
