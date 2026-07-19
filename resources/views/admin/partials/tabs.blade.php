@@ -11,6 +11,7 @@
         ['route' => 'admin.roles.index', 'muster' => 'admin.roles.*', 'label' => 'Rollen'],
         ['route' => 'admin.einladungen.index', 'muster' => 'admin.einladungen.*', 'label' => 'Einladungen',
          'zaehler' => \App\Models\Einladung::wartend()->count()],
+        ['route' => 'admin.mailvorlagen.index', 'muster' => 'admin.mailvorlagen.*', 'label' => 'Mailvorlagen'],
         ['route' => 'admin.mail.index', 'muster' => 'admin.mail.*', 'label' => 'Maillog'],
         ['route' => 'admin.modules.index', 'muster' => 'admin.modules.*', 'label' => 'Module'],
     ];

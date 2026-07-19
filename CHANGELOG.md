@@ -8,6 +8,15 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Mailvorlagen bearbeiten (Verwaltung → Mailvorlagen).** Betreff, HTML und Textfassung jeder
+  Mail lassen sich anpassen – mit formatierter Eingabe (WYSIWYG), Umschalter auf den
+  HTML-Quelltext und Live-Vorschau im echten Rahmen. Ein gemeinsames Layout (`_rahmen`)
+  umschließt jede Mail. Beide Fassungen (HTML + Text) werden verschickt. Platzhalter
+  (`{{ name }}` usw.) werden per Textersetzung eingesetzt, **nicht** über Blade gerendert –
+  wer eine Vorlage bearbeitet, kann damit keinen Code ausführen. Gespeichert wird nur, was vom
+  Standard abweicht; „Auf Standard zurücksetzen" löscht die Anpassung, sodass eine spätere
+  Core-Verbesserung wieder greift. Einladung und Passwort-Reset nutzen die Vorlagen bereits;
+  Module können eigene anmelden.
 - **Einladungs-Puffer (Verwaltung → Einladungen).** Importe merken Zugangslinks nur vor;
   verschickt wird erst nach Freigabe durch einen Menschen — einzeln oder alle auf einmal.
   Ein Import legt schnell hunderte Benutzer an, und verschickte Mails holt man nicht zurück.

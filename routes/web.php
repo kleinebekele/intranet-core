@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\EinladungController;
 use App\Http\Controllers\Admin\MailOutboxController;
+use App\Http\Controllers\Admin\MailVorlageController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\SeoController;
 use App\Http\Controllers\Admin\SettingController;
@@ -60,6 +61,13 @@ Route::middleware('auth')->group(function () {
         Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
         Route::post('users/{user}/reset-totp', [UserController::class, 'resetTotp'])->name('users.reset-totp');
         Route::post('users/{user}/sperre', [UserController::class, 'sperreUmschalten'])->name('users.sperre');
+
+        // Mailvorlagen: Betreff/HTML/Text jeder Mail bearbeiten.
+        Route::get('mailvorlagen', [MailVorlageController::class, 'index'])->name('mailvorlagen.index');
+        Route::get('mailvorlagen/{schluessel}', [MailVorlageController::class, 'edit'])->name('mailvorlagen.edit');
+        Route::put('mailvorlagen/{schluessel}', [MailVorlageController::class, 'update'])->name('mailvorlagen.update');
+        Route::post('mailvorlagen/{schluessel}/reset', [MailVorlageController::class, 'reset'])->name('mailvorlagen.reset');
+        Route::post('mailvorlagen/{schluessel}/vorschau', [MailVorlageController::class, 'vorschau'])->name('mailvorlagen.vorschau');
 
         // Einladungs-Puffer: vorgemerkte Zugangslinks freigeben oder verwerfen.
         Route::get('einladungen', [EinladungController::class, 'index'])->name('einladungen.index');

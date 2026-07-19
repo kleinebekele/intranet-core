@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Listeners\MailInDieOutbox;
+use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\Setting;
 use App\Modules\Support\ModuleRegistry;
 use App\View\Composers\NavigationComposer;
@@ -23,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
         // singletonIf so that a module provider (which registers earlier) can
         // create it first without us later replacing it with an empty one.
         $this->app->singletonIf(ModuleRegistry::class);
+
+        // Mailvorlagen-Register: Singleton, damit Module später eigene Vorlagen
+        // anmelden können (wie beim Modul-Register).
+        $this->app->singletonIf(VorlagenRegister::class);
     }
 
     /**
