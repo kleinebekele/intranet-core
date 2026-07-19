@@ -7,6 +7,7 @@ use App\Models\RouteSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use ReflectionProperty;
 use Tests\TestCase;
 
 /**
@@ -127,6 +128,28 @@ class RoutenAliasTest extends TestCase
         ]);
 
         $this->get('/modules/tm/kategorien/anlegen')->assertOk();
+    }
+
+    /**
+     * Auf einem Server mit `route:cache` liefert der Router eine
+     * CompiledRouteCollection statt einer RouteCollection – eine andere Klasse
+     * mit gemeinsamem Vorfahren. Wer auf die konkrete Klasse besteht, baut
+     * etwas, das lokal tadellos läuft und auf JEDEM zwischengespeicherten
+     * Server bei jedem Aufruf fliegt. Genau das ist passiert.
+     */
+    public function test_funktioniert_auch_mit_zwischengespeicherten_routen(): void
+    {
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+
+        $router = app('router');
+        $kompiliert = $router->getRoutes()->toCompiledRouteCollection($router, app());
+
+        $feld = new ReflectionProperty($router, 'routes');
+        $feld->setValue($router, $kompiliert);
+
+        $this->get('/kategorien')->assertOk()->assertSee('liste');
+        $this->get('/kategorien/anlegen')->assertOk()->assertSee('anlegen');
+        $this->get('/modules/tm/kategorien')->assertRedirect('/kategorien');
     }
 
     public function test_die_alte_adresse_leitet_weiter(): void

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\RouteSetting;
+use Illuminate\Routing\AbstractRouteCollection;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
@@ -125,7 +126,7 @@ class RoutenAliase
      * @param  array<string, array{pfad:?string, titel:?string}>  $aliase
      * @return array<string, string>
      */
-    private function staemme(RouteCollection $routen, array $aliase): array
+    private function staemme(AbstractRouteCollection $routen, array $aliase): array
     {
         $staemme = [];
 
