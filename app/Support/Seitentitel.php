@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\RouteSetting;
 use App\Models\Setting;
 use App\Modules\Support\ModuleRegistry;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,13 @@ class Seitentitel
     public static function bauen(?string $seite = null): string
     {
         $routeName = Route::currentRouteName();
+
+        // Ein in der Verwaltung vergebener Titel ersetzt die ganze Konvention –
+        // sonst waere er wirkungslos, sobald jemand einen wollte, der anders
+        // aufgebaut ist als {Haupttitel} - {Modul} - {Seite}.
+        if (filled($fest = RouteSetting::titel($routeName))) {
+            return $fest;
+        }
 
         $teile = [
             self::haupttitel(),

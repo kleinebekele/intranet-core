@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\MailOutboxController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\SeoController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
@@ -56,6 +57,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
         Route::post('users/{user}/reset-totp', [UserController::class, 'resetTotp'])->name('users.reset-totp');
+
+        // Sprechende Adressen und feste Titel je Seite.
+        Route::get('seo', [SeoController::class, 'index'])->name('seo.index');
+        Route::put('seo', [SeoController::class, 'update'])->name('seo.update');
 
         // Mail-Ausgangskorb: Versand-Protokoll und Warteschlange.
         Route::get('mails', [MailOutboxController::class, 'index'])->name('mail.index');
