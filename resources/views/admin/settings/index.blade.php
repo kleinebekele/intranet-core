@@ -144,7 +144,7 @@
 
                     <p class="text-xs text-gray-400">
                         Was tatsächlich rausging, zeigt der Reiter
-                        <a href="{{ route('admin.mail.index') }}" class="font-medium text-indigo-600 hover:underline">Mails</a>.
+                        <a href="{{ route('admin.mail.index') }}" class="font-medium text-indigo-600 hover:underline">Maillog</a>.
                     </p>
                 </div>
             </section>

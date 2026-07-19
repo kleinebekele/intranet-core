@@ -3,6 +3,8 @@
         <h1 class="text-xl font-semibold text-gray-800">Verwaltung</h1>
     </x-slot>
 
+    <x-slot name="titel">Maillog</x-slot>
+
     <div class="w-full">
         @include('admin.partials.tabs')
 
