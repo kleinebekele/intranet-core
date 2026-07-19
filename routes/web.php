@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
         Route::put('mailvorlagen/{schluessel}', [MailVorlageController::class, 'update'])->name('mailvorlagen.update');
         Route::post('mailvorlagen/{schluessel}/reset', [MailVorlageController::class, 'reset'])->name('mailvorlagen.reset');
         Route::post('mailvorlagen/{schluessel}/vorschau', [MailVorlageController::class, 'vorschau'])->name('mailvorlagen.vorschau');
+        Route::post('mailvorlagen/{schluessel}/testmail', [MailVorlageController::class, 'testmail'])->name('mailvorlagen.testmail');
 
         // Einladungs-Puffer: vorgemerkte Zugangslinks freigeben oder verwerfen.
         Route::get('einladungen', [EinladungController::class, 'index'])->name('einladungen.index');

@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Mail\Vorlagen\VorlagenRegister;
+use App\Models\MailOutbox;
 use App\Models\MailVorlage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class MailVorlagenBackendTest extends TestCase
@@ -83,6 +85,70 @@ class MailVorlagenBackendTest extends TestCase
 
         // Nichts gespeichert.
         $this->assertDatabaseMissing('mail_vorlagen', ['schluessel' => 'einladung']);
+    }
+
+    public function test_vorschau_nutzt_die_daten_des_gewaehlten_benutzers(): void
+    {
+        $user = User::factory()->create(['name' => 'Klara Konkret']);
+
+        $antwort = $this->actingAs($this->admin())
+            ->postJson(route('admin.mailvorlagen.vorschau', 'einladung'), [
+                'betreff' => 'Test',
+                'html' => '<p>Hallo {{ name }}</p>',
+                'text' => 'Hallo {{ name }}',
+                'user_id' => $user->id,
+            ])
+            ->assertOk()
+            ->json();
+
+        $this->assertStringContainsString('Klara Konkret', $antwort['html']);
+    }
+
+    public function test_testmail_geht_an_die_freie_adresse(): void
+    {
+        $user = User::factory()->create(['name' => 'Klara Konkret']);
+
+        $this->actingAs($this->admin())
+            ->postJson(route('admin.mailvorlagen.testmail', 'einladung'), [
+                'an' => 'wohin@example.org',
+                'user_id' => $user->id,
+                'betreff' => 'Test',
+                'html' => '<p>Hallo {{ name }}</p>',
+                'text' => 'Hallo {{ name }}',
+            ])
+            ->assertOk()
+            ->assertJsonFragment(['ok' => true]);
+
+        $eintrag = MailOutbox::sole();
+        $this->assertContains('wohin@example.org', $eintrag->an);
+        $this->assertStringStartsWith('[TEST]', $eintrag->betreff);
+    }
+
+    public function test_testmail_verlangt_eine_adresse(): void
+    {
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->actingAs($this->admin())
+                ->postJson(route('admin.mailvorlagen.testmail', 'einladung'), [
+                    'html' => '<p>x</p>', 'text' => 'x',
+                ]);
+            $this->fail('Erwartete eine ValidationException.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('an', $e->errors());
+        }
+    }
+
+    public function test_testmail_an_kuenstliche_adresse_geht_nicht_raus(): void
+    {
+        $this->actingAs($this->admin())
+            ->postJson(route('admin.mailvorlagen.testmail', 'einladung'), [
+                'an' => 'schueler-1@schueler.intern',
+                'html' => '<p>x</p>', 'text' => 'x',
+            ])
+            ->assertStatus(422);
+
+        $this->assertSame(0, MailOutbox::count());
     }
 
     public function test_nicht_admins_haben_keinen_zugriff(): void

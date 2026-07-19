@@ -12,6 +12,7 @@
     <div class="max-w-5xl"
          x-data="mailEditor({
              vorschauUrl: '{{ route('admin.mailvorlagen.vorschau', $definition->schluessel) }}',
+             testmailUrl: '{{ route('admin.mailvorlagen.testmail', $definition->schluessel) }}',
              csrf: '{{ csrf_token() }}'
          })">
         <div class="mb-4">
@@ -88,12 +89,44 @@
 
             {{-- Vorschau --}}
             <div class="mt-6">
-                <div class="mb-1 text-sm font-medium text-gray-700">Vorschau <span class="text-gray-400">(mit Beispieldaten)</span></div>
+                <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-sm font-medium text-gray-700">Vorschau</div>
+                    <label class="flex items-center gap-2 text-sm text-gray-600">
+                        Daten von Benutzer:
+                        <select x-model="userId" @change="nachVorschau"
+                                class="rounded-lg border-gray-300 text-sm">
+                            <option value="">— Beispieldaten —</option>
+                            @foreach ($benutzer as $b)
+                                <option value="{{ $b->id }}">#{{ $b->id }} · {{ $b->name }} ({{ $b->email }})</option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
                 <div class="rounded-xl border border-gray-200 bg-white p-2">
                     <div class="mb-2 border-b border-gray-100 px-2 py-1 text-sm text-gray-500">
                         Betreff: <span class="font-medium text-gray-700" x-text="vorschauBetreff"></span>
                     </div>
                     <iframe x-ref="vorschau" class="h-96 w-full rounded" title="Vorschau"></iframe>
+                </div>
+            </div>
+
+            {{-- Testmail --}}
+            <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div class="mb-1 text-sm font-medium text-gray-700">Testmail versenden</div>
+                <p class="mb-3 text-xs text-gray-500">
+                    Schickt die Vorlage mit den aktuell eingegebenen Texten und den oben gewählten
+                    Benutzerdaten an eine beliebige Adresse. Der Link bleibt ein Beispiel — es wird kein
+                    echter Zugang verschickt.
+                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <input type="email" x-model="testEmail" placeholder="empfaenger@example.org"
+                           class="w-64 rounded-lg border-gray-300 text-sm">
+                    <button type="button" @click="testSenden" :disabled="testLaeuft"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-600 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">
+                        <i class='bx bx-mail-send'></i>
+                        <span x-text="testLaeuft ? 'Sende…' : 'Testmail senden'"></span>
+                    </button>
+                    <span class="text-sm" :class="testOk ? 'text-emerald-600' : 'text-red-600'" x-text="testMeldung"></span>
                 </div>
             </div>
 
@@ -125,6 +158,11 @@
                 html: @js($htmlWert),
                 text: @js($textWert),
                 vorschauBetreff: '',
+                userId: '',
+                testEmail: '',
+                testLaeuft: false,
+                testOk: false,
+                testMeldung: '',
                 _timer: null,
 
                 init() {
@@ -171,13 +209,38 @@
                     try {
                         const res = await fetch(config.vorschauUrl, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': config.csrf },
-                            body: JSON.stringify({ betreff: this.$root.querySelector('[name=betreff]')?.value ?? '', html: this.html, text: this.text }),
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': config.csrf },
+                            body: JSON.stringify({ betreff: this.betreff(), html: this.html, text: this.text, user_id: this.userId || null }),
                         });
                         const daten = await res.json();
                         this.vorschauBetreff = daten.betreff;
                         this.$refs.vorschau.srcdoc = daten.html;
                     } catch (e) { /* Vorschau ist unkritisch */ }
+                },
+
+                betreff() {
+                    return this.$root.querySelector('[name=betreff]')?.value ?? '';
+                },
+
+                async testSenden() {
+                    if (! this.testEmail) { this.testOk = false; this.testMeldung = 'Bitte eine Adresse eingeben.'; return; }
+                    this.testLaeuft = true;
+                    this.testMeldung = '';
+                    try {
+                        const res = await fetch(config.testmailUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': config.csrf },
+                            body: JSON.stringify({ an: this.testEmail, user_id: this.userId || null, betreff: this.betreff(), html: this.html, text: this.text }),
+                        });
+                        const daten = await res.json();
+                        this.testOk = daten.ok;
+                        this.testMeldung = daten.meldung;
+                    } catch (e) {
+                        this.testOk = false;
+                        this.testMeldung = 'Senden fehlgeschlagen.';
+                    } finally {
+                        this.testLaeuft = false;
+                    }
                 },
 
                 vorSpeichern() {

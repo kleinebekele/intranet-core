@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Mail\Vorlagen\VorlagenMailer;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\MailVorlage;
+use App\Models\User;
+use App\Support\Zustellbarkeit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 /**
@@ -37,6 +40,9 @@ class MailVorlageController extends Controller
             'definition' => $definition,
             'gespeichert' => MailVorlage::find($schluessel),
             'beispielwerte' => $this->beispielwerte($definition->platzhalter),
+            // Für die „Vorschau anhand eines Benutzers" – nur die Felder, die
+            // die Auswahl braucht.
+            'benutzer' => User::orderBy('name')->get(['id', 'name', 'email']),
         ]);
     }
 
@@ -100,10 +106,79 @@ class MailVorlageController extends Controller
         $fertig = $this->mailer->rendernMit(
             $fassung,
             $definition,
-            $this->beispielwerte($definition->platzhalter),
+            $this->werte($definition->platzhalter, $request->input('user_id')),
         );
 
         return response()->json($fertig);
+    }
+
+    /**
+     * Eine Testmail mit den aktuell im Editor stehenden (noch ungespeicherten)
+     * Texten an eine frei eingegebene Adresse schicken.
+     *
+     * Die Werte kommen wahlweise aus einem ausgewählten Benutzer – so sieht man
+     * die Mail so, wie dieser Empfänger sie bekäme. Der `link` bleibt aber ein
+     * Beispiel-Link: Ein echter Passwort-Token, an eine fremde Adresse
+     * geschickt, wäre ein Weg, ein fremdes Konto zu übernehmen.
+     */
+    public function testmail(Request $request, string $schluessel): JsonResponse
+    {
+        $definition = $this->register->finden($schluessel) ?? abort(404);
+
+        $daten = $request->validate([
+            'an' => ['required', 'email'],
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'betreff' => ['nullable', 'string'],
+            'html' => ['nullable', 'string'],
+            'text' => ['nullable', 'string'],
+        ]);
+
+        if (! Zustellbarkeit::zustellbar($daten['an'])) {
+            return response()->json(['ok' => false, 'meldung' => 'An diese Adresse kann nicht zugestellt werden.'], 422);
+        }
+
+        $fassung = new MailVorlage([
+            'schluessel' => $schluessel,
+            'betreff' => $daten['betreff'] ?? null,
+            'html' => $daten['html'] ?? null,
+            'text' => $daten['text'] ?? null,
+        ]);
+
+        $fertig = $this->mailer->rendernMit(
+            $fassung,
+            $definition,
+            $this->werte($definition->platzhalter, $daten['user_id'] ?? null),
+        );
+
+        Mail::html($fertig['html'], function ($nachricht) use ($daten, $fertig) {
+            $nachricht->to($daten['an'])->subject('[TEST] '.$fertig['betreff'])->text($fertig['text']);
+        });
+
+        return response()->json([
+            'ok' => true,
+            'meldung' => "Testmail an {$daten['an']} liegt im Ausgangskorb (Maillog zeigt den Versand).",
+        ]);
+    }
+
+    /**
+     * Die Werte für Vorschau/Testmail: Beispiele, bei ausgewähltem Benutzer
+     * dessen echte Angaben (Name) – der Link bleibt aus Sicherheitsgründen
+     * immer ein Beispiel (siehe testmail()).
+     *
+     * @param  array<string, string>  $platzhalter
+     * @return array<string, string>
+     */
+    private function werte(array $platzhalter, int|string|null $userId): array
+    {
+        $werte = $this->beispielwerte($platzhalter);
+
+        if ($userId && $user = User::find($userId)) {
+            if (array_key_exists('name', $werte)) {
+                $werte['name'] = $user->name;
+            }
+        }
+
+        return $werte;
     }
 
     /**
