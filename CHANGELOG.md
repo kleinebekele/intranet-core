@@ -8,6 +8,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Spalte `users.import_name`.** Merkt sich den Namen, den ein Import zuletzt gesetzt hat.
+  Damit können importierende Module (z. B. der Linear-Benutzerabgleich) unterscheiden, ob ein
+  Benutzer seinen Namen selbst geändert hat: Stimmt `name` noch mit `import_name` überein, zieht
+  eine Namensänderung aus der Quelle nach; weichen sie ab, bleibt die selbst gewählte Fassung.
 - **Mailvorlagen bearbeiten (Verwaltung → Mailvorlagen).** Betreff, HTML und Textfassung jeder
   Mail lassen sich anpassen – mit formatierter Eingabe (WYSIWYG), Umschalter auf den
   HTML-Quelltext und Live-Vorschau im echten Rahmen. Ein gemeinsames Layout (`_rahmen`)
