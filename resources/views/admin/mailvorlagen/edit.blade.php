@@ -166,6 +166,11 @@
                 _timer: null,
 
                 init() {
+                    // Zieladresse aus ?testmail vorbefüllen (Aufruf aus einer
+                    // Benachrichtigungs-Route: dann steht der Empfänger schon fest).
+                    const ziel = new URLSearchParams(location.search).get('testmail');
+                    if (ziel) this.testEmail = ziel;
+
                     // WYSIWYG mit dem gespeicherten HTML füllen …
                     this.$refs.wysiwyg.innerHTML = this.html;
                     // … und beim Wechsel in die Ansicht neu synchronisieren.
