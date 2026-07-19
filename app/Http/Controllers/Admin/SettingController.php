@@ -28,7 +28,6 @@ class SettingController
             'logoPfad' => Setting::get('logo'),
             'faviconPfad' => Setting::get('favicon'),
             'stundenlimit' => Setting::get('mail_stundenlimit', ''),
-            'stundenlimitEnv' => (int) env('MAIL_STUNDENLIMIT', 0),
             'outboxAktiv' => (bool) config('mail.outbox.aktiv', true),
         ]);
     }

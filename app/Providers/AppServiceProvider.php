@@ -50,9 +50,9 @@ class AppServiceProvider extends ServiceProvider
         // Registrieren der Modul-Routen laufen, darum hier im boot().
         app(RoutenAliase::class)->anwenden();
 
-        // In der Verwaltung gesetztes Stundenlimit schlägt die .env – sonst
-        // gäbe es zwei Wahrheiten und niemand wüsste, welche gilt. Kein Eintrag
-        // in der Verwaltung heißt: es bleibt beim Wert aus der .env.
+        // Das Mail-Stundenlimit kommt ausschließlich aus der Verwaltung – es
+        // hängt am Vertrag des Mailproviders, nicht am Server. Ohne Eintrag
+        // bleibt es beim Standard aus config/mail.php: kein Limit.
         if (filled($limit = Setting::get('mail_stundenlimit'))) {
             config(['mail.outbox.stundenlimit' => (int) $limit]);
         }

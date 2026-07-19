@@ -133,11 +133,18 @@ return [
     'outbox' => [
 
         // Aus = alles geht wie bisher sofort raus (lokale Entwicklung ohne Scheduler).
+        // Bleibt in der .env: ob ein Server einen Cron hat, ist eine Frage des
+        // Deployments und nicht des Backends.
         'aktiv' => env('MAIL_OUTBOX', true),
 
         // Höchstzahl Mails je gleitender Stunde. 0 = kein Limit.
-        // Waldorfschule: 250 (Vorgabe des Providers).
-        'stundenlimit' => (int) env('MAIL_STUNDENLIMIT', 0),
+        //
+        // BEWUSST OHNE env(): Das Limit wird ausschließlich in der Verwaltung
+        // gepflegt (Einstellungen → Mailversand). Es hängt am Vertrag des
+        // Mailproviders, nicht am Server – und es soll sich ändern lassen, ohne
+        // dass jemand an eine .env muss. Der Wert hier ist nur der Standard für
+        // Instanzen, die nichts eingestellt haben: kein Limit.
+        'stundenlimit' => 0,
 
         // Mails dieser Klassen bekommen Vorfahrt in der Warteschlange: Wer vor
         // dem Bildschirm auf einen Code oder Passwort-Link wartet, darf nicht

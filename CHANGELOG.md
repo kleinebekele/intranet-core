@@ -27,7 +27,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   (beide als Upload, Logo erscheint in Kopfzeile und auf der Anmeldeseite) sowie das
   **Mail-Stundenlimit**. Neue Tabelle `settings` als Schlüssel/Wert-Speicher (gecacht), damit
   nicht jede neue Kleinigkeit eine Migration erzwingt. Das in der Verwaltung gesetzte
-  Stundenlimit schlägt `MAIL_STUNDENLIMIT`; ohne Eintrag gilt weiter die `.env`.
+  Stundenlimit wird **ausschließlich hier** gepflegt – es hängt am Vertrag des Mailproviders,
+  nicht am Server, und steht darum bewusst nicht in der `.env`. Standard: kein Limit.
 - **Browser-Titel nach Konvention `{Haupttitel} – {Modul} – {Seite}`.** Module müssen dafür
   **nichts tun**: Das Modul ergibt sich aus dem Routen-Namen, die Seite aus dem passenden
   Menüpunkt (längster Treffer gewinnt, damit Unterseiten den Oberpunkt erben). Wo das nicht
@@ -37,7 +38,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   über mehrere Adressen erreichbar ist – intern per IP, extern per Domain.
 - **Mail-Ausgangskorb (`mail_outbox`):** Alle ausgehenden E-Mails werden zwischengelagert
   und vom neuen Task `mail:ausliefern` im erlaubten Takt verschickt. Löst zwei Dinge auf
-  einmal: die **Drosselung** (`MAIL_STUNDENLIMIT`, gleitend über 60 Minuten gezählt – der
+  einmal: die **Drosselung** (Stundenlimit aus der Verwaltung, gleitend über 60 Minuten – der
   Provider der Waldorfschule erlaubt nur 250 Mails je Stunde) und ein **Versand-Protokoll**
   (Zeitpunkt, Empfänger, Betreff, Status, Fehlertext, Message-ID), das Laravel von sich aus
   nicht führt. Die Message-ID ist der Schlüssel, um später Zustellmeldungen des Providers

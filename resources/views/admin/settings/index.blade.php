@@ -121,13 +121,12 @@
                         </label>
                         <input type="number" name="mail_stundenlimit" id="mail_stundenlimit" min="0" step="1"
                                value="{{ old('mail_stundenlimit', $stundenlimit) }}"
-                               placeholder="{{ $stundenlimitEnv ?: '0' }}"
+                               placeholder="0"
                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         <p class="mt-1.5 text-xs text-gray-500">
                             Höchstzahl Mails je Stunde, wie vom Mailprovider vorgegeben.
-                            <span class="font-medium">0 oder leer = kein Limit.</span>
-                            Ohne Eintrag gilt der Wert aus der <code class="rounded bg-gray-100 px-1">.env</code>
-                            (<code class="rounded bg-gray-100 px-1">MAIL_STUNDENLIMIT={{ $stundenlimitEnv }}</code>).
+                            <span class="font-medium">0 oder leer = kein Limit</span> – das ist der
+                            Normalfall. Gezählt wird gleitend über die letzten 60 Minuten.
                         </p>
                     </div>
 
