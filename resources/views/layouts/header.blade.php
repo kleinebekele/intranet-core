@@ -25,17 +25,8 @@
         <!-- Rechts: Admin-Zugang + Benutzermenü -->
         <div class="flex items-center gap-2">
             @auth
-                @if (auth()->user()->isAdmin())
-                    <a
-                        href="{{ route('admin.users.index') }}"
-                        class="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium {{ request()->routeIs('admin.*') ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:bg-gray-100' }}"
-                        title="Verwaltung"
-                    >
-                        <x-module-icon name="cog" class="text-xl" />
-                        <span class="hidden sm:inline">Verwaltung</span>
-                    </a>
-                @endif
-
+                {{-- Kein Verwaltungs-Link mehr hier: Er fuehrte zum selben Ziel wie der
+                     Punkt unten in der Seitenleiste. Ein Ziel, ein Weg. --}}
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 focus:outline-none">
