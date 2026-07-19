@@ -27,9 +27,16 @@ artisan() { $PHP artisan "$@"; }
 schritt() { echo; echo "==> $*"; }
 
 # --- Vorbedingungen -------------------------------------------------------
-if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
-    echo "FEHLER: Es gibt lokale Aenderungen im Arbeitsverzeichnis." >&2
-    echo "Bitte erst klaeren (git status), dann erneut deployen." >&2
+# composer.json/.lock sind auf einer Instanz dauerhaft geaendert - dort stehen die
+# per composer require dazugeholten Module, die der generische Core nicht kennt.
+# Das ist der Normalzustand und kein Hindernis. Alles andere schon.
+aenderungen="$(git status --porcelain --untracked-files=no \
+    | grep -vE '^.. composer\.(json|lock)$' || true)"
+
+if [ -n "$aenderungen" ]; then
+    echo "FEHLER: Es gibt unerwartete lokale Aenderungen im Arbeitsverzeichnis:" >&2
+    echo "$aenderungen" >&2
+    echo "Bitte erst klaeren, dann erneut deployen." >&2
     exit 1
 fi
 
@@ -43,7 +50,9 @@ schritt "Code holen"
 git pull --ff-only
 
 schritt "PHP-Abhaengigkeiten"
-$COMPOSER install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+# Kein --prefer-dist: Instanzen setzen preferred-install teils bewusst auf "source"
+# (private VCS-Repos ohne API). Das Flag wuerde diese Einstellung ueberstimmen.
+$COMPOSER install --no-dev --optimize-autoloader --no-interaction
 
 schritt "Assets bauen"
 if command -v "${NPM%% *}" >/dev/null 2>&1; then
