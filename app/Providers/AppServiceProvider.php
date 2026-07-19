@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Listeners\MailInDieOutbox;
 use App\Modules\Support\ModuleRegistry;
 use App\View\Composers\NavigationComposer;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -35,5 +38,10 @@ class AppServiceProvider extends ServiceProvider
 
         // Feed the left sidebar with the current navigation state.
         View::composer('layouts.sidebar', NavigationComposer::class);
+
+        // Jede ausgehende Mail in den Ausgangskorb umleiten (Drosselung +
+        // Protokoll). Bewusst hier und nicht per Auto-Discovery: der Listener
+        // greift so tief in den Versand ein, dass man ihn sehen soll.
+        Event::listen(MessageSending::class, MailInDieOutbox::class);
     }
 }

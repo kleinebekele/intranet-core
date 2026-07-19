@@ -8,6 +8,20 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Mail-Ausgangskorb (`mail_outbox`):** Alle ausgehenden E-Mails werden zwischengelagert
+  und vom neuen Task `mail:ausliefern` im erlaubten Takt verschickt. Löst zwei Dinge auf
+  einmal: die **Drosselung** (`MAIL_STUNDENLIMIT`, gleitend über 60 Minuten gezählt – der
+  Provider der Waldorfschule erlaubt nur 250 Mails je Stunde) und ein **Versand-Protokoll**
+  (Zeitpunkt, Empfänger, Betreff, Status, Fehlertext, Message-ID), das Laravel von sich aus
+  nicht führt. Die Message-ID ist der Schlüssel, um später Zustellmeldungen des Providers
+  (zugestellt/unzustellbar) daran zu hängen.
+  Abgefangen wird über `MessageSending` – gibt der Listener `false` zurück, bricht Laravel
+  den Sofortversand ab. **Module müssen dafür nichts tun und nichts wissen**; auch künftige
+  laufen automatisch mit. Zeitkritische Mails (2FA-Code, Passwort-Link) haben Vorfahrt in
+  der Warteschlange, konfigurierbar über `mail.outbox.eilig`.
+  ⚠️ **Braucht einen Cron für `schedule:run`** – ohne den bleibt der Korb voll und es geht
+  keine Mail mehr raus. Zum Abschalten: `MAIL_OUTBOX=false` (dann verhält sich alles wie
+  vorher, ungedrosselt und ohne Protokoll).
 - **Menü-Gruppen:** Module mit vielen Unterseiten können verwandte Punkte optisch unter
   einer aufklappbaren Überschrift bündeln – im Manifest über den neuen Parameter
   `group:` an `->item(...)`, z. B. `->item('schuljahre', 'Schuljahre', …, group: 'Verwaltung')`.

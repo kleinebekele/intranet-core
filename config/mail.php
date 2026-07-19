@@ -115,4 +115,40 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Ausgangskorb (Drosselung + Versand-Protokoll)
+    |--------------------------------------------------------------------------
+    |
+    | Alle Mails werden in der Tabelle `mail_outbox` zwischengelagert und vom
+    | Task `mail:ausliefern` im erlaubten Takt verschickt. Das drosselt den
+    | Versand (viele Provider erlauben nur einige hundert Mails je Stunde) und
+    | beantwortet nebenbei die Frage, ob eine Mail rausgegangen ist.
+    |
+    | ACHTUNG: Mit aktivem Ausgangskorb geht ohne einen Cron, der
+    | `schedule:run` aufruft, KEINE Mail mehr raus.
+    |
+    */
+
+    'outbox' => [
+
+        // Aus = alles geht wie bisher sofort raus (lokale Entwicklung ohne Scheduler).
+        'aktiv' => env('MAIL_OUTBOX', true),
+
+        // Höchstzahl Mails je gleitender Stunde. 0 = kein Limit.
+        // Waldorfschule: 250 (Vorgabe des Providers).
+        'stundenlimit' => (int) env('MAIL_STUNDENLIMIT', 0),
+
+        // Mails dieser Klassen bekommen Vorfahrt in der Warteschlange: Wer vor
+        // dem Bildschirm auf einen Code oder Passwort-Link wartet, darf nicht
+        // hinter einem Rundmail-Schwall hängen. Unterklassen zählen mit.
+        'eilig' => [
+            \App\Mail\TwoFactorCodeMail::class,
+            \App\Notifications\PasswordResetLinkNotification::class,
+            \Illuminate\Auth\Notifications\ResetPassword::class,
+            \Illuminate\Auth\Notifications\VerifyEmail::class,
+        ],
+
+    ],
+
 ];
