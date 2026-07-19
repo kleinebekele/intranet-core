@@ -8,6 +8,18 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Einstellungen (Verwaltung → erster Reiter):** Werte, die Administratoren im Betrieb ändern
+  können sollen, ohne an die `.env` zu müssen – **Haupttitel**, **Favicon** (Upload) und das
+  **Mail-Stundenlimit**. Neue Tabelle `settings` als Schlüssel/Wert-Speicher (gecacht), damit
+  nicht jede neue Kleinigkeit eine Migration erzwingt. Das in der Verwaltung gesetzte
+  Stundenlimit schlägt `MAIL_STUNDENLIMIT`; ohne Eintrag gilt weiter die `.env`.
+- **Browser-Titel nach Konvention `{Haupttitel} – {Modul} – {Seite}`.** Module müssen dafür
+  **nichts tun**: Das Modul ergibt sich aus dem Routen-Namen, die Seite aus dem passenden
+  Menüpunkt (längster Treffer gewinnt, damit Unterseiten den Oberpunkt erben). Wo das nicht
+  reicht, setzt die View den Teil selbst: `<x-slot name="titel">Schüler bearbeiten</x-slot>`.
+  Leere Teile und Wiederholungen fallen weg – das Dashboard heißt schlicht `{Haupttitel}`.
+  Das Favicon wird wurzelrelativ eingebunden (nicht über `APP_URL`), weil dieses Intranet oft
+  über mehrere Adressen erreichbar ist – intern per IP, extern per Domain.
 - **Mail-Ausgangskorb (`mail_outbox`):** Alle ausgehenden E-Mails werden zwischengelagert
   und vom neuen Task `mail:ausliefern` im erlaubten Takt verschickt. Löst zwei Dinge auf
   einmal: die **Drosselung** (`MAIL_STUNDENLIMIT`, gleitend über 60 Minuten gezählt – der
