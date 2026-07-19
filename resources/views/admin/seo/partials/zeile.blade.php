@@ -12,8 +12,15 @@
 <tr class="align-top {{ $kind ? 'bg-gray-50/60' : '' }}"
     @if ($versteckt) x-show="offen" x-cloak @endif>
     <td class="px-4 py-3 {{ $kind ? 'pl-10' : '' }}">
-        <div class="font-medium text-gray-800">{{ $zeile['bezeichnung'] }}</div>
-        <div class="text-xs text-gray-400">{{ $zeile['technischerName'] }}</div>
+        @if ($zeile['bezeichnung'])
+            <div class="font-medium text-gray-800">{{ $zeile['bezeichnung'] }}</div>
+            <div class="text-xs text-gray-400">{{ $zeile['technischerName'] }}</div>
+        @else
+            {{-- Ohne Menüpunkt gibt es keinen sprechenden Namen. Dann steht der
+                 technische allein da, statt ihn mit einem aus ihm selbst
+                 abgeleiteten Wort zu doppeln. --}}
+            <div class="text-gray-600">{{ $zeile['technischerName'] }}</div>
+        @endif
     </td>
 
     <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ $kind ? '' : $zeile['modul'] }}</td>

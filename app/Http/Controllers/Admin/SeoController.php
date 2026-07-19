@@ -50,7 +50,11 @@ class SeoController
                 // Das angehängte `.index` bezeichnet nur die Übersicht eines
                 // Bereichs und steht sonst hinter jedem zweiten Namen.
                 'technischerName' => Str::of($name)->replaceEnd('.index', '')->toString(),
-                'bezeichnung' => $beschriftungen[$name] ?? self::bezeichnung($name),
+                // Nur die Beschriftung aus der Seitenleiste – ein aus dem
+                // Routen-Namen abgeleitetes Wort („Users", „Cancel") sagt
+                // nichts, was der Name nicht schon sagt, und macht die Spalte
+                // nur voll. Fehlt sie, steht dort allein der Name.
+                'bezeichnung' => $beschriftungen[$name] ?? null,
                 'modulKey' => $modulKey,
                 'modul' => $modulKey ? $registry->manifest($modulKey)?->name : 'Core',
                 'original' => $original,
@@ -79,7 +83,7 @@ class SeoController
             }
 
             $heuhaufen = mb_strtolower(implode(' ', [
-                $z['name'], $z['bezeichnung'], $z['modul'], $z['original'],
+                $z['name'], (string) $z['bezeichnung'], $z['modul'], $z['original'],
                 (string) $z['pfad'], (string) $z['titel'],
             ]));
 
@@ -179,23 +183,6 @@ class SeoController
             : $zeile['aktuell'];
 
         return $zeile;
-    }
-
-    /**
-     * Notbehelf für Seiten ohne Menüpunkt (Core-Seiten, Unterseiten).
-     *
-     * Ein angehängtes `.index` fliegt weg: Es bezeichnet nur die Übersicht einer
-     * Gruppe und stand sonst als „Index" in fast jeder Zeile – hundertmal
-     * dasselbe Wort sagt niemandem, welche Seite gemeint ist.
-     */
-    private static function bezeichnung(string $routeName): string
-    {
-        return Str::of($routeName)
-            ->replaceEnd('.index', '')
-            ->afterLast('.')
-            ->replace(['-', '_'], ' ')
-            ->ucfirst()
-            ->toString();
     }
 
     public function update(Request $request, RoutenAliase $aliase): RedirectResponse

@@ -249,8 +249,10 @@ class RoutenAliasTest extends TestCase
 
         $antwort->assertOk()
             ->assertSee('Kategorien')
-            // Ohne Menüpunkt bleibt der Notbehelf – aber ohne das "Index".
-            ->assertSee('Create')
+            // Ohne Menuepunkt steht NUR der technische Name da. Ein aus ihm
+            // abgeleitetes "Create" waere eine Doppelung ohne Aussage.
+            ->assertSee('module.tm.categories.create')
+            ->assertDontSee('>Create<', false)
             ->assertDontSee('>Index<', false)
             // Auch der technische Name steht ohne das angehaengte .index da.
             // Nur die ANZEIGE ist gemeint: Im versteckten Formularfeld muss der
