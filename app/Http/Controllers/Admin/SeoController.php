@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\ModuleMenuItem;
 use App\Models\RouteSetting;
 use App\Modules\Support\ModuleRegistry;
 use App\Support\RoutenAliase;
@@ -27,6 +28,14 @@ class SeoController
 
         $eintraege = RouteSetting::alle();
 
+        // Die Beschriftung aus der Seitenleiste ist der beste Name, den es für
+        // eine Seite gibt: deutsch, vom Admin selbst gepflegt – und zwar genau
+        // das Wort, unter dem er die Seite kennt.
+        $beschriftungen = ModuleMenuItem::query()
+            ->whereNotNull('route_name')
+            ->pluck('label', 'route_name')
+            ->all();
+
         $zeilen = [];
 
         foreach ($aliase->verfuegbareRouten() as $route) {
@@ -39,6 +48,7 @@ class SeoController
 
             $zeilen[] = [
                 'name' => $name,
+                'bezeichnung' => $beschriftungen[$name] ?? self::bezeichnung($name),
                 'modulKey' => $modulKey,
                 'modul' => $modulKey ? $registry->manifest($modulKey)?->name : 'Core',
                 'original' => $original,
@@ -62,7 +72,8 @@ class SeoController
             }
 
             $heuhaufen = mb_strtolower(implode(' ', [
-                $z['name'], $z['modul'], $z['original'], (string) $z['pfad'], (string) $z['titel'],
+                $z['name'], $z['bezeichnung'], $z['modul'], $z['original'],
+                (string) $z['pfad'], (string) $z['titel'],
             ]));
 
             return str_contains($heuhaufen, mb_strtolower($suche));
@@ -75,6 +86,23 @@ class SeoController
             'modulFilter' => $modulFilter,
             'module' => $registry->manifests(),
         ]);
+    }
+
+    /**
+     * Notbehelf für Seiten ohne Menüpunkt (Core-Seiten, Unterseiten).
+     *
+     * Ein angehängtes `.index` fliegt weg: Es bezeichnet nur die Übersicht einer
+     * Gruppe und stand sonst als „Index" in fast jeder Zeile – hundertmal
+     * dasselbe Wort sagt niemandem, welche Seite gemeint ist.
+     */
+    private static function bezeichnung(string $routeName): string
+    {
+        return Str::of($routeName)
+            ->replaceEnd('.index', '')
+            ->afterLast('.')
+            ->replace(['-', '_'], ' ')
+            ->ucfirst()
+            ->toString();
     }
 
     public function update(Request $request, RoutenAliase $aliase): RedirectResponse
@@ -112,6 +140,11 @@ class SeoController
 
         if ($pfad === '' && $titel === '') {
             RouteSetting::where('route_name', $name)->delete();
+
+            // Ein Löschen über die Abfrage löst KEINE Model-Ereignisse aus – der
+            // Cache würde den Eintrag also behalten und die selbst vergebene
+            // Adresse weiter gelten. Zurücknehmen ginge damit gar nicht.
+            RouteSetting::cacheVerwerfen();
         } else {
             RouteSetting::updateOrCreate(
                 ['route_name' => $name],

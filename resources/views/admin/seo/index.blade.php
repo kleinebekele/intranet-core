@@ -109,7 +109,7 @@
                             <tr class="align-top">
                                 <td class="px-4 py-3">
                                     <div class="font-medium text-gray-800">
-                                        {{ \Illuminate\Support\Str::of($zeile['name'])->afterLast('.')->replace('-', ' ')->ucfirst() }}
+                                        {{ $zeile['bezeichnung'] }}
                                     </div>
                                     <div class="text-xs text-gray-400">{{ $zeile['name'] }}</div>
                                 </td>

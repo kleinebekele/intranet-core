@@ -7,6 +7,27 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Geändert
+- **SEO-Liste lesbar gemacht:** In der Spalte *Seite* stand fast überall „Index" – das ist nur
+  die technische Bezeichnung für die Übersicht einer Gruppe und sagte niemandem, welche Seite
+  gemeint ist. Jetzt steht dort die **Beschriftung aus der Seitenleiste** („Kategorien"), also
+  das Wort, unter dem man die Seite kennt und das man im Admin selbst pflegt. Seiten ohne
+  Menüpunkt bekommen einen Notbehelf aus dem Routen-Namen, ebenfalls ohne das angehängte `.index`.
+- **Eine Adresse gilt für den ganzen Bereich.** Bisher wurde nur die eine Seite umbenannt, deren
+  Zeile man bearbeitet hat – die Übersicht lag danach unter `/kategorien`, das Bearbeiten aber
+  weiter unter `/modules/schulkantine/kategorien/1/bearbeiten`. Jetzt wirkt der Eintrag als
+  **Stammpfad**: Alles, was darunter liegt, zieht mit. Ein eigener Eintrag für eine Unterseite
+  schlägt den Stammpfad. Verglichen wird bewusst mit Schrägstrich, damit `kategorien-import`
+  nicht mitwandert, nur weil es gleich anfängt.
+
+### Behoben
+- **`generated::…`-Einträge in der SEO-Liste.** `route:cache` vergibt unbenannten Routen selbst
+  einen Namen; die Liste hielt sie deshalb für Seiten. Trat nur auf Servern mit Routen-Cache auf,
+  lokal nie.
+- **Adresse ließ sich nicht zurücknehmen.** Beim Leeren von Adresse und Titel wurde der Eintrag
+  über die Abfrage gelöscht – das löst keine Model-Ereignisse aus, der zwischengespeicherte
+  Eintrag blieb also bestehen und die alte Wunschadresse galt weiter.
+
 ### Hinzugefügt
 - **`deploy.sh`:** Ein Aufruf statt einer Handvoll getippter Befehle – Wartungsmodus,
   `git pull`, Composer, Assets, Migrationen, Caches, und am Ende kommt die Seite auch dann

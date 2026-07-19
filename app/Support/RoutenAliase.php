@@ -64,19 +64,29 @@ class RoutenAliase
         $neu = new RouteCollection();
         $weiterleitungen = [];
 
+        // Erst lesen, dann schreiben: Die Stammpfade müssen aus den
+        // URSPRÜNGLICHEN Adressen gebildet werden. Würden wir im selben
+        // Durchlauf schon umschreiben, hinge das Ergebnis davon ab, in welcher
+        // Reihenfolge der Router die Routen ausspuckt.
+        $staemme = $this->staemme($alt, $aliase);
+
         foreach ($alt as $route) {
             $name = $route->getName();
-            $pfad = $name ? ($aliase[$name]['pfad'] ?? null) : null;
+            $bisher = $route->uri();
 
-            if ($pfad !== null) {
-                $bisher = $route->uri();
-                $ziel = trim($pfad, '/');
+            // Ein eigener Eintrag gilt immer – auch für eine Unterseite, die
+            // sonst vom Stammpfad erfasst würde.
+            $ziel = $name && filled($aliase[$name]['pfad'] ?? null)
+                ? trim($aliase[$name]['pfad'], '/')
+                : $this->unterStamm($bisher, $staemme);
 
-                if ($bisher !== $ziel) {
+            if ($ziel !== null && $bisher !== $ziel) {
+                if ($name) {
                     self::$urspruenglich[$name] = $bisher;
-                    $route->setUri($ziel);
-                    $weiterleitungen[$bisher] = $ziel;
                 }
+
+                $route->setUri($ziel);
+                $weiterleitungen[$bisher] = $ziel;
             }
 
             $neu->add($route);
@@ -91,6 +101,63 @@ class RoutenAliase
         foreach ($weiterleitungen as $bisher => $ziel) {
             $this->weiterleiten($bisher, $ziel);
         }
+    }
+
+    /**
+     * Stammpfade: alte Bereichsadresse → neue Bereichsadresse.
+     *
+     * Wer einer Übersichtsseite eine sprechende Adresse gibt, meint den ganzen
+     * Bereich – die Seiten zum Anlegen und Bearbeiten sollen mitziehen, sonst
+     * steht in einem Modul die Hälfte der Adressen schön und die andere Hälfte
+     * technisch da.
+     *
+     * Nur Adressen ohne Platzhalter taugen als Stamm: `/kategorien/{id}` ist
+     * kein Bereich, sondern eine einzelne Seite.
+     *
+     * @param  array<string, array{pfad:?string, titel:?string}>  $aliase
+     * @return array<string, string>
+     */
+    private function staemme(RouteCollection $routen, array $aliase): array
+    {
+        $staemme = [];
+
+        foreach ($routen as $route) {
+            $name = $route->getName();
+            $pfad = $name ? ($aliase[$name]['pfad'] ?? null) : null;
+
+            if (blank($pfad) || str_contains($route->uri(), '{')) {
+                continue;
+            }
+
+            $staemme[trim($route->uri(), '/')] = trim($pfad, '/');
+        }
+
+        // Längster Stamm zuerst: Bei verschachtelten Bereichen soll der
+        // genauere gewinnen, nicht der zufällig zuerst gefundene.
+        uksort($staemme, fn ($a, $b) => strlen($b) <=> strlen($a));
+
+        return $staemme;
+    }
+
+    /**
+     * Neue Adresse einer Seite, die unter einem Stammpfad liegt – sonst null.
+     *
+     * Der Schrägstrich im Vergleich ist wichtig: `kategorien-import` liegt
+     * NICHT unter `kategorien`, auch wenn die Zeichenkette so anfängt.
+     *
+     * @param  array<string, string>  $staemme
+     */
+    private function unterStamm(string $uri, array $staemme): ?string
+    {
+        $uri = trim($uri, '/');
+
+        foreach ($staemme as $alt => $neu) {
+            if (str_starts_with($uri, $alt.'/')) {
+                return $neu.'/'.substr($uri, strlen($alt) + 1);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -129,6 +196,14 @@ class RoutenAliase
             if (! $name
                 || ! in_array('GET', $route->methods(), true)
                 || str_contains($route->uri(), '{')) {
+                continue;
+            }
+
+            // `route:cache` vergibt unbenannten Routen selbst einen Namen der
+            // Form `generated::xNq3…`. Das sind keine Seiten, die jemand
+            // verlinkt – und auf einem Server mit Routen-Cache stünden sonst
+            // dutzende davon in der Verwaltung.
+            if (str_starts_with($name, 'generated::')) {
                 continue;
             }
 
