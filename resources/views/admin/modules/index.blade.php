@@ -6,6 +6,13 @@
     <div class="max-w-3xl">
         @include('admin.partials.tabs')
 
+        {{-- Erfolgsmeldungen rendert das Layout; Fehler aus dem Entfernen-Dialog hier. --}}
+        @if (session('error'))
+            <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
+
         <p class="text-gray-600 mb-6">
             Ziehe Module am Griff, um ihre Reihenfolge zu ändern (wird sofort gespeichert). Klappe ein Modul auf,
             um seine Unterseiten zu sortieren und festzulegen, <span class="font-medium">welche Rollen</span>
@@ -139,6 +146,95 @@
                                     <span class="text-xs text-gray-400">Keine Auswahl = nur Administratoren · „Benutzer" = alle · gilt für Menü und Zugriff</span>
                                 </div>
                             </form>
+
+                            {{-- Entfernen: eingeklappt, damit es nicht versehentlich angeklickt wird. --}}
+                            @php($vorschau = $vorschauen[$module->id] ?? null)
+                            @php($umfang = 'Modul-Eintrag, '.$module->menuItems->count().' Menüpunkt(e) samt Rollen-Zuordnung'
+                                .(($vorschau && $vorschau['adressen']) ? ' und '.$vorschau['adressen'].' sprechende Adresse(n)' : ''))
+                            <div class="mt-6 border-t border-gray-100 pt-4" x-data="{ zeigen: false, mitDaten: false }">
+                                <button type="button" @click="zeigen = ! zeigen"
+                                        class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600">
+                                    <i class='bx bx-trash text-base'></i>
+                                    Modul entfernen
+                                </button>
+
+                                <div x-show="zeigen" x-cloak class="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
+                                    <p class="text-sm text-gray-700">
+                                        Entfernt <span class="font-medium">{{ $module->name }}</span> aus dieser Instanz:
+                                        {{ $umfang }}.
+                                    </p>
+
+                                    @if ($vorschau && ! $vorschau['paket_installiert'])
+                                        <p class="mt-2 text-sm text-gray-600">
+                                            Das Paket ist bereits deinstalliert – hier lassen sich nur noch die
+                                            zurückgebliebenen Einträge aufräumen. Die Tabellen des Moduls könnte
+                                            nur die Konsole abräumen, und auch das erst, wenn das Paket kurz
+                                            wieder eingebunden wird.
+                                        </p>
+                                    @endif
+
+                                    <form method="POST" action="{{ route('admin.modules.destroy', $module) }}" class="mt-3 space-y-3">
+                                        @csrf
+                                        @method('DELETE')
+
+                                        @if ($vorschau && $vorschau['paket_installiert'] && count($vorschau['migrationen']))
+                                            <div class="rounded-lg border border-red-200 bg-white p-3">
+                                                <label class="inline-flex items-start gap-2 text-sm text-gray-700">
+                                                    <input type="checkbox" name="mit_daten" value="1" x-model="mitDaten"
+                                                           class="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                                                    <span>
+                                                        Auch die <span class="font-medium">Tabellen des Moduls</span> löschen
+                                                        (Migrationen zurückrollen)
+                                                    </span>
+                                                </label>
+
+                                                <ul class="mt-2 space-y-0.5 pl-6 text-xs text-gray-500">
+                                                    @foreach ($vorschau['migrationen'] as $migration)
+                                                        @forelse ($migration['tabellen'] as $tabelle)
+                                                            <li>
+                                                                <code>{{ $tabelle['name'] }}</code>
+                                                                @if ($tabelle['vorhanden'])
+                                                                    — <span class="font-medium text-gray-700">{{ $tabelle['zeilen'] }} Zeilen</span>
+                                                                @else
+                                                                    — nicht vorhanden
+                                                                @endif
+                                                            </li>
+                                                        @empty
+                                                            <li>{{ $migration['name'] }}</li>
+                                                        @endforelse
+                                                    @endforeach
+                                                </ul>
+
+                                                <div x-show="mitDaten" x-cloak class="mt-3">
+                                                    <label class="block text-sm text-gray-700">
+                                                        Diese Daten sind danach weg. Zum Bestätigen den Modul-Schlüssel
+                                                        <code class="rounded bg-gray-100 px-1.5 py-0.5">{{ $module->key }}</code> eintippen:
+                                                        <input type="text" name="bestaetigung" autocomplete="off"
+                                                               class="mt-1 block w-56 rounded-lg border-gray-300 text-sm focus:border-red-500 focus:ring-red-500">
+                                                    </label>
+                                                    @error('bestaetigung')
+                                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        <p class="text-sm text-gray-600">
+                                            <i class='bx bx-info-circle'></i>
+                                            Das <span class="font-medium">Paket selbst</span> bleibt installiert. Sonst taucht das
+                                            Modul beim nächsten <code class="rounded bg-white px-1 py-0.5">modules:sync</code> wieder
+                                            auf. Danach also auf dem Server noch:
+                                            <code class="mt-1 block rounded bg-white px-2 py-1">composer remove {{ $vorschau['paket_name'] ?? 'vendor/module-'.$module->key }}</code>
+                                        </p>
+
+                                        <button type="submit"
+                                                class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
+                                            <i class='bx bx-trash text-base'></i>
+                                            <span x-text="mitDaten ? 'Modul und Daten löschen' : 'Modul entfernen'">Modul entfernen</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </li>
                 @endforeach

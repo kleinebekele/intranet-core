@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Module;
 use App\Models\Role;
+use App\Models\User;
 use App\Modules\Support\ModuleManifest;
 use App\Modules\Support\ModuleRegistry;
 use Illuminate\Database\Schema\Blueprint;
@@ -150,5 +151,85 @@ class ModuleUninstallTest extends TestCase
     public function test_unbekannter_schluessel_meldet_fehler(): void
     {
         $this->artisan('modules:uninstall gibtsnicht')->assertFailed();
+    }
+
+    private function admin(): User
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['is_admin' => true])->save();
+
+        return $user;
+    }
+
+    public function test_knopf_im_backend_entfernt_nur_die_registrierung(): void
+    {
+        $this->paketInstallieren();
+        $this->migrationLaufenLassen();
+
+        $this->actingAs($this->admin())
+            ->delete(route('admin.modules.destroy', $this->module))
+            ->assertRedirect(route('admin.modules.index'));
+
+        $this->assertDatabaseMissing('modules', ['key' => 'tm']);
+        $this->assertTrue(Schema::hasTable('tm_dinge'));
+    }
+
+    public function test_knopf_loescht_daten_nur_mit_getipptem_schluessel(): void
+    {
+        $this->paketInstallieren();
+        $this->migrationLaufenLassen();
+
+        // Falscher Bestätigungstext: nichts darf passieren.
+        $this->actingAs($this->admin())
+            ->from(route('admin.modules.index'))
+            ->delete(route('admin.modules.destroy', $this->module), ['mit_daten' => 1, 'bestaetigung' => 'tippfehler'])
+            ->assertSessionHasErrors('bestaetigung');
+
+        $this->assertDatabaseHas('modules', ['key' => 'tm']);
+        $this->assertTrue(Schema::hasTable('tm_dinge'));
+
+        // Mit richtigem Schlüssel geht es durch.
+        $this->actingAs($this->admin())
+            ->delete(route('admin.modules.destroy', $this->module), ['mit_daten' => 1, 'bestaetigung' => 'tm'])
+            ->assertRedirect(route('admin.modules.index'));
+
+        $this->assertFalse(Schema::hasTable('tm_dinge'));
+        $this->assertDatabaseMissing('modules', ['key' => 'tm']);
+    }
+
+    public function test_knopf_verweigert_datenloeschung_ohne_installiertes_paket(): void
+    {
+        $this->migrationLaufenLassen(); // Paket bewusst NICHT angemeldet
+
+        $this->actingAs($this->admin())
+            ->from(route('admin.modules.index'))
+            ->delete(route('admin.modules.destroy', $this->module), ['mit_daten' => 1, 'bestaetigung' => 'tm'])
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('modules', ['key' => 'tm']);
+        $this->assertTrue(Schema::hasTable('tm_dinge'));
+    }
+
+    public function test_nicht_admins_duerfen_kein_modul_entfernen(): void
+    {
+        $this->admin(); // damit der nächste Benutzer nicht automatisch Admin wird
+
+        $this->actingAs(User::factory()->create())
+            ->delete(route('admin.modules.destroy', $this->module))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('modules', ['key' => 'tm']);
+    }
+
+    public function test_uebersicht_zeigt_tabellen_und_zeilenzahl(): void
+    {
+        $this->paketInstallieren();
+        $this->migrationLaufenLassen();
+
+        $this->actingAs($this->admin())
+            ->get(route('admin.modules.index'))
+            ->assertOk()
+            ->assertSee('tm_dinge')
+            ->assertSee('1 Zeilen');
     }
 }

@@ -197,6 +197,10 @@ Das Gegenstück zu `modules:sync`. Es zeigt zuerst, was am Modul hängt (Menüpu
 Rollen, sprechende Adressen, gelaufene Migrationen samt Tabellen und Zeilenzahlen)
 und fragt dann nach.
 
+Dasselbe gibt es als Knopf im Backend: **Verwaltung → Module**, Modul aufklappen,
+unten *„Modul entfernen"*. Das Löschen der Tabellen verlangt dort zusätzlich, den
+Modul-Schlüssel abzutippen. Nur `composer remove` bleibt Sache der Konsole.
+
 ```bash
 php artisan modules:uninstall userimport            # nur die Registrierung
 php artisan modules:uninstall userimport --mit-daten # zusätzlich Tabellen zurückrollen

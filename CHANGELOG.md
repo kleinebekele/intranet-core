@@ -20,6 +20,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Damit der Core weiß, welche Migration zu welchem Modul gehört, trägt das `ModuleManifest`
   jetzt sein Paketverzeichnis (`basePath`) – gesetzt vom `ModuleServiceProvider`, Module
   müssen nichts tun.
+- **Entfernen-Knopf unter Verwaltung → Module.** Derselbe Vorgang ohne Konsole: eingeklappt
+  hinter *„Modul entfernen"*, zeigt vorher, was daran hängt – inklusive der Tabellen des
+  Moduls mit ihrer aktuellen Zeilenzahl. Das Häkchen *„Auch die Tabellen des Moduls löschen"*
+  verlangt zusätzlich, den Modul-Schlüssel abzutippen. Die Erfolgsmeldung nennt den
+  `composer remove`-Befehl, denn das Paket muss weiterhin von Hand aus der `composer.json` –
+  sonst steht das Modul beim nächsten `modules:sync` wieder da.
 
 ### Geändert
 - **SEO-Liste nach Bereichen gebündelt.** Die Übersicht führt den Bereich an, alles darunter

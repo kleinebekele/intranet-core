@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Module;
 use App\Models\ModuleMenuItem;
 use App\Models\Role;
+use App\Modules\Support\ModuleUninstaller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use RuntimeException;
 
 /**
  * The admin panel for arranging the navigation:
@@ -19,9 +22,17 @@ use Illuminate\View\View;
  */
 class ModuleController extends Controller
 {
+    public function __construct(private ModuleUninstaller $uninstaller) {}
+
     public function index(): View
     {
         $modules = Module::with(['menuItems.roles', 'roles'])->orderBy('position')->get();
+
+        // Was hängt an jedem Modul? Zeigt der Entfernen-Dialog an, damit
+        // niemand ins Blaue hinein löscht.
+        $vorschauen = $modules->mapWithKeys(
+            fn (Module $module) => [$module->id => $this->uninstaller->vorschau($module->key)],
+        );
 
         // "admin" wird bewusst NICHT als Sichtbarkeits-Rolle angeboten – Admins
         // sehen ohnehin alles; "nur für Admins" regelt der separate Schalter.
@@ -30,7 +41,52 @@ class ModuleController extends Controller
             ->orderBy('role_id')
             ->get();
 
-        return view('admin.modules.index', compact('modules', 'roles'));
+        return view('admin.modules.index', compact('modules', 'roles', 'vorschauen'));
+    }
+
+    /**
+     * Modul aus dieser Instanz entfernen.
+     *
+     * Standardmäßig verschwindet nur die Registrierung (Modul, Menüpunkte samt
+     * Rollen, sprechende Adressen); die Tabellen des Moduls bleiben stehen.
+     * Erst `mit_daten` rollt seine Migrationen zurück – und weil das echte
+     * Daten kostet, muss dafür zusätzlich der Modul-Schlüssel getippt werden.
+     *
+     * Das Paket selbst bleibt installiert: Es aus der `composer.json` zu
+     * werfen ist Sache der Konsole, worauf die Erfolgsmeldung hinweist.
+     */
+    public function destroy(Request $request, Module $module): RedirectResponse
+    {
+        $mitDaten = $request->boolean('mit_daten');
+
+        $request->validate([
+            'mit_daten' => ['sometimes', 'boolean'],
+            'bestaetigung' => [
+                Rule::requiredIf($mitDaten),
+                Rule::in([$module->key]),
+            ],
+        ], [
+            'bestaetigung.*' => "Zum Löschen der Daten bitte den Modul-Schlüssel „{$module->key}\" eintippen.",
+        ]);
+
+        $key = $module->key;
+
+        try {
+            $bericht = $this->uninstaller->entfernen($key, $mitDaten);
+        } catch (RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $meldung = "Modul \"{$bericht['name']}\" entfernt: {$bericht['menuepunkte']} Menüpunkt(e)";
+        $meldung .= $bericht['adressen'] ? ", {$bericht['adressen']} sprechende Adresse(n)" : '';
+        $meldung .= $bericht['migrationen']
+            ? ', '.count($bericht['migrationen']).' Migration(en) zurückgerollt.'
+            : '. Die Tabellen des Moduls sind unverändert geblieben.';
+
+        $paket = $bericht['paket_name'] ?? "<vendor>/module-{$key}";
+        $meldung .= " Damit es nicht beim nächsten \"modules:sync\" wieder auftaucht, muss das Paket noch aus der composer.json: composer remove {$paket}";
+
+        return redirect()->route('admin.modules.index')->with('status', $meldung);
     }
 
     /**
@@ -42,11 +98,11 @@ class ModuleController extends Controller
     {
         $data = $request->validate([
             'module_admins_only' => ['sometimes', 'boolean'],
-            'item_admins_only'   => ['array'],
+            'item_admins_only' => ['array'],
             'item_admins_only.*' => ['boolean'],
-            'item_roles'         => ['array'],
-            'item_roles.*'       => ['array'],
-            'item_roles.*.*'     => ['string', 'exists:roles,role_id'],
+            'item_roles' => ['array'],
+            'item_roles.*' => ['array'],
+            'item_roles.*.*' => ['string', 'exists:roles,role_id'],
         ]);
 
         $module->admins_only = (bool) ($data['module_admins_only'] ?? false);

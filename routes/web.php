@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/modules/{module}/toggle', [ModuleController::class, 'toggle'])->name('modules.toggle');
         Route::post('/modules/{module}/menu/reorder', [ModuleController::class, 'reorderItems'])->name('modules.menu.reorder');
         Route::put('/modules/{module}/visibility', [ModuleController::class, 'visibility'])->name('modules.visibility');
+        Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])->name('modules.destroy');
 
         // Rollen-Verwaltung (CRUD). {role} bindet automatisch über role_id.
         Route::resource('roles', RoleController::class)->except(['show']);
