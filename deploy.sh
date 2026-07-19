@@ -30,7 +30,13 @@ schritt() { echo; echo "==> $*"; }
 # composer.json/.lock sind auf einer Instanz dauerhaft geaendert - dort stehen die
 # per composer require dazugeholten Module, die der generische Core nicht kennt.
 # Das ist der Normalzustand und kein Hindernis. Alles andere schon.
-aenderungen="$(git status --porcelain --untracked-files=no \
+#
+# core.fileMode=false nur fuer DIESEN Aufruf: Auf einem Server muss der Webserver
+# storage/ und bootstrap/cache/ beschreiben duerfen, dafuer laeuft dort einmal ein
+# chmod. Das aendert die Rechte-Bits auch der mitversionierten .gitignore-Dateien,
+# und Git meldet einen Rechte-Wechsel genauso als "M" wie eine inhaltliche
+# Aenderung. Wir wollen hier aber nur echte Inhalte sehen.
+aenderungen="$(git -c core.fileMode=false status --porcelain --untracked-files=no \
     | grep -vE '^.. composer\.(json|lock)$' || true)"
 
 if [ -n "$aenderungen" ]; then
@@ -65,6 +71,13 @@ fi
 
 schritt "Datenbank"
 artisan migrate --force
+
+schritt "Module abgleichen"
+# ZWINGEND NACH migrate, nie davor: Eine Migration haengt Menuepunkte um (etwa
+# wenn ein Modul aufgeteilt wird). Liefe der Abgleich zuerst, saehe er den
+# Menuepunkt als verwaist an und wuerde ihn samt der daran haengenden Rollen
+# loeschen - die waeren dann von Hand nachzutragen.
+artisan modules:sync
 
 schritt "Caches neu aufbauen"
 artisan optimize:clear
