@@ -9,7 +9,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ### Hinzugefügt
 - **Einstellungen (Verwaltung → erster Reiter):** Werte, die Administratoren im Betrieb ändern
-  können sollen, ohne an die `.env` zu müssen – **Haupttitel**, **Favicon** (Upload) und das
+  können sollen, ohne an die `.env` zu müssen – **Haupttitel**, **Logo** und **Favicon**
+  (beide als Upload, Logo erscheint in Kopfzeile und auf der Anmeldeseite) sowie das
   **Mail-Stundenlimit**. Neue Tabelle `settings` als Schlüssel/Wert-Speicher (gecacht), damit
   nicht jede neue Kleinigkeit eine Migration erzwingt. Das in der Verwaltung gesetzte
   Stundenlimit schlägt `MAIL_STUNDENLIMIT`; ohne Eintrag gilt weiter die `.env`.
