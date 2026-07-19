@@ -94,6 +94,9 @@ class ModuleUninstaller
             'menuepunkte' => $punkte,
             'adressen' => $adressen,
             'migrationen' => $zurueckgerollt,
+            // Mit Paket lief das echte down(); ohne Paket wurden die Tabellen
+            // direkt verworfen. Die Meldung darf beides nicht gleich nennen.
+            'per_down' => $vorschau['paket_installiert'],
         ];
     }
 

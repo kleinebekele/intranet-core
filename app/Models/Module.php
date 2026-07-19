@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -91,9 +92,9 @@ class Module extends Model
      * Mitglieder sammeln sich dort ein, statt die Gruppe mehrfach zu rendern
      * (die Reihenfolge gehört dem Admin, sie kann also beliebig sein).
      *
-     * @return \Illuminate\Support\Collection<int, array{label: string|null, items: \Illuminate\Support\Collection<int, ModuleMenuItem>}>
+     * @return Collection<int, array{label: string|null, items: Collection<int, ModuleMenuItem>}>
      */
-    public function menuTree(): \Illuminate\Support\Collection
+    public function menuTree(): Collection
     {
         $tree = collect();
         $groups = [];

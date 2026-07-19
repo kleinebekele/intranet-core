@@ -25,9 +25,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class RoutenAliaseAnwenden
 {
-    public function __construct(private readonly RoutenAliase $aliase)
-    {
-    }
+    public function __construct(private readonly RoutenAliase $aliase) {}
 
     public function handle(Request $request, Closure $next): Response
     {

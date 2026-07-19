@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,7 +32,7 @@ class RegistrationTest extends TestCase
 
     public function test_registrierung_ist_geschlossen_sobald_benutzer_existieren(): void
     {
-        \App\Models\User::factory()->create();
+        User::factory()->create();
 
         $this->get('/register')->assertRedirect(route('login'));
 
@@ -49,7 +50,7 @@ class RegistrationTest extends TestCase
     public function test_registrierung_laesst_sich_per_env_oeffnen(): void
     {
         config(['intranet.registration_enabled' => true]);
-        \App\Models\User::factory()->create();
+        User::factory()->create();
 
         $this->get('/register')->assertOk();
 
@@ -73,6 +74,6 @@ class RegistrationTest extends TestCase
             'password_confirmation' => 'password',
         ]);
 
-        $this->assertTrue(\App\Models\User::first()->is_admin);
+        $this->assertTrue(User::first()->is_admin);
     }
 }

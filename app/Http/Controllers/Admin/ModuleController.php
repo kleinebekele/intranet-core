@@ -79,9 +79,13 @@ class ModuleController extends Controller
 
         $meldung = "Modul \"{$bericht['name']}\" entfernt: {$bericht['menuepunkte']} Menüpunkt(e)";
         $meldung .= $bericht['adressen'] ? ", {$bericht['adressen']} sprechende Adresse(n)" : '';
-        $meldung .= $bericht['migrationen']
-            ? ', '.count($bericht['migrationen']).' Migration(en) zurückgerollt.'
-            : '. Die Tabellen des Moduls sind unverändert geblieben.';
+        if (! $bericht['migrationen']) {
+            $meldung .= '. Die Tabellen des Moduls sind unverändert geblieben.';
+        } elseif ($bericht['per_down']) {
+            $meldung .= ', '.count($bericht['migrationen']).' Migration(en) zurückgerollt.';
+        } else {
+            $meldung .= ', '.count($bericht['migrationen']).' Migration(en) samt Tabellen verworfen (ohne down(), das Paket fehlt).';
+        }
 
         // Nur einen echten Paketnamen nennen: Ein Platzhalter wird abgetippt und
         // richtet dann Schaden an (composer update auf einen erfundenen Namen).

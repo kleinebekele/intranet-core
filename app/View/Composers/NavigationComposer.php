@@ -11,9 +11,7 @@ use Illuminate\View\View;
  */
 class NavigationComposer
 {
-    public function __construct(protected Navigation $navigation)
-    {
-    }
+    public function __construct(protected Navigation $navigation) {}
 
     public function compose(View $view): void
     {

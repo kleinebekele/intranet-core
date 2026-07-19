@@ -36,7 +36,7 @@ class RoleController extends Controller
     {
         $data = $request->validate([
             'role_id' => ['required', 'string', 'max:64', 'alpha_dash', 'unique:roles,role_id'],
-            'name'    => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255'],
         ]);
 
         Role::create($data);

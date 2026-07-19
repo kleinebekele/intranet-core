@@ -39,9 +39,7 @@ class RoutenAliase
      */
     private static array $urspruenglich = [];
 
-    public function __construct(private readonly Router $router)
-    {
-    }
+    public function __construct(private readonly Router $router) {}
 
     /** Ursprüngliche Adresse einer Route, falls sie ersetzt wurde. */
     public static function urspruenglicherPfad(string $routeName): ?string
@@ -65,7 +63,7 @@ class RoutenAliase
         }
 
         $alt = $this->router->getRoutes();
-        $neu = new RouteCollection();
+        $neu = new RouteCollection;
         $weiterleitungen = [];
 
         // Erst rechnen, dann schreiben: Die Zuordnung muss auf den
@@ -152,7 +150,7 @@ class RoutenAliase
      * kürzer als alles, was unter ihm liegt.
      *
      * @param  array<string, array{pfad:?string, absoluter_pfad:bool}>  $eintraege
-     * @return array<string, string>  alte Adresse → neue Adresse
+     * @return array<string, string> alte Adresse → neue Adresse
      */
     private function neueAdressen(AbstractRouteCollection $routen, array $eintraege): array
     {

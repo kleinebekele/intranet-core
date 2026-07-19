@@ -196,6 +196,10 @@ class ModuleUninstallTest extends TestCase
 
         $this->assertFalse(Schema::hasTable('tm_dinge'));
         $this->assertDatabaseMissing('modules', ['key' => 'tm']);
+
+        // Ohne Paket lief kein down() – die Meldung darf das nicht behaupten.
+        $this->assertStringNotContainsString('zurückgerollt', (string) session('status'));
+        $this->assertStringContainsString('ohne down()', (string) session('status'));
     }
 
     public function test_verwaiste_registrierung_laesst_sich_aufraeumen(): void

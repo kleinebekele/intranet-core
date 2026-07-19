@@ -15,9 +15,7 @@ class PasswordResetLinkNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(public string $token)
-    {
-    }
+    public function __construct(public string $token) {}
 
     public function via(object $notifiable): array
     {

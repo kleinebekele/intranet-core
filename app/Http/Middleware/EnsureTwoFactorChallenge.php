@@ -15,9 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureTwoFactorChallenge
 {
-    public function __construct(private readonly TwoFactorTrust $trust)
-    {
-    }
+    public function __construct(private readonly TwoFactorTrust $trust) {}
 
     public function handle(Request $request, Closure $next): Response
     {

@@ -55,20 +55,20 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
-            'roles'    => ['array'],
-            'roles.*'  => ['string', 'exists:roles,role_id'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'roles' => ['array'],
+            'roles.*' => ['string', 'exists:roles,role_id'],
             'is_admin' => ['sometimes', 'boolean'],
         ]);
 
-        $user = new User();
+        $user = new User;
         $user->forceFill([
-            'name'              => $data['name'],
-            'email'             => $data['email'],
-            'is_admin'          => (bool) ($data['is_admin'] ?? false),
-            'source'            => 'manual',
-            'password'          => null,
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'is_admin' => (bool) ($data['is_admin'] ?? false),
+            'source' => 'manual',
+            'password' => null,
             'email_verified_at' => now(), // vom Admin angelegt = vertrauenswürdig
         ])->save();
 
@@ -93,9 +93,9 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
-            'name'     => ['required', 'string', 'max:255'],
-            'roles'    => ['array'],
-            'roles.*'  => ['string', 'exists:roles,role_id'],
+            'name' => ['required', 'string', 'max:255'],
+            'roles' => ['array'],
+            'roles.*' => ['string', 'exists:roles,role_id'],
             'is_admin' => ['sometimes', 'boolean'],
         ]);
 

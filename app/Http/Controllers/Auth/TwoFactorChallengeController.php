@@ -19,8 +19,7 @@ class TwoFactorChallengeController extends Controller
     public function __construct(
         private readonly TwoFactorMailCode $mailCode,
         private readonly TwoFactorTrust $trust,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request): View|RedirectResponse
     {

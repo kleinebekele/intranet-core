@@ -72,7 +72,9 @@ class UninstallModule extends Command
         }
 
         foreach ($bericht['migrationen'] as $name) {
-            $this->line("  <info>↩</info> zurückgerollt: {$name}");
+            $this->line($bericht['per_down']
+                ? "  <info>↩</info> zurückgerollt: {$name}"
+                : "  <info>✕</info> verworfen (ohne down()): {$name}");
         }
         if ($bericht['adressen']) {
             $this->line("  <info>✓</info> {$bericht['adressen']} sprechende Adresse(n) entfernt");
