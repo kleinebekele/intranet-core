@@ -221,6 +221,28 @@ class ModuleUninstallTest extends TestCase
         $this->assertDatabaseHas('modules', ['key' => 'tm']);
     }
 
+    /**
+     * Ist das Paket nicht installiert, kennt niemand seinen Namen. Dann darf
+     * dort KEIN abtippbarer composer-Befehl stehen: Ein Platzhalter wie
+     * "vendor/module-x" wird kopiert und löst auf dem Server ein ungewolltes
+     * composer update aus (genau so passiert, 2026-07-20).
+     */
+    public function test_ohne_paket_steht_kein_erfundener_composer_befehl_da(): void
+    {
+        $this->actingAs($this->admin())
+            ->get(route('admin.modules.index'))
+            ->assertOk()
+            ->assertDontSee('composer remove vendor/')
+            ->assertDontSee('composer remove &lt;vendor&gt;/', false);
+
+        $this->actingAs($this->admin())
+            ->delete(route('admin.modules.destroy', $this->module))
+            ->assertRedirect(route('admin.modules.index'));
+
+        $this->assertStringNotContainsString('composer remove', (string) session('status'));
+        $this->assertStringContainsString('composer.json', (string) session('status'));
+    }
+
     public function test_uebersicht_zeigt_tabellen_und_zeilenzahl(): void
     {
         $this->paketInstallieren();

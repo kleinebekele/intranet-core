@@ -219,13 +219,27 @@
                                             </div>
                                         @endif
 
-                                        <p class="text-sm text-gray-600">
-                                            <i class='bx bx-info-circle'></i>
-                                            Das <span class="font-medium">Paket selbst</span> bleibt installiert. Sonst taucht das
-                                            Modul beim nächsten <code class="rounded bg-white px-1 py-0.5">modules:sync</code> wieder
-                                            auf. Danach also auf dem Server noch:
-                                            <code class="mt-1 block rounded bg-white px-2 py-1">composer remove {{ $vorschau['paket_name'] ?? 'vendor/module-'.$module->key }}</code>
-                                        </p>
+                                        {{-- Den composer-Befehl nur zeigen, wenn der echte Paketname
+                                             bekannt ist. Ein Platzhalter würde abgetippt werden und
+                                             richtet dabei Schaden an. --}}
+                                        @if ($vorschau && $vorschau['paket_name'])
+                                            <p class="text-sm text-gray-600">
+                                                <i class='bx bx-info-circle'></i>
+                                                Das <span class="font-medium">Paket selbst</span> bleibt installiert. Sonst taucht das
+                                                Modul beim nächsten <code class="rounded bg-white px-1 py-0.5">modules:sync</code> wieder
+                                                auf. Danach also auf dem Server noch:
+                                                <code class="mt-1 block rounded bg-white px-2 py-1">composer remove {{ $vorschau['paket_name'] }}</code>
+                                            </p>
+                                        @else
+                                            <p class="text-sm text-gray-600">
+                                                <i class='bx bx-info-circle'></i>
+                                                Das Paket ist hier nicht installiert, sein Name also unbekannt. Sieh in der
+                                                <code class="rounded bg-white px-1 py-0.5">composer.json</code> nach, ob dort noch ein
+                                                Eintrag für <span class="font-medium">{{ $module->key }}</span> steht — sonst ist das
+                                                Modul beim nächsten <code class="rounded bg-white px-1 py-0.5">composer install</code>
+                                                samt <code class="rounded bg-white px-1 py-0.5">modules:sync</code> wieder da.
+                                            </p>
+                                        @endif
 
                                         <button type="submit"
                                                 class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">

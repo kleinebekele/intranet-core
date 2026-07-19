@@ -83,8 +83,11 @@ class ModuleController extends Controller
             ? ', '.count($bericht['migrationen']).' Migration(en) zurückgerollt.'
             : '. Die Tabellen des Moduls sind unverändert geblieben.';
 
-        $paket = $bericht['paket_name'] ?? "<vendor>/module-{$key}";
-        $meldung .= " Damit es nicht beim nächsten \"modules:sync\" wieder auftaucht, muss das Paket noch aus der composer.json: composer remove {$paket}";
+        // Nur einen echten Paketnamen nennen: Ein Platzhalter wird abgetippt und
+        // richtet dann Schaden an (composer update auf einen erfundenen Namen).
+        $meldung .= $bericht['paket_name']
+            ? " Damit es nicht beim nächsten \"modules:sync\" wieder auftaucht, muss das Paket noch aus der composer.json: composer remove {$bericht['paket_name']}"
+            : " Das Paket war hier nicht installiert – prüfe in der composer.json, ob dort noch ein Eintrag für \"{$key}\" steht.";
 
         return redirect()->route('admin.modules.index')->with('status', $meldung);
     }
