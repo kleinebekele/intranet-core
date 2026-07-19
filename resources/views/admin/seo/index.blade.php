@@ -2,7 +2,9 @@
     <x-slot name="header">
         <h1 class="text-xl font-semibold text-gray-800">Verwaltung</h1>
     </x-slot>
-    <x-slot name="titel">Adressen &amp; Titel</x-slot>
+    {{-- Ohne HTML-Entities: Der Slot-Inhalt wird im Layout noch einmal maskiert,
+         aus &amp; wuerde sonst sichtbar "&amp;". --}}
+    <x-slot name="titel">Adressen und Titel</x-slot>
 
     <div class="w-full">
         @include('admin.partials.tabs')
