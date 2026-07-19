@@ -50,12 +50,15 @@ class RoutenAliase
 
     public function anwenden(): void
     {
-        $aliase = array_filter(
-            RouteSetting::alle(),
-            fn (array $e) => filled($e['pfad'])
-        );
+        // Alle Einträge, nicht nur die mit Adresse: Eine Unterseite kann auch
+        // ohne eigene Adresse einen Eintrag haben – nämlich das Häkchen, mit dem
+        // sie sich vom Bereich abkoppelt.
+        $eintraege = RouteSetting::alle();
 
-        // Der Normalfall: keine Aliase vergeben, kein Aufwand.
+        $aliase = array_filter($eintraege, fn (array $e) => filled($e['pfad']));
+
+        // Der Normalfall: keine Adressen vergeben, kein Aufwand. Ein Häkchen
+        // allein bewirkt nichts – ohne Stammpfad gibt es nichts zu erben.
         if ($aliase === []) {
             return;
         }
@@ -76,9 +79,14 @@ class RoutenAliase
 
             // Ein eigener Eintrag gilt immer – auch für eine Unterseite, die
             // sonst vom Stammpfad erfasst würde.
-            $ziel = $name && filled($aliase[$name]['pfad'] ?? null)
-                ? trim($aliase[$name]['pfad'], '/')
-                : $this->unterStamm($bisher, $staemme);
+            $ziel = match (true) {
+                $name && filled($aliase[$name]['pfad'] ?? null) => trim($aliase[$name]['pfad'], '/'),
+
+                // Ausdrücklich vom Bereich abgekoppelt: bleibt, wo es ist.
+                (bool) ($eintraege[$name]['stamm_ignorieren'] ?? false) => null,
+
+                default => $this->unterStamm($bisher, $staemme),
+            };
 
             if ($ziel !== null && $bisher !== $ziel) {
                 if ($name) {

@@ -104,6 +104,31 @@ class RoutenAliasTest extends TestCase
         $this->get('/neue-kategorie')->assertOk()->assertSee('anlegen');
     }
 
+    public function test_eine_unterseite_kann_sich_vom_bereich_abkoppeln(): void
+    {
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+
+        RouteSetting::create([
+            'route_name' => 'module.tm.categories.create',
+            'stamm_ignorieren' => true,
+        ]);
+
+        // Bleibt, wo sie war – der Rest des Bereichs wandert trotzdem.
+        $this->get('/modules/tm/kategorien/anlegen')->assertOk()->assertSee('anlegen');
+        $this->get('/kategorien/anlegen')->assertNotFound();
+        $this->get('/kategorien/7/bearbeiten')->assertOk();
+    }
+
+    public function test_ein_haeckchen_allein_ohne_stammpfad_bewirkt_nichts(): void
+    {
+        RouteSetting::create([
+            'route_name' => 'module.tm.categories.create',
+            'stamm_ignorieren' => true,
+        ]);
+
+        $this->get('/modules/tm/kategorien/anlegen')->assertOk();
+    }
+
     public function test_die_alte_adresse_leitet_weiter(): void
     {
         $this->aliasSetzen('module.tm.categories.index', 'kategorien');
@@ -133,8 +158,48 @@ class RoutenAliasTest extends TestCase
 
         $antwort->assertOk()
             ->assertSee('Kategorien')
-            // Ohne Menüpunkt bleibt der Notbehelf – aber ohne das „Index“.
+            // Ohne Menüpunkt bleibt der Notbehelf – aber ohne das "Index".
             ->assertSee('Create')
-            ->assertDontSee('>Index<', false);
+            ->assertDontSee('>Index<', false)
+            // Auch der technische Name steht ohne das angehaengte .index da.
+            // Nur die ANZEIGE ist gemeint: Im versteckten Formularfeld muss der
+            // vollstaendige Routen-Name stehen bleiben, sonst trifft das
+            // Speichern die falsche Seite.
+            ->assertSee('>module.tm.categories</div>', false)
+            ->assertDontSee('>module.tm.categories.index</div>', false)
+            ->assertSee('value="module.tm.categories.index"', false);
+    }
+
+    /**
+     * Die Uebersicht fuehrt den Bereich an, alles darunter haengt eingeklappt
+     * daran – sonst stehen in einem gewachsenen System hunderte gleichrangiger
+     * Zeilen untereinander.
+     */
+    public function test_unterseiten_haengen_eingeklappt_unter_der_uebersicht(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+
+        $antwort = $this->actingAs($admin)->get(route('admin.seo.index'));
+
+        // categories.create haengt unter categories.index; import.index steht
+        // fuer sich. categories.edit hat einen Platzhalter und taucht in der
+        // Liste gar nicht erst auf.
+        $antwort->assertOk()
+            ->assertSee('1 Unterlink')
+            ->assertSee('Stammpfad ignorieren');
+    }
+
+    public function test_mehrere_unterseiten_werden_gezaehlt(): void
+    {
+        Route::middleware('web')->prefix('modules/tm')->name('module.tm.categories.')
+            ->group(fn () => Route::get('kategorien/import', fn () => 'x')->name('import'));
+
+        Route::getRoutes()->refreshNameLookups();
+
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+
+        $this->actingAs($admin)->get(route('admin.seo.index'))->assertSee('2 Unterlinks');
     }
 }

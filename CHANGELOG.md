@@ -8,6 +8,16 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Geändert
+- **SEO-Liste nach Bereichen gebündelt.** Die Übersicht führt den Bereich an, alles darunter
+  hängt eingeklappt daran – aufzuklappen über *„X Unterlinks"*. In einem gewachsenen System
+  standen sonst hunderte gleichrangiger Zeilen untereinander, und die eine, die man ändern
+  will, ging darin unter. Bewusst nur **eine** Ebene: Auch `…ekkon.notifications.create` hängt
+  direkt unter `…ekkon.index`, statt Klapp-Ebenen in Klapp-Ebenen zu schachteln.
+- **Geerbter Pfad ist sichtbar.** Bei einer Unterseite steht der Pfad, der sich aus dem
+  Stammpfad ergibt, als graue Vorgabe im Feld (`rollen/create`) – man sieht also, was
+  passiert, wenn man nichts tut, statt es sich denken zu müssen.
+- **Technische Namen ohne `.index`.** Aus `module.ekkon.index` wird `module.ekkon`. Nur die
+  Anzeige; gespeichert wird weiterhin der vollständige Routen-Name.
 - **SEO-Liste lesbar gemacht:** In der Spalte *Seite* stand fast überall „Index" – das ist nur
   die technische Bezeichnung für die Übersicht einer Gruppe und sagte niemandem, welche Seite
   gemeint ist. Jetzt steht dort die **Beschriftung aus der Seitenleiste** („Kategorien"), also
@@ -19,6 +29,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   **Stammpfad**: Alles, was darunter liegt, zieht mit. Ein eigener Eintrag für eine Unterseite
   schlägt den Stammpfad. Verglichen wird bewusst mit Schrägstrich, damit `kategorien-import`
   nicht mitwandert, nur weil es gleich anfängt.
+
+### Hinzugefügt
+- **Häkchen „Stammpfad ignorieren"** je Unterseite: koppelt sie vom Bereich ab, sie behält
+  also ihre technische Adresse, während der Rest mitwandert. Standard bleibt das Erben –
+  die Ausnahme muss man ausdrücklich wollen. Neue Spalte `route_settings.stamm_ignorieren`.
 
 ### Behoben
 - **Sprechende Adressen wirkten überhaupt nicht.** Menüpunkte zeigten weiter auf die

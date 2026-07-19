@@ -68,13 +68,13 @@
         </form>
 
         <div class="mb-2 text-xs text-gray-400">
-            {{ count($zeilen) }} von {{ $gesamt }} Seiten
+            {{ $anzahl }} von {{ $gesamt }} Seiten
             @if ($suche !== '' || $modulFilter !== '')
                 <span class="text-gray-300">·</span> gefiltert
             @endif
         </div>
 
-        @if ($zeilen === [])
+        @if ($bereiche === [])
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
                 Keine Seite passt zum Filter.
             </div>
@@ -83,14 +83,17 @@
                  Kind von <tr> ist ungültiges HTML, Browser verschieben es dann aus
                  der Tabelle heraus. Die Felder in den Zeilen hängen über das
                  form="…"-Attribut daran. --}}
-            @foreach ($zeilen as $zeile)
-                <form method="POST" action="{{ route('admin.seo.update') }}" id="f-{{ $loop->index }}" class="hidden">
-                    @csrf
-                    @method('PUT')
-                    <input type="hidden" name="route_name" value="{{ $zeile['name'] }}">
-                    <input type="hidden" name="suche" value="{{ $suche }}">
-                    <input type="hidden" name="modul" value="{{ $modulFilter }}">
-                </form>
+            @foreach ($bereiche as $bereich)
+                @foreach (array_merge([$bereich['zeile']], $bereich['kinder']) as $zeile)
+                    <form method="POST" action="{{ route('admin.seo.update') }}"
+                          id="f-{{ str_replace('.', '_', $zeile['name']) }}" class="hidden">
+                        @csrf
+                        @method('PUT')
+                        <input type="hidden" name="route_name" value="{{ $zeile['name'] }}">
+                        <input type="hidden" name="suche" value="{{ $suche }}">
+                        <input type="hidden" name="modul" value="{{ $modulFilter }}">
+                    </form>
+                @endforeach
             @endforeach
 
             <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white">
@@ -104,53 +107,33 @@
                             <th class="px-4 py-3"></th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @foreach ($zeilen as $zeile)
-                            <tr class="align-top">
-                                <td class="px-4 py-3">
-                                    <div class="font-medium text-gray-800">
-                                        {{ $zeile['bezeichnung'] }}
-                                    </div>
-                                    <div class="text-xs text-gray-400">{{ $zeile['name'] }}</div>
-                                </td>
+                    @foreach ($bereiche as $bereich)
+                        {{-- Ein tbody je Bereich: Das Aufklappen bleibt damit rein
+                             örtlich, ohne dass die Zeilen voneinander wissen müssen. --}}
+                        <tbody class="divide-y divide-gray-100 border-t border-gray-100" x-data="{ offen: false }">
+                            @include('admin.seo.partials.zeile', ['zeile' => $bereich['zeile'], 'kind' => false])
 
-                                <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ $zeile['modul'] }}</td>
+                            @if ($bereich['kinder'] !== [])
+                                <tr>
+                                    <td colspan="5" class="px-4 py-0">
+                                        <button type="button" @click="offen = ! offen"
+                                                class="flex w-full items-center gap-1.5 py-2 pl-6 text-left text-xs font-medium text-gray-500 hover:text-gray-700">
+                                            <i class='bx text-sm leading-none' :class="offen ? 'bx-chevron-down' : 'bx-chevron-right'"></i>
+                                            {{ count($bereich['kinder']).' '.\Illuminate\Support\Str::plural('Unterlink', count($bereich['kinder'])) }}
+                                        </button>
+                                    </td>
+                                </tr>
 
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-1">
-                                        <span class="text-gray-400">/</span>
-                                        <input type="text" name="pfad" form="f-{{ $loop->index }}"
-                                               value="{{ $zeile['pfad'] }}"
-                                               placeholder="{{ $zeile['original'] }}"
-                                               class="block w-64 rounded-lg border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    </div>
-                                    @if ($zeile['pfad'])
-                                        <div class="mt-1 text-xs text-gray-400">
-                                            leitet weiter von <span class="font-mono">/{{ $zeile['original'] }}</span>
-                                        </div>
-                                    @endif
-                                </td>
-
-                                <td class="px-4 py-3">
-                                    <input type="text" name="titel" form="f-{{ $loop->index }}"
-                                           value="{{ $zeile['titel'] }}"
-                                           placeholder="{{ \App\Support\Seitentitel::haupttitel() }} – …"
-                                           class="block w-64 rounded-lg border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <div class="mt-1 text-xs text-gray-400">
-                                        Leer = Titel nach Konvention
-                                    </div>
-                                </td>
-
-                                <td class="px-4 py-3 text-right whitespace-nowrap">
-                                    <button type="submit" form="f-{{ $loop->index }}"
-                                            class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                                        <i class='bx bx-save text-sm leading-none'></i>
-                                        Speichern
-                                    </button>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
+                                @foreach ($bereich['kinder'] as $kindZeile)
+                                    @include('admin.seo.partials.zeile', [
+                                        'zeile' => $kindZeile,
+                                        'kind' => true,
+                                        'versteckt' => true,
+                                    ])
+                                @endforeach
+                            @endif
+                        </tbody>
+                    @endforeach
                 </table>
             </div>
         @endif

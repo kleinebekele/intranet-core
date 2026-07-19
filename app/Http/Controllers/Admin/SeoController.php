@@ -46,20 +46,28 @@ class SeoController
             // die neue – die alte kennt nur die Merkliste.
             $original = RoutenAliase::urspruenglicherPfad($name) ?? $route->uri();
 
-            $zeilen[] = [
+            $zeilen[$name] = [
                 'name' => $name,
+                // Das angehängte `.index` bezeichnet nur die Übersicht eines
+                // Bereichs und steht sonst hinter jedem zweiten Namen.
+                'technischerName' => Str::of($name)->replaceEnd('.index', '')->toString(),
                 'bezeichnung' => $beschriftungen[$name] ?? self::bezeichnung($name),
                 'modulKey' => $modulKey,
                 'modul' => $modulKey ? $registry->manifest($modulKey)?->name : 'Core',
                 'original' => $original,
+                // Was gerade gilt – bei geerbten Seiten also schon der Pfad, der
+                // sich aus dem Stamm ergibt. Genau das gehört ins Feld als
+                // Vorgabe, damit man sieht, was passiert, wenn man nichts tut.
+                'aktuell' => $route->uri(),
                 'pfad' => $eintraege[$name]['pfad'] ?? null,
                 'titel' => $eintraege[$name]['titel'] ?? null,
+                'stammIgnorieren' => (bool) ($eintraege[$name]['stamm_ignorieren'] ?? false),
             ];
         }
 
         // Filter erst nach dem Aufbau: So bleiben Modulname und Adresse
         // durchsuchbar, nicht nur der technische Routen-Name.
-        $zeilen = array_values(array_filter($zeilen, function (array $z) use ($suche, $modulFilter) {
+        $zeilen = array_filter($zeilen, function (array $z) use ($suche, $modulFilter) {
             if ($modulFilter !== '') {
                 $treffer = $modulFilter === 'core' ? $z['modulKey'] === null : $z['modulKey'] === $modulFilter;
                 if (! $treffer) {
@@ -77,15 +85,73 @@ class SeoController
             ]));
 
             return str_contains($heuhaufen, mb_strtolower($suche));
-        }));
+        });
 
         return view('admin.seo.index', [
-            'zeilen' => $zeilen,
+            'bereiche' => self::gruppieren($zeilen),
+            'anzahl' => count($zeilen),
             'gesamt' => count($aliase->verfuegbareRouten()),
             'suche' => $suche,
             'modulFilter' => $modulFilter,
             'module' => $registry->manifests(),
         ]);
+    }
+
+    /**
+     * Seiten zu Bereichen bündeln: Übersicht oben, Unterseiten eingeklappt.
+     *
+     * Ein Bereich wird von einer `…index`-Seite angeführt; alles, dessen Name
+     * darunter liegt, gehört dazu. Ohne diese Bündelung stehen in einem
+     * gewachsenen System hunderte gleichrangiger Zeilen untereinander, und die
+     * eine Zeile, die man ändern will, geht darin unter.
+     *
+     * @param  array<string, array<string, mixed>>  $zeilen
+     * @return array<int, array{zeile: array<string, mixed>, kinder: array<int, array<string, mixed>>}>
+     */
+    private static function gruppieren(array $zeilen): array
+    {
+        // KÜRZESTER Name zuerst, also der oberste Bereich. Damit bleibt die
+        // Liste einstufig: Auch `…ekkon.notifications.create` hängt direkt unter
+        // `…ekkon.index`. Eine echte Verschachtelung brächte Klapp-Ebenen in
+        // Klapp-Ebenen – mehr Mechanik als Nutzen für eine Adressliste.
+        $staemme = array_filter(array_keys($zeilen), fn ($n) => str_ends_with($n, '.index'));
+        usort($staemme, fn ($a, $b) => strlen($a) <=> strlen($b));
+
+        $bereiche = [];
+        $kinder = [];
+
+        foreach ($zeilen as $name => $zeile) {
+            $stamm = null;
+
+            foreach ($staemme as $kandidat) {
+                if ($name !== $kandidat && str_starts_with($name, substr($kandidat, 0, -5))) {
+                    $stamm = $kandidat;
+                    break;
+                }
+            }
+
+            if ($stamm === null) {
+                $bereiche[$name] = ['zeile' => $zeile, 'kinder' => []];
+            } else {
+                $kinder[$stamm][] = $zeile;
+            }
+        }
+
+        foreach ($kinder as $stamm => $liste) {
+            // Der Stamm kann weggefiltert sein (Suche) – dann stehen seine
+            // Seiten für sich, statt unsichtbar zu werden.
+            if (isset($bereiche[$stamm])) {
+                $bereiche[$stamm]['kinder'] = $liste;
+
+                continue;
+            }
+
+            foreach ($liste as $zeile) {
+                $bereiche[$zeile['name']] = ['zeile' => $zeile, 'kinder' => []];
+            }
+        }
+
+        return array_values($bereiche);
     }
 
     /**
@@ -117,6 +183,7 @@ class SeoController
                 Rule::unique('route_settings', 'pfad')->ignore($request->input('route_name'), 'route_name'),
             ],
             'titel' => ['nullable', 'string', 'max:120'],
+            'stamm_ignorieren' => ['nullable', 'boolean'],
         ], [
             'pfad.regex' => 'Die Adresse darf nur Kleinbuchstaben, Ziffern, Bindestriche und Schrägstriche enthalten – z. B. speiseplan oder schule/speiseplan.',
             'pfad.unique' => 'Diese Adresse ist bereits an eine andere Seite vergeben.',
@@ -125,6 +192,7 @@ class SeoController
         $name = $daten['route_name'];
         $pfad = trim((string) ($daten['pfad'] ?? ''), '/ ');
         $titel = trim((string) ($daten['titel'] ?? ''));
+        $stammIgnorieren = (bool) ($daten['stamm_ignorieren'] ?? false);
 
         // Nur bekannte Seiten – sonst könnte man über ein verändertes Formular
         // Einträge für beliebige Routen-Namen anlegen.
@@ -138,7 +206,8 @@ class SeoController
             return back()->withErrors($fehler);
         }
 
-        if ($pfad === '' && $titel === '') {
+        // Ein leerer Eintrag ohne Häkchen sagt nichts aus – der kommt weg.
+        if ($pfad === '' && $titel === '' && ! $stammIgnorieren) {
             RouteSetting::where('route_name', $name)->delete();
 
             // Ein Löschen über die Abfrage löst KEINE Model-Ereignisse aus – der
@@ -148,7 +217,11 @@ class SeoController
         } else {
             RouteSetting::updateOrCreate(
                 ['route_name' => $name],
-                ['pfad' => $pfad ?: null, 'titel' => $titel ?: null],
+                [
+                    'pfad' => $pfad ?: null,
+                    'titel' => $titel ?: null,
+                    'stamm_ignorieren' => $stammIgnorieren,
+                ],
             );
         }
 
