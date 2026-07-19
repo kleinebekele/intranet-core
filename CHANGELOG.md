@@ -8,6 +8,20 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **SEO (Verwaltung → Reiter SEO):** Jede Seite kann eine **sprechende Adresse** und einen
+  **festen Titel** bekommen. Die Adresse **ersetzt** die bisherige – auch Menüpunkte und
+  interne Verweise zeigen danach dorthin, ohne dass ein Modul etwas ändern muss. Möglich wird
+  das, indem die Route **selbst** umgeschrieben wird (`RoutenAliase`, im `boot()`) statt
+  Laravels URL-Erzeugung zu unterwandern: Der Ersatz greift dadurch an beiden Enden zugleich,
+  beim Auflösen einer Anfrage und bei jedem `route()`-Aufruf. Verträgt sich mit `route:cache`,
+  weil die bereits geladene Sammlung im Speicher umgebaut wird.
+  Die alte Adresse bleibt als **Weiterleitung** bestehen (302, nicht 301 – ein Alias lässt sich
+  jederzeit zurücknehmen, eine dauerhafte Weiterleitung brennt sich in Browsern fest).
+  Angeboten werden nur benannte GET-Seiten **ohne Platzhalter**; Kollisionen mit bestehenden
+  Adressen werden abgefangen, sonst könnte man die Startseite verdecken. Die Liste ist nach
+  Modul und Volltext filterbar (ohne Knopf). Neue Tabelle `route_settings`.
+  Ohne vergebenen Alias entsteht **kein Aufwand**: Ist die Tabelle leer, passiert im `boot()`
+  gar nichts.
 - **Einstellungen (Verwaltung → erster Reiter):** Werte, die Administratoren im Betrieb ändern
   können sollen, ohne an die `.env` zu müssen – **Haupttitel**, **Logo** und **Favicon**
   (beide als Upload, Logo erscheint in Kopfzeile und auf der Anmeldeseite) sowie das
