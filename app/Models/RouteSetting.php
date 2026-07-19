@@ -26,7 +26,7 @@ class RouteSetting extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'stamm_ignorieren' => 'boolean',
+        'absoluter_pfad' => 'boolean',
     ];
 
     private const CACHE_KEY = 'routen.einstellungen';
@@ -34,7 +34,7 @@ class RouteSetting extends Model
     /**
      * Alle Einträge, nach Routen-Namen.
      *
-     * @return array<string, array{pfad:?string, titel:?string, stamm_ignorieren:bool}>
+     * @return array<string, array{pfad:?string, titel:?string, absoluter_pfad:bool}>
      */
     public static function alle(): array
     {
@@ -46,12 +46,12 @@ class RouteSetting extends Model
         }
 
         return Cache::rememberForever(self::CACHE_KEY, fn () => static::query()
-            ->get(['route_name', 'pfad', 'titel', 'stamm_ignorieren'])
+            ->get(['route_name', 'pfad', 'titel', 'absoluter_pfad'])
             ->keyBy('route_name')
             ->map(fn ($z) => [
                 'pfad' => $z->pfad,
                 'titel' => $z->titel,
-                'stamm_ignorieren' => (bool) $z->stamm_ignorieren,
+                'absoluter_pfad' => (bool) $z->absoluter_pfad,
             ])
             ->all()
         );

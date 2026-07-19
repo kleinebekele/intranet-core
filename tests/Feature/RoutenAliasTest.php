@@ -27,6 +27,12 @@ class RoutenAliasTest extends TestCase
 
         Route::middleware('web')->prefix('modules/tm')->name('module.tm.')->group(function (): void {
             Route::get('kategorien', fn () => 'liste')->name('categories.index');
+
+            // Teilt sich die Adresse mit der Übersicht und trägt selbst keinen
+            // Eintrag – muss trotzdem mitwandern, sonst zeigt das Formular der
+            // Übersicht nach dem Umbenennen ins Leere.
+            Route::post('kategorien', fn () => 'gespeichert')->name('categories.store');
+
             Route::get('kategorien/anlegen', fn () => 'anlegen')->name('categories.create');
             Route::get('kategorien/{id}/bearbeiten', fn ($id) => 'bearbeiten '.$id)->name('categories.edit');
 
@@ -66,6 +72,20 @@ class RoutenAliasTest extends TestCase
         $this->get('/kategorien')->assertOk()->assertSee('liste');
     }
 
+    /**
+     * Die POST-Route trägt keinen eigenen Eintrag und hätte die umbenannte
+     * GET-Route beinahe wieder überschrieben – je nachdem, in welcher
+     * Reihenfolge der Router seine Routen ausspuckt. Ergebnis: Die Adresse
+     * blieb stehen, obwohl gespeichert war. Genau so ist es aufgetreten.
+     */
+    public function test_routen_mit_derselben_adresse_wandern_gemeinsam(): void
+    {
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+
+        $this->get('/kategorien')->assertOk()->assertSee('liste');
+        $this->post('/kategorien')->assertOk()->assertSee('gespeichert');
+    }
+
     public function test_bereichsadresse_zieht_die_unterseiten_mit(): void
     {
         $this->aliasSetzen('module.tm.categories.index', 'kategorien');
@@ -97,37 +117,85 @@ class RoutenAliasTest extends TestCase
         $this->get('/modules/tm/kategorien-import')->assertOk()->assertSee('import');
     }
 
-    public function test_eigener_eintrag_schlaegt_den_stammpfad(): void
+    /**
+     * Der Eintrag einer Unterseite ist RELATIV zum Bereich: `kategorien` oben
+     * und `neu` unten ergeben zusammen `/kategorien/neu`.
+     */
+    public function test_der_eintrag_einer_unterseite_haengt_am_bereich(): void
     {
         $this->aliasSetzen('module.tm.categories.index', 'kategorien');
-        $this->aliasSetzen('module.tm.categories.create', 'neue-kategorie');
+        $this->aliasSetzen('module.tm.categories.create', 'neu');
 
-        $this->get('/neue-kategorie')->assertOk()->assertSee('anlegen');
+        $this->get('/kategorien/neu')->assertOk()->assertSee('anlegen');
+        $this->get('/neu')->assertNotFound();
     }
 
-    public function test_eine_unterseite_kann_sich_vom_bereich_abkoppeln(): void
+    /**
+     * Der eigentliche Zweck des Ganzen: Ändert sich der Bereich, wandert alles
+     * darunter mit, ohne dass jemand die Unterseiten anfassen muss.
+     */
+    public function test_aendert_sich_der_bereich_wandern_die_unterseiten_mit(): void
+    {
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+        $this->aliasSetzen('module.tm.categories.create', 'neu');
+
+        RouteSetting::where('route_name', 'module.tm.categories.index')
+            ->update(['pfad' => 'kategorien3']);
+        RouteSetting::cacheVerwerfen();
+
+        $this->get('/kategorien3/neu')->assertOk()->assertSee('anlegen');
+        $this->get('/kategorien3/7/bearbeiten')->assertOk()->assertSee('bearbeiten 7');
+        $this->get('/kategorien/neu')->assertNotFound();
+    }
+
+    public function test_absoluter_pfad_stellt_die_unterseite_frei(): void
     {
         $this->aliasSetzen('module.tm.categories.index', 'kategorien');
 
         RouteSetting::create([
             'route_name' => 'module.tm.categories.create',
-            'stamm_ignorieren' => true,
+            'pfad' => 'neue-kategorie',
+            'absoluter_pfad' => true,
         ]);
 
-        // Bleibt, wo sie war – der Rest des Bereichs wandert trotzdem.
-        $this->get('/modules/tm/kategorien/anlegen')->assertOk()->assertSee('anlegen');
-        $this->get('/kategorien/anlegen')->assertNotFound();
+        // Nicht unter dem Bereich, sondern für sich.
+        $this->get('/neue-kategorie')->assertOk()->assertSee('anlegen');
+        $this->get('/kategorien/neue-kategorie')->assertNotFound();
+
+        // Der Rest des Bereichs wandert davon unbeeindruckt mit.
         $this->get('/kategorien/7/bearbeiten')->assertOk();
     }
 
-    public function test_ein_haeckchen_allein_ohne_stammpfad_bewirkt_nichts(): void
+    public function test_absoluter_pfad_ohne_eigene_adresse_laesst_die_seite_stehen(): void
     {
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+
         RouteSetting::create([
             'route_name' => 'module.tm.categories.create',
-            'stamm_ignorieren' => true,
+            'absoluter_pfad' => true,
         ]);
 
-        $this->get('/modules/tm/kategorien/anlegen')->assertOk();
+        $this->get('/modules/tm/kategorien/anlegen')->assertOk()->assertSee('anlegen');
+        $this->get('/kategorien/anlegen')->assertNotFound();
+    }
+
+    public function test_zwei_bereiche_duerfen_denselben_unterpfad_haben(): void
+    {
+        Route::middleware('web')->prefix('modules/zw')->name('module.zw.')
+            ->group(function (): void {
+                Route::get('posten', fn () => 'zw-liste')->name('items.index');
+                Route::get('posten/anlegen', fn () => 'zw-anlegen')->name('items.create');
+            });
+
+        Route::getRoutes()->refreshNameLookups();
+
+        $this->aliasSetzen('module.tm.categories.index', 'kategorien');
+        $this->aliasSetzen('module.tm.categories.create', 'neu');
+        $this->aliasSetzen('module.zw.items.index', 'posten');
+        $this->aliasSetzen('module.zw.items.create', 'neu');
+
+        $this->get('/kategorien/neu')->assertOk()->assertSee('anlegen');
+        $this->get('/posten/neu')->assertOk()->assertSee('zw-anlegen');
     }
 
     /**
@@ -210,7 +278,7 @@ class RoutenAliasTest extends TestCase
         // Liste gar nicht erst auf.
         $antwort->assertOk()
             ->assertSee('1 Unterlink')
-            ->assertSee('Stammpfad ignorieren');
+            ->assertSee('Absoluter Pfad');
     }
 
     public function test_mehrere_unterseiten_werden_gezaehlt(): void

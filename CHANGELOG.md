@@ -31,11 +31,23 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   nicht mitwandert, nur weil es gleich anfängt.
 
 ### Hinzugefügt
-- **Häkchen „Stammpfad ignorieren"** je Unterseite: koppelt sie vom Bereich ab, sie behält
-  also ihre technische Adresse, während der Rest mitwandert. Standard bleibt das Erben –
-  die Ausnahme muss man ausdrücklich wollen. Neue Spalte `route_settings.stamm_ignorieren`.
+- **Adressen von Unterseiten sind relativ zum Bereich.** Im Feld steht nur der eigene Teil
+  (`benachrichtigungen`), der Bereich davor als fester Vorsatz (`ekkon/`). Zusammen ergibt
+  das `/ekkon/benachrichtigungen`. Wird der Bereich später auf `ekkon3` geändert, wandert
+  alles darunter **automatisch** mit – ohne dass man eine einzige Unterseite anfasst.
+- **Häkchen „Absoluter Pfad"** je Unterseite: Der Eintrag gilt dann als vollständige Adresse
+  statt relativ zum Bereich, die Seite steht also bewusst außerhalb. Neue Spalte
+  `route_settings.absoluter_pfad`.
+- Die Eindeutigkeit auf `route_settings.pfad` entfällt: Bei relativen Angaben dürfen zwei
+  Bereiche beide ein `benachrichtigungen` haben – daraus werden ja zwei verschiedene
+  Adressen. Kollisionen prüft der Controller jetzt an der **fertigen** Adresse.
 
 ### Behoben
+- **Routen mit derselben Adresse wandern gemeinsam.** `GET /admin/roles` zeigt die Übersicht,
+  `POST /admin/roles` legt an – nur die erste trägt einen Namen und damit den Eintrag. Die
+  namenlose überschrieb die bereits umbenannte, je nach Reihenfolge des Routers: Es stand
+  „Gespeichert", die Adresse blieb aber stehen. Nebenbei zeigt das Formular der Übersicht
+  nach dem Umbenennen jetzt nicht mehr ins Leere.
 - **Sprechende Adressen wirkten überhaupt nicht.** Menüpunkte zeigten weiter auf die
   technische Adresse, der direkte Aufruf der neuen endete im 404. Ursache: Die Umschreibung
   lief im `boot()` des `AppServiceProvider` – Laravel lädt die Routen aber erst in einem

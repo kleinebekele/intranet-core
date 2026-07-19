@@ -9,7 +9,6 @@ use App\Support\RoutenAliase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -61,7 +60,7 @@ class SeoController
                 'aktuell' => $route->uri(),
                 'pfad' => $eintraege[$name]['pfad'] ?? null,
                 'titel' => $eintraege[$name]['titel'] ?? null,
-                'stammIgnorieren' => (bool) ($eintraege[$name]['stamm_ignorieren'] ?? false),
+                'absoluterPfad' => (bool) ($eintraege[$name]['absoluter_pfad'] ?? false),
             ];
         }
 
@@ -141,7 +140,10 @@ class SeoController
             // Der Stamm kann weggefiltert sein (Suche) – dann stehen seine
             // Seiten für sich, statt unsichtbar zu werden.
             if (isset($bereiche[$stamm])) {
-                $bereiche[$stamm]['kinder'] = $liste;
+                $bereiche[$stamm]['kinder'] = array_map(
+                    fn (array $z) => self::relativStellen($z, $bereiche[$stamm]['zeile']['aktuell']),
+                    $liste,
+                );
 
                 continue;
             }
@@ -152,6 +154,31 @@ class SeoController
         }
 
         return array_values($bereiche);
+    }
+
+    /**
+     * Eine Unterseite im Verhältnis zu ihrem Bereich beschreiben.
+     *
+     * Im Eingabefeld soll nur der eigene Teil stehen (`benachrichtigungen`),
+     * der Bereich davor als unveränderlicher Vorsatz (`ekkon/`). Nur so ist
+     * sichtbar, dass die Seite mitwandert, wenn der Bereich sich ändert.
+     *
+     * @param  array<string, mixed>  $zeile
+     * @return array<string, mixed>
+     */
+    private static function relativStellen(array $zeile, string $stammPfad): array
+    {
+        $liegtDarunter = str_starts_with($zeile['aktuell'], $stammPfad.'/');
+
+        // Bei „absoluter Pfad" steht die Seite bewusst außerhalb des Bereichs –
+        // dann gibt es keinen Vorsatz und das Feld meint die ganze Adresse.
+        $zeile['stammPfad'] = $liegtDarunter && ! $zeile['absoluterPfad'] ? $stammPfad : null;
+
+        $zeile['vorgabe'] = $liegtDarunter && ! $zeile['absoluterPfad']
+            ? substr($zeile['aktuell'], strlen($stammPfad) + 1)
+            : $zeile['aktuell'];
+
+        return $zeile;
     }
 
     /**
@@ -180,19 +207,21 @@ class SeoController
                 // Nur das, was in einer Adresse nicht weh tut. Schrägstriche sind
                 // erlaubt, damit auch /schule/speiseplan möglich ist.
                 'regex:/^[a-z0-9]+(?:[-\/][a-z0-9]+)*$/',
-                Rule::unique('route_settings', 'pfad')->ignore($request->input('route_name'), 'route_name'),
+                // KEINE Eindeutigkeit auf der Spalte: Bei einer Unterseite ist
+                // der Eintrag relativ zum Bereich. Zwei Module dürfen beide ein
+                // `benachrichtigungen` haben – daraus werden zwei verschiedene
+                // Adressen. Geprüft wird deshalb die fertige Adresse, unten.
             ],
             'titel' => ['nullable', 'string', 'max:120'],
-            'stamm_ignorieren' => ['nullable', 'boolean'],
+            'absoluter_pfad' => ['nullable', 'boolean'],
         ], [
             'pfad.regex' => 'Die Adresse darf nur Kleinbuchstaben, Ziffern, Bindestriche und Schrägstriche enthalten – z. B. speiseplan oder schule/speiseplan.',
-            'pfad.unique' => 'Diese Adresse ist bereits an eine andere Seite vergeben.',
         ]);
 
         $name = $daten['route_name'];
         $pfad = trim((string) ($daten['pfad'] ?? ''), '/ ');
         $titel = trim((string) ($daten['titel'] ?? ''));
-        $stammIgnorieren = (bool) ($daten['stamm_ignorieren'] ?? false);
+        $absoluterPfad = (bool) ($daten['absoluter_pfad'] ?? false);
 
         // Nur bekannte Seiten – sonst könnte man über ein verändertes Formular
         // Einträge für beliebige Routen-Namen anlegen.
@@ -202,12 +231,17 @@ class SeoController
             return back()->withErrors('Diese Seite gibt es nicht (mehr).');
         }
 
-        if ($fehler = $this->kollision($name, $pfad, $aliase)) {
+        // Die Kollision entsteht an der FERTIGEN Adresse, nicht am Eintrag:
+        // `benachrichtigungen` unter `ekkon` ist etwas anderes als unter `news`.
+        $stamm = $absoluterPfad ? null : $aliase->stammPfadFuer($name);
+        $fertig = $pfad !== '' && $stamm !== null ? $stamm.'/'.$pfad : $pfad;
+
+        if ($fehler = $this->kollision($name, $fertig, $aliase)) {
             return back()->withErrors($fehler);
         }
 
         // Ein leerer Eintrag ohne Häkchen sagt nichts aus – der kommt weg.
-        if ($pfad === '' && $titel === '' && ! $stammIgnorieren) {
+        if ($pfad === '' && $titel === '' && ! $absoluterPfad) {
             RouteSetting::where('route_name', $name)->delete();
 
             // Ein Löschen über die Abfrage löst KEINE Model-Ereignisse aus – der
@@ -220,7 +254,7 @@ class SeoController
                 [
                     'pfad' => $pfad ?: null,
                     'titel' => $titel ?: null,
-                    'stamm_ignorieren' => $stammIgnorieren,
+                    'absoluter_pfad' => $absoluterPfad,
                 ],
             );
         }

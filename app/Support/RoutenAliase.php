@@ -68,26 +68,16 @@ class RoutenAliase
         $neu = new RouteCollection();
         $weiterleitungen = [];
 
-        // Erst lesen, dann schreiben: Die Stammpfade müssen aus den
-        // URSPRÜNGLICHEN Adressen gebildet werden. Würden wir im selben
-        // Durchlauf schon umschreiben, hinge das Ergebnis davon ab, in welcher
-        // Reihenfolge der Router die Routen ausspuckt.
-        $staemme = $this->staemme($alt, $aliase);
+        // Erst rechnen, dann schreiben: Die Zuordnung muss auf den
+        // URSPRÜNGLICHEN Adressen beruhen. Würden wir im selben Durchlauf schon
+        // umschreiben, hinge das Ergebnis davon ab, in welcher Reihenfolge der
+        // Router die Routen ausspuckt.
+        $adressen = $this->neueAdressen($alt, $eintraege);
 
         foreach ($alt as $route) {
             $name = $route->getName();
             $bisher = $route->uri();
-
-            // Ein eigener Eintrag gilt immer – auch für eine Unterseite, die
-            // sonst vom Stammpfad erfasst würde.
-            $ziel = match (true) {
-                $name && filled($aliase[$name]['pfad'] ?? null) => trim($aliase[$name]['pfad'], '/'),
-
-                // Ausdrücklich vom Bereich abgekoppelt: bleibt, wo es ist.
-                (bool) ($eintraege[$name]['stamm_ignorieren'] ?? false) => null,
-
-                default => $this->unterStamm($bisher, $staemme),
-            };
+            $ziel = $adressen[trim($bisher, '/')] ?? null;
 
             if ($ziel !== null && $bisher !== $ziel) {
                 if ($name) {
@@ -113,60 +103,135 @@ class RoutenAliase
     }
 
     /**
-     * Stammpfade: alte Bereichsadresse → neue Bereichsadresse.
+     * Fertige Adresse des Bereichs, unter dem eine Seite liegt – sonst null.
      *
-     * Wer einer Übersichtsseite eine sprechende Adresse gibt, meint den ganzen
-     * Bereich – die Seiten zum Anlegen und Bearbeiten sollen mitziehen, sonst
-     * steht in einem Modul die Hälfte der Adressen schön und die andere Hälfte
-     * technisch da.
-     *
-     * Nur Adressen ohne Platzhalter taugen als Stamm: `/kategorien/{id}` ist
-     * kein Bereich, sondern eine einzelne Seite.
-     *
-     * @param  array<string, array{pfad:?string, titel:?string}>  $aliase
-     * @return array<string, string>
+     * Die Verwaltung braucht das an zwei Stellen: um vor dem Eingabefeld den
+     * Vorsatz anzuzeigen (`ekkon/`) und um beim Speichern zu prüfen, ob die
+     * ZUSAMMENGESETZTE Adresse mit einer anderen Seite kollidiert.
      */
-    private function staemme(AbstractRouteCollection $routen, array $aliase): array
+    public function stammPfadFuer(string $routeName): ?string
     {
-        $staemme = [];
+        $ziel = null;
+        $kandidaten = [];
 
-        foreach ($routen as $route) {
+        foreach ($this->router->getRoutes() as $route) {
             $name = $route->getName();
-            $pfad = $name ? ($aliase[$name]['pfad'] ?? null) : null;
+            $bisher = trim(($name ? self::urspruenglicherPfad($name) : null) ?? $route->uri(), '/');
 
-            if (blank($pfad) || str_contains($route->uri(), '{')) {
+            if ($name === $routeName) {
+                $ziel = $bisher;
+
                 continue;
             }
 
-            $staemme[trim($route->uri(), '/')] = trim($pfad, '/');
+            if (! str_contains($bisher, '{')) {
+                $kandidaten[$bisher] = trim($route->uri(), '/');
+            }
         }
 
-        // Längster Stamm zuerst: Bei verschachtelten Bereichen soll der
-        // genauere gewinnen, nicht der zufällig zuerst gefundene.
-        uksort($staemme, fn ($a, $b) => strlen($b) <=> strlen($a));
+        if ($ziel === null) {
+            return null;
+        }
 
-        return $staemme;
+        return $this->stammFuer($ziel, $kandidaten)[1];
     }
 
     /**
-     * Neue Adresse einer Seite, die unter einem Stammpfad liegt – sonst null.
+     * Alte Adresse → neue Adresse, für jede Route.
+     *
+     * Der Eintrag einer Unterseite ist RELATIV zu ihrem Bereich: Steht bei
+     * `module.ekkon.index` die Adresse `ekkon` und bei `…notifications` das Wort
+     * `benachrichtigungen`, ergibt das `/ekkon/benachrichtigungen`. Wird der
+     * Bereich später auf `ekkon3` geändert, wandert die Unterseite mit, ohne
+     * dass jemand sie anfassen muss. Wer stattdessen eine Adresse an fester
+     * Stelle will, hakt „absoluter Pfad" an.
+     *
+     * Deshalb müssen Bereiche VOR ihren Unterseiten berechnet werden – ein
+     * Kind braucht das fertige Ergebnis seines Elternteils. Die Sortierung nach
+     * Länge der ursprünglichen Adresse stellt das sicher: Ein Bereich ist immer
+     * kürzer als alles, was unter ihm liegt.
+     *
+     * @param  array<string, array{pfad:?string, absoluter_pfad:bool}>  $eintraege
+     * @return array<string, string>  alte Adresse → neue Adresse
+     */
+    private function neueAdressen(AbstractRouteCollection $routen, array $eintraege): array
+    {
+        $offen = [];
+
+        foreach ($routen as $route) {
+            $offen[] = [trim($route->uri(), '/'), $route->getName()];
+        }
+
+        usort($offen, fn ($a, $b) => strlen($a[0]) <=> strlen($b[0]));
+
+        $ergebnis = [];
+
+        // Nur was hier landet, kann Stamm für andere sein: die bereits fertig
+        // berechneten Adressen ohne Platzhalter. `/kategorien/{id}` ist kein
+        // Bereich, sondern eine einzelne Seite.
+        $staemme = [];
+
+        foreach ($offen as [$bisher, $name]) {
+            $eigener = $name ? ($eintraege[$name]['pfad'] ?? null) : null;
+            $absolut = $name ? (bool) ($eintraege[$name]['absoluter_pfad'] ?? false) : false;
+
+            [$stammAlt, $stammNeu] = $this->stammFuer($bisher, $staemme);
+
+            $ziel = match (true) {
+                // Eigener Eintrag: an den Bereich gehängt – oder, wenn
+                // ausdrücklich absolut gewünscht, für sich stehend.
+                filled($eigener) => $stammNeu !== null && ! $absolut
+                    ? $stammNeu.'/'.trim($eigener, '/')
+                    : trim($eigener, '/'),
+
+                // Kein eigener Eintrag: dem Bereich folgen, sofern es einen gibt
+                // und die Seite nicht ausdrücklich an fester Stelle steht.
+                $stammNeu !== null && ! $absolut => $stammNeu.'/'.substr($bisher, strlen($stammAlt) + 1),
+
+                default => $bisher,
+            };
+
+            // Mehrere Routen teilen sich dieselbe Adresse – `GET /admin/roles`
+            // zeigt die Übersicht, `POST /admin/roles` legt an. Sie müssen
+            // gemeinsam wandern, sonst zeigt das Formular ins Leere. Nur die
+            // GET-Route trägt aber einen Namen und damit den Eintrag: Eine
+            // unveränderte Route darf eine bereits umbenannte deshalb NICHT
+            // überschreiben, sonst entscheidet die Reihenfolge des Routers.
+            if ($ziel !== $bisher || ! isset($ergebnis[$bisher])) {
+                $ergebnis[$bisher] = $ziel;
+            }
+
+            if (! str_contains($bisher, '{') && ($ziel !== $bisher || ! isset($staemme[$bisher]))) {
+                $staemme[$bisher] = $ziel;
+            }
+        }
+
+        return $ergebnis;
+    }
+
+    /**
+     * Nächstgelegener Bereich einer Adresse: [alte Adresse, neue Adresse].
      *
      * Der Schrägstrich im Vergleich ist wichtig: `kategorien-import` liegt
      * NICHT unter `kategorien`, auch wenn die Zeichenkette so anfängt.
      *
      * @param  array<string, string>  $staemme
+     * @return array{0: ?string, 1: ?string}
      */
-    private function unterStamm(string $uri, array $staemme): ?string
+    private function stammFuer(string $uri, array $staemme): array
     {
-        $uri = trim($uri, '/');
+        $treffer = [null, null];
 
         foreach ($staemme as $alt => $neu) {
-            if (str_starts_with($uri, $alt.'/')) {
-                return $neu.'/'.substr($uri, strlen($alt) + 1);
+            // Der längste Treffer gewinnt – bei verschachtelten Bereichen soll
+            // der nächstgelegene zählen, nicht der oberste.
+            if (str_starts_with($uri, $alt.'/')
+                && ($treffer[0] === null || strlen($alt) > strlen($treffer[0]))) {
+                $treffer = [$alt, $neu];
             }
         }
 
-        return null;
+        return $treffer;
     }
 
     /**

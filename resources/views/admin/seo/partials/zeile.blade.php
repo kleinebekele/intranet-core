@@ -18,12 +18,20 @@
 
     <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ $kind ? '' : $zeile['modul'] }}</td>
 
-    <td class="px-4 py-3">
+    <td class="px-4 py-3" @if ($kind) x-data="{ absolut: {{ $zeile['absoluterPfad'] ? 'true' : 'false' }} }" @endif>
         <div class="flex items-center gap-1">
             <span class="text-gray-400">/</span>
+
+            @if ($kind && $zeile['stammPfad'] !== null)
+                {{-- Der Bereich als fester Vorsatz: Er gehört zur Adresse, ist
+                     hier aber nicht zu ändern – er kommt aus der Zeile darüber
+                     und wandert mit, wenn die sich ändert. --}}
+                <span class="font-mono text-gray-500" x-show="! absolut">{{ $zeile['stammPfad'] }}/</span>
+            @endif
+
             <input type="text" name="pfad" form="{{ $id }}"
                    value="{{ $zeile['pfad'] }}"
-                   placeholder="{{ $zeile['aktuell'] }}"
+                   placeholder="{{ $zeile['vorgabe'] ?? $zeile['aktuell'] }}"
                    class="block w-64 rounded-lg border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
         </div>
 
@@ -41,10 +49,11 @@
 
         @if ($kind)
             <label class="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500">
-                <input type="checkbox" name="stamm_ignorieren" value="1" form="{{ $id }}"
-                       @checked($zeile['stammIgnorieren'])
+                <input type="checkbox" name="absoluter_pfad" value="1" form="{{ $id }}"
+                       x-model="absolut"
+                       @checked($zeile['absoluterPfad'])
                        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                Stammpfad ignorieren
+                Absoluter Pfad
             </label>
         @endif
     </td>
