@@ -38,6 +38,40 @@
                     </div>
 
                     <div>
+                        <span class="block text-sm font-medium text-gray-700">Logo</span>
+
+                        <div class="mt-2 flex items-center gap-4">
+                            <span class="inline-flex h-12 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 px-2">
+                                @if ($logoPfad)
+                                    <img src="{{ parse_url(Storage::disk('public')->url($logoPfad), PHP_URL_PATH) }}"
+                                         alt="Aktuelles Logo" class="max-h-10 max-w-full object-contain">
+                                @else
+                                    <i class='bx bx-image text-2xl text-gray-300'></i>
+                                @endif
+                            </span>
+
+                            <div class="min-w-0 flex-1">
+                                <input type="file" name="logo" accept=".png,.svg,.jpg,.jpeg,.webp"
+                                       class="block w-full text-sm text-gray-600
+                                              file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-4 file:py-2
+                                              file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100">
+                                <p class="mt-1.5 text-xs text-gray-500">
+                                    Steht in der Kopfzeile und auf der Anmeldeseite. PNG, SVG, JPG oder WebP,
+                                    höchstens 1 MB. Ein breites Bild wirkt besser als ein quadratisches.
+                                </p>
+                            </div>
+                        </div>
+
+                        @if ($logoPfad)
+                            <label class="mt-3 inline-flex items-center gap-2 text-sm text-gray-600">
+                                <input type="checkbox" name="logo_entfernen" value="1"
+                                       class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                Logo entfernen und Standard verwenden
+                            </label>
+                        @endif
+                    </div>
+
+                    <div>
                         <span class="block text-sm font-medium text-gray-700">Favicon</span>
 
                         <div class="mt-2 flex items-center gap-4">

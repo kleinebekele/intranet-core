@@ -15,11 +15,9 @@
             </button>
 
             <a href="{{ route('dashboard') }}" class="flex items-center gap-2.5">
-                <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                    <x-application-logo class="h-5 w-5 fill-current" />
-                </span>
+                <x-marken-logo />
                 <span class="text-lg font-semibold text-gray-800 hidden sm:block">
-                    {{ config('app.name', 'Intranet') }}
+                    {{ \App\Support\Seitentitel::haupttitel() }}
                 </span>
             </a>
         </div>
