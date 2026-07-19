@@ -8,6 +8,16 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Benutzer sperren statt löschen.** Neue Felder `gesperrt_am` / `gesperrt_grund`, Schalter in
+  der Benutzer-Verwaltung. Wer die Schule verlässt, soll sich nicht mehr anmelden können –
+  seine Bestellungen, Zeugnisse und Protokolleinträge müssen aber bleiben; Löschen wäre dafür
+  das falsche Werkzeug. Die Sperre wirkt **sofort**, auch in einer laufenden Sitzung
+  (Middleware `GesperrteAbmelden`) – beim nächtlichen Abgleich ist die offene Sitzung von
+  gestern der Regelfall, nicht die Ausnahme. Das eigene Konto lässt sich nicht sperren.
+- **Künstliche Mailadressen können den Server nicht verlassen.** Adressen mit Endungen aus
+  `mail.unzustellbare_endungen` (Standard `.intern`) werden weder eingeliefert noch versendet.
+  Nötig für importierte Schüler ohne eigene Mailadresse. Gemischte Empfänger werden bereinigt
+  statt verworfen, damit eine Rundmail nicht an einem einzigen Schüler scheitert.
 - **`php artisan modules:uninstall <key>` – das Gegenstück zu `modules:sync`.** Bisher gab es
   nur den Weg hinein: `composer remove` ließ Modul-Zeile, Menüpunkte samt Rollen, sprechende
   Adressen und die Tabellen des Moduls zurück. Der neue Befehl zeigt erst, was am Modul hängt

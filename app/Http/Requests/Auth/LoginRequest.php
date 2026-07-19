@@ -50,6 +50,18 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        // Gesperrte Konten: Das Passwort stimmt, trotzdem ist hier Schluss.
+        // Die Anmeldung wird sofort wieder zurückgenommen.
+        if (Auth::user()?->istGesperrt()) {
+            Auth::guard('web')->logout();
+            $this->session()->invalidate();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => trans('auth.gesperrt'),
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

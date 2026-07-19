@@ -58,6 +58,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
         Route::post('users/{user}/reset-totp', [UserController::class, 'resetTotp'])->name('users.reset-totp');
+        Route::post('users/{user}/sperre', [UserController::class, 'sperreUmschalten'])->name('users.sperre');
 
         // Sprechende Adressen und feste Titel je Seite.
         Route::get('seo', [SeoController::class, 'index'])->name('seo.index');

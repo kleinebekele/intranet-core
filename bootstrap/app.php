@@ -21,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // web-Gruppe, denn die greift erst nach dem Zuordnen.
         $middleware->prepend(\App\Http\Middleware\RoutenAliaseAnwenden::class);
 
+        // Eine Sperre wirkt sofort, auch bei laufender Sitzung. Steht vor der
+        // 2FA-Prüfung: Wer gesperrt ist, braucht keinen zweiten Faktor mehr.
+        $middleware->web(append: \App\Http\Middleware\GesperrteAbmelden::class);
+
         // 2FA-Sperre global an der web-Gruppe: schützt automatisch auch alle
         // Modul-Routen, ohne dass Module etwas davon wissen müssen.
         $middleware->web(append: \App\Http\Middleware\EnsureTwoFactorChallenge::class);

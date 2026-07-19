@@ -32,7 +32,32 @@ class User extends Authenticatable
             'totp_secret' => 'encrypted',
             'totp_confirmed_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
+            'gesperrt_am' => 'datetime',
         ];
+    }
+
+    /**
+     * Gesperrte Benutzer kommen nicht mehr an ihr Konto: Die Anmeldung wird
+     * abgelehnt (siehe LoginRequest), das Konto bleibt aber mitsamt seiner
+     * Geschichte bestehen.
+     */
+    public function istGesperrt(): bool
+    {
+        return $this->gesperrt_am !== null;
+    }
+
+    public function sperren(?string $grund = null): void
+    {
+        if ($this->istGesperrt()) {
+            return; // Sperrzeitpunkt und -grund nicht überschreiben
+        }
+
+        $this->forceFill(['gesperrt_am' => now(), 'gesperrt_grund' => $grund])->save();
+    }
+
+    public function entsperren(): void
+    {
+        $this->forceFill(['gesperrt_am' => null, 'gesperrt_grund' => null])->save();
     }
 
     /**

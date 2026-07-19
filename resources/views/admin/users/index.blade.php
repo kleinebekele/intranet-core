@@ -80,9 +80,18 @@
                                     @if ($user->is_admin)
                                         <span class="ml-1 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">Admin</span>
                                     @endif
+                                    @if ($user->istGesperrt())
+                                        <span class="ml-1 inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"
+                                              title="{{ $user->gesperrt_grund }}">Gesperrt</span>
+                                    @endif
                                 </div>
                                 @if ($user->source)
                                     <div class="text-xs text-gray-400">Quelle: {{ $user->source }}</div>
+                                @endif
+                                @if ($user->istGesperrt())
+                                    <div class="text-xs text-red-400">
+                                        seit {{ $user->gesperrt_am->format('d.m.Y') }}{{ $user->gesperrt_grund ? ' · '.$user->gesperrt_grund : '' }}
+                                    </div>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-gray-600">{{ $user->email }}</td>
@@ -107,6 +116,21 @@
                                             <i class='bx bx-mail-send'></i>
                                         </button>
                                     </form>
+
+                                    @if (! $user->is(auth()->user()))
+                                        <form method="POST" action="{{ route('admin.users.sperre', $user) }}"
+                                              onsubmit="return confirm('{{ $user->istGesperrt() ? 'Konto von „'.$user->name.'“ wieder freigeben?' : 'Konto von „'.$user->name.'“ sperren? Eine laufende Sitzung endet sofort.' }}');">
+                                            @csrf
+                                            <button type="submit" title="{{ $user->istGesperrt() ? 'Sperre aufheben' : 'Konto sperren' }}"
+                                                    @class([
+                                                        'block rounded-md p-1.5',
+                                                        'text-emerald-600 hover:bg-emerald-50' => $user->istGesperrt(),
+                                                        'text-gray-500 hover:bg-gray-100 hover:text-gray-700' => ! $user->istGesperrt(),
+                                                    ])>
+                                                <i class="bx {{ $user->istGesperrt() ? 'bx-lock-open-alt' : 'bx-lock-alt' }}"></i>
+                                            </button>
+                                        </form>
+                                    @endif
 
                                     <form method="POST" action="{{ route('admin.users.destroy', $user) }}"
                                           onsubmit="return confirm('Benutzer „{{ $user->name }}“ wirklich löschen?');">

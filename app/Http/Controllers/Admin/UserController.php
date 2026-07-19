@@ -152,6 +152,32 @@ class UserController extends Controller
     }
 
     /**
+     * Konto sperren oder wieder freigeben.
+     *
+     * Sperren statt löschen: Wer die Schule verlässt, soll sich nicht mehr
+     * anmelden können, seine Bestellungen und Zeugnisse müssen aber bleiben.
+     *
+     * Das eigene Konto ist ausgenommen – sonst könnte sich der letzte
+     * Administrator mit einem Klick selbst aussperren.
+     */
+    public function sperreUmschalten(Request $request, User $user): RedirectResponse
+    {
+        if ($user->is($request->user())) {
+            return back()->with('error', 'Das eigene Konto lässt sich nicht sperren.');
+        }
+
+        if ($user->istGesperrt()) {
+            $user->entsperren();
+
+            return back()->with('status', "Konto von {$user->name} ist wieder freigegeben.");
+        }
+
+        $user->sperren('Von '.$request->user()->name.' in der Verwaltung gesperrt.');
+
+        return back()->with('status', "Konto von {$user->name} gesperrt – eine laufende Sitzung endet sofort.");
+    }
+
+    /**
      * TOTP zurücksetzen (z. B. Handy verloren): der Benutzer fällt auf den
      * Standard-Mail-Code zurück und kann TOTP im Profil neu einrichten.
      */
