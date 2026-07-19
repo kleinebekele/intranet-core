@@ -16,7 +16,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   wer eine Vorlage bearbeitet, kann damit keinen Code ausführen. Gespeichert wird nur, was vom
   Standard abweicht; „Auf Standard zurücksetzen" löscht die Anpassung, sodass eine spätere
   Core-Verbesserung wieder greift. Einladung und Passwort-Reset nutzen die Vorlagen bereits;
-  Module können eigene anmelden.
+  Module können eigene anmelden. Dazu eine **Testmail** an eine frei eingegebene Adresse mit den
+  aktuell im Editor stehenden Texten, wahlweise mit den Daten eines gewählten Benutzers – der
+  `link`-Platzhalter bleibt dabei aus Sicherheitsgründen immer ein Beispiel.
 - **Einladungs-Puffer (Verwaltung → Einladungen).** Importe merken Zugangslinks nur vor;
   verschickt wird erst nach Freigabe durch einen Menschen — einzeln oder alle auf einmal.
   Ein Import legt schnell hunderte Benutzer an, und verschickte Mails holt man nicht zurück.
