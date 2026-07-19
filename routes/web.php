@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\MailOutboxController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
@@ -37,6 +38,10 @@ Route::middleware('auth')->group(function () {
 
     // Admin panel: arrange the module navigation.
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+        // Einstellungen: Erscheinungsbild und Betriebsgrenzen.
+        Route::get('einstellungen', [SettingController::class, 'index'])->name('settings.index');
+        Route::put('einstellungen', [SettingController::class, 'update'])->name('settings.update');
+
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
         Route::post('/modules/reorder', [ModuleController::class, 'reorder'])->name('modules.reorder');
         Route::post('/modules/{module}/toggle', [ModuleController::class, 'toggle'])->name('modules.toggle');

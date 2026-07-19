@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Listeners\MailInDieOutbox;
+use App\Models\Setting;
 use App\Modules\Support\ModuleRegistry;
 use App\View\Composers\NavigationComposer;
 use Illuminate\Mail\Events\MessageSending;
@@ -43,5 +44,12 @@ class AppServiceProvider extends ServiceProvider
         // Protokoll). Bewusst hier und nicht per Auto-Discovery: der Listener
         // greift so tief in den Versand ein, dass man ihn sehen soll.
         Event::listen(MessageSending::class, MailInDieOutbox::class);
+
+        // In der Verwaltung gesetztes Stundenlimit schlägt die .env – sonst
+        // gäbe es zwei Wahrheiten und niemand wüsste, welche gilt. Kein Eintrag
+        // in der Verwaltung heißt: es bleibt beim Wert aus der .env.
+        if (filled($limit = Setting::get('mail_stundenlimit'))) {
+            config(['mail.outbox.stundenlimit' => (int) $limit]);
+        }
     }
 }

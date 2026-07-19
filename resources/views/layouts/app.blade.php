@@ -5,7 +5,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Intranet') }}</title>
+        {{-- Konvention: {Haupttitel} – {Modul} – {Seite}. Modul und Seite leitet
+             der Core selbst ab; eine View kann die Seite überschreiben:
+             <x-slot name="titel">Schüler bearbeiten</x-slot> --}}
+        <title>{{ \App\Support\Seitentitel::bauen(isset($titel) ? trim($titel) : null) }}</title>
+
+        @include('layouts.favicon')
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
