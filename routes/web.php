@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\EinladungController;
 use App\Http\Controllers\Admin\MailOutboxController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\SeoController;
@@ -59,6 +60,12 @@ Route::middleware('auth')->group(function () {
         Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
         Route::post('users/{user}/reset-totp', [UserController::class, 'resetTotp'])->name('users.reset-totp');
         Route::post('users/{user}/sperre', [UserController::class, 'sperreUmschalten'])->name('users.sperre');
+
+        // Einladungs-Puffer: vorgemerkte Zugangslinks freigeben oder verwerfen.
+        Route::get('einladungen', [EinladungController::class, 'index'])->name('einladungen.index');
+        Route::post('einladungen/alle', [EinladungController::class, 'alleFreigeben'])->name('einladungen.alle');
+        Route::post('einladungen/{einladung}', [EinladungController::class, 'freigeben'])->name('einladungen.freigeben');
+        Route::delete('einladungen/{einladung}', [EinladungController::class, 'verwerfen'])->name('einladungen.verwerfen');
 
         // Sprechende Adressen und feste Titel je Seite.
         Route::get('seo', [SeoController::class, 'index'])->name('seo.index');

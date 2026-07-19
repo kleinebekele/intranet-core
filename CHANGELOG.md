@@ -8,6 +8,13 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Einladungs-Puffer (Verwaltung → Einladungen).** Importe merken Zugangslinks nur vor;
+  verschickt wird erst nach Freigabe durch einen Menschen — einzeln oder alle auf einmal.
+  Ein Import legt schnell hunderte Benutzer an, und verschickte Mails holt man nicht zurück.
+  Der Reiter zeigt die Zahl der Wartenden, die Administratoren bekommen **eine** Sammelmeldung
+  (nicht eine Mail je Benutzer). Benutzer mit künstlicher Adresse werden gar nicht erst
+  vorgemerkt, und mehrfaches Vormerken erzeugt keine Dubletten — ein zweiter Importlauf ist
+  damit ungefährlich.
 - **Benutzer sperren statt löschen.** Neue Felder `gesperrt_am` / `gesperrt_grund`, Schalter in
   der Benutzer-Verwaltung. Wer die Schule verlässt, soll sich nicht mehr anmelden können –
   seine Bestellungen, Zeugnisse und Protokolleinträge müssen aber bleiben; Löschen wäre dafür
