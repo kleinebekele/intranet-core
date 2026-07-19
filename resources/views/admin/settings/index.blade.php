@@ -43,7 +43,9 @@
                         <div class="mt-2 flex items-center gap-4">
                             <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
                                 @if ($faviconPfad)
-                                    <img src="{{ Storage::disk('public')->url($faviconPfad) }}" alt="Aktuelles Favicon" class="max-h-10 max-w-10">
+                                    {{-- Wurzelrelativ, siehe layouts/favicon.blade.php --}}
+                                    <img src="{{ parse_url(Storage::disk('public')->url($faviconPfad), PHP_URL_PATH) }}"
+                                         alt="Aktuelles Favicon" class="max-h-10 max-w-10">
                                 @else
                                     <i class='bx bx-image text-2xl text-gray-300'></i>
                                 @endif

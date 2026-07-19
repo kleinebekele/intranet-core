@@ -9,7 +9,14 @@
 
 @if ($faviconPfad)
     @php
-        $faviconUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($faviconPfad);
+        // Bewusst wurzelrelativ statt Storage::url(): Das liefert eine absolute
+        // URL aus APP_URL. Dieses Intranet ist aber oft über mehrere Adressen
+        // erreichbar (interne IP und Domain) – eine feste absolute URL zeigt
+        // dann in einem der Fälle ins Leere.
+        $faviconUrl = parse_url(
+            \Illuminate\Support\Facades\Storage::disk('public')->url($faviconPfad),
+            PHP_URL_PATH
+        );
         $endung = strtolower(pathinfo($faviconPfad, PATHINFO_EXTENSION));
         $typ = match ($endung) {
             'ico' => 'image/x-icon',
