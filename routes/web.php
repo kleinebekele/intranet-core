@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\MailOutboxController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
@@ -50,6 +51,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
         Route::post('users/{user}/reset-totp', [UserController::class, 'resetTotp'])->name('users.reset-totp');
+
+        // Mail-Ausgangskorb: Versand-Protokoll und Warteschlange.
+        Route::get('mails', [MailOutboxController::class, 'index'])->name('mail.index');
+        Route::post('mails/{mail}/erneut', [MailOutboxController::class, 'erneut'])->name('mail.erneut');
     });
 });
 
