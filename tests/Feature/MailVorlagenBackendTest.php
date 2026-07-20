@@ -87,16 +87,14 @@ class MailVorlagenBackendTest extends TestCase
         $this->assertDatabaseMissing('mail_vorlagen', ['schluessel' => 'einladung']);
     }
 
-    public function test_vorschau_nutzt_die_daten_des_gewaehlten_benutzers(): void
+    public function test_vorschau_nutzt_die_eingegebenen_werte(): void
     {
-        $user = User::factory()->create(['name' => 'Klara Konkret']);
-
         $antwort = $this->actingAs($this->admin())
             ->postJson(route('admin.mailvorlagen.vorschau', 'einladung'), [
                 'betreff' => 'Test',
                 'html' => '<p>Hallo {{ name }}</p>',
                 'text' => 'Hallo {{ name }}',
-                'user_id' => $user->id,
+                'werte' => ['name' => 'Klara Konkret'],
             ])
             ->assertOk()
             ->json();
@@ -104,14 +102,28 @@ class MailVorlagenBackendTest extends TestCase
         $this->assertStringContainsString('Klara Konkret', $antwort['html']);
     }
 
+    /** Platzhalter, die diese Vorlage gar nicht kennt, werden verworfen. */
+    public function test_vorschau_ignoriert_fremde_werte(): void
+    {
+        $antwort = $this->actingAs($this->admin())
+            ->postJson(route('admin.mailvorlagen.vorschau', 'einladung'), [
+                'html' => '<p>{{ name }}</p>',
+                'text' => '{{ name }}',
+                'werte' => ['gibtsnicht' => 'XXXX', 'name' => 'Klara'],
+            ])
+            ->assertOk()
+            ->json();
+
+        $this->assertStringContainsString('Klara', $antwort['html']);
+        $this->assertStringNotContainsString('XXXX', $antwort['html']);
+    }
+
     public function test_testmail_geht_an_die_freie_adresse(): void
     {
-        $user = User::factory()->create(['name' => 'Klara Konkret']);
-
         $this->actingAs($this->admin())
             ->postJson(route('admin.mailvorlagen.testmail', 'einladung'), [
                 'an' => 'wohin@example.org',
-                'user_id' => $user->id,
+                'werte' => ['name' => 'Klara Konkret'],
                 'betreff' => 'Test',
                 'html' => '<p>Hallo {{ name }}</p>',
                 'text' => 'Hallo {{ name }}',

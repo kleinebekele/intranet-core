@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Mail\Vorlagen\VorlagenDefinition;
 use App\Mail\Vorlagen\VorlagenMailer;
+use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\MailOutbox;
 use App\Models\MailVorlage;
 use App\Models\User;
@@ -120,6 +122,19 @@ class MailVorlagenTest extends TestCase
 
         $eintrag = MailOutbox::sole();
         $this->assertSame('Angepasste Einladung', $eintrag->betreff);
+    }
+
+    /** Der Rahmen darf sich in der eigenen Vorschau nicht selbst umschließen. */
+    public function test_rahmen_wird_in_der_eigenen_vorschau_nicht_doppelt_gerahmt(): void
+    {
+        $definition = app(VorlagenRegister::class)
+            ->finden(VorlagenDefinition::RAHMEN);
+
+        $fertig = $this->mailer()->rendernMit(null, $definition, ['inhalt' => 'PROBETEXT']);
+
+        $this->assertStringContainsString('PROBETEXT', $fertig['html']);
+        // Nur EIN <body> – bei doppelter Rahmung wären es zwei.
+        $this->assertSame(1, substr_count($fertig['html'], '<body'));
     }
 
     public function test_login_geaendert_vorlage_existiert_und_rendert(): void

@@ -87,21 +87,56 @@
                 </div>
             </div>
 
-            {{-- Vorschau --}}
-            <div class="mt-6">
-                <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <div class="text-sm font-medium text-gray-700">Vorschau</div>
-                    <label class="flex items-center gap-2 text-sm text-gray-600">
-                        Daten von Benutzer:
-                        <select x-model="userId" @change="nachVorschau"
-                                class="rounded-lg border-gray-300 text-sm">
-                            <option value="">— Beispieldaten —</option>
-                            @foreach ($benutzer as $b)
-                                <option value="{{ $b->id }}">#{{ $b->id }} · {{ $b->name }} ({{ $b->email }})</option>
-                            @endforeach
-                        </select>
-                    </label>
+            {{-- Vorschau-Werte: genau die Platzhalter DIESER Vorlage --}}
+            <div class="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div class="mb-1 text-sm font-medium text-gray-700">Werte für Vorschau &amp; Testmail</div>
+                <p class="mb-3 text-xs text-gray-500">
+                    Nur zum Ansehen und Testen – gespeichert wird davon nichts.
+                </p>
+
+                @php($hatName = array_key_exists('name', $definition->platzhalter))
+
+                @if ($hatName)
+                    {{-- Benutzer suchen und übernehmen (Muster: Korrektoren-Feld im Zeugnismodul) --}}
+                    <div class="mb-3 relative" @click.outside="treffer = []">
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Benutzer übernehmen</label>
+                        <input type="text" x-model="suche" @input="suchen" placeholder="Name oder E-Mail tippen …"
+                               autocomplete="off" class="w-full max-w-md rounded-lg border-gray-300 text-sm">
+                        <ul x-show="treffer.length" x-cloak
+                            class="absolute z-10 mt-1 max-h-56 w-full max-w-md overflow-auto rounded-lg border border-gray-200 bg-white shadow">
+                            <template x-for="t in treffer" :key="t.id">
+                                <li @click="benutzerUebernehmen(t)"
+                                    class="cursor-pointer px-3 py-2 text-sm hover:bg-indigo-50">
+                                    <span x-text="t.name" class="font-medium"></span>
+                                    <span x-text="t.email" class="ml-1 text-gray-500"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                @endif
+
+                <div class="grid gap-3 md:grid-cols-2">
+                    @foreach ($definition->platzhalter as $name => $erklaerung)
+                        <div @class(['md:col-span-2' => $name === 'text' || $name === 'inhalt'])>
+                            <label class="mb-1 block text-xs font-medium text-gray-600">
+                                <code>{{ $name }}</code>
+                                <span class="ml-1 font-normal text-gray-400">{{ $erklaerung }}</span>
+                            </label>
+                            @if ($name === 'text' || $name === 'inhalt')
+                                <textarea x-model="werte['{{ $name }}']" @input="nachVorschau" rows="3"
+                                          class="block w-full rounded-lg border-gray-300 text-sm"></textarea>
+                            @else
+                                <input type="text" x-model="werte['{{ $name }}']" @input="nachVorschau"
+                                       class="block w-full rounded-lg border-gray-300 text-sm">
+                            @endif
+                        </div>
+                    @endforeach
                 </div>
+            </div>
+
+            {{-- Vorschau --}}
+            <div class="mt-4">
+                <div class="mb-2 text-sm font-medium text-gray-700">Vorschau</div>
                 <div class="rounded-xl border border-gray-200 bg-white p-2">
                     <div class="mb-2 border-b border-gray-100 px-2 py-1 text-sm text-gray-500">
                         Betreff: <span class="font-medium text-gray-700" x-text="vorschauBetreff"></span>
@@ -158,7 +193,12 @@
                 html: @js($htmlWert),
                 text: @js($textWert),
                 vorschauBetreff: '',
-                userId: '',
+                // Die Platzhalter-Werte dieser Vorlage (Vorbelegung: Beispiele).
+                werte: @js($beispielwerte),
+                // Benutzer-Suche (füllt name/email aus einem echten Konto).
+                suche: '',
+                treffer: [],
+                benutzer: @js($benutzer->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'email' => $b->email])->values()),
                 testEmail: '',
                 testLaeuft: false,
                 testOk: false,
@@ -215,7 +255,7 @@
                         const res = await fetch(config.vorschauUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': config.csrf },
-                            body: JSON.stringify({ betreff: this.betreff(), html: this.html, text: this.text, user_id: this.userId || null }),
+                            body: JSON.stringify({ betreff: this.betreff(), html: this.html, text: this.text, werte: this.werte }),
                         });
                         const daten = await res.json();
                         this.vorschauBetreff = daten.betreff;
@@ -227,6 +267,23 @@
                     return this.$root.querySelector('[name=betreff]')?.value ?? '';
                 },
 
+                suchen() {
+                    const q = this.suche.trim().toLowerCase();
+                    if (q.length < 2) { this.treffer = []; return; }
+                    this.treffer = this.benutzer
+                        .filter(b => (b.name + ' ' + b.email).toLowerCase().includes(q))
+                        .slice(0, 8);
+                },
+
+                benutzerUebernehmen(b) {
+                    // Nur Platzhalter füllen, die diese Vorlage auch kennt.
+                    if ('name' in this.werte) this.werte.name = b.name;
+                    if ('email' in this.werte) this.werte.email = b.email;
+                    this.suche = b.name;
+                    this.treffer = [];
+                    this.nachVorschau();
+                },
+
                 async testSenden() {
                     if (! this.testEmail) { this.testOk = false; this.testMeldung = 'Bitte eine Adresse eingeben.'; return; }
                     this.testLaeuft = true;
@@ -235,7 +292,7 @@
                         const res = await fetch(config.testmailUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': config.csrf },
-                            body: JSON.stringify({ an: this.testEmail, user_id: this.userId || null, betreff: this.betreff(), html: this.html, text: this.text }),
+                            body: JSON.stringify({ an: this.testEmail, werte: this.werte, betreff: this.betreff(), html: this.html, text: this.text }),
                         });
                         const daten = await res.json();
                         this.testOk = daten.ok;

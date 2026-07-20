@@ -106,7 +106,7 @@ class MailVorlageController extends Controller
         $fertig = $this->mailer->rendernMit(
             $fassung,
             $definition,
-            $this->werte($definition->platzhalter, $request->input('user_id')),
+            $this->werteAusRequest($definition->platzhalter, $request),
         );
 
         return response()->json($fertig);
@@ -127,10 +127,10 @@ class MailVorlageController extends Controller
 
         $daten = $request->validate([
             'an' => ['required', 'email'],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
             'betreff' => ['nullable', 'string'],
             'html' => ['nullable', 'string'],
             'text' => ['nullable', 'string'],
+            'werte' => ['nullable', 'array'],
         ]);
 
         if (! Zustellbarkeit::zustellbar($daten['an'])) {
@@ -147,7 +147,7 @@ class MailVorlageController extends Controller
         $fertig = $this->mailer->rendernMit(
             $fassung,
             $definition,
-            $this->werte($definition->platzhalter, $daten['user_id'] ?? null),
+            $this->werteAusRequest($definition->platzhalter, $request),
         );
 
         Mail::html($fertig['html'], function ($nachricht) use ($daten, $fertig) {
@@ -161,20 +161,22 @@ class MailVorlageController extends Controller
     }
 
     /**
-     * Die Werte für Vorschau/Testmail: Beispiele, bei ausgewähltem Benutzer
-     * dessen echte Angaben (Name) – der Link bleibt aus Sicherheitsgründen
-     * immer ein Beispiel (siehe testmail()).
+     * Die Werte für Vorschau/Testmail.
+     *
+     * Grundlage sind die Beispielwerte; was im Editor je Platzhalter eingegeben
+     * wurde, überschreibt sie. Es werden nur Platzhalter übernommen, die diese
+     * Vorlage überhaupt kennt – Fremdes wird verworfen.
      *
      * @param  array<string, string>  $platzhalter
      * @return array<string, string>
      */
-    private function werte(array $platzhalter, int|string|null $userId): array
+    private function werteAusRequest(array $platzhalter, Request $request): array
     {
         $werte = $this->beispielwerte($platzhalter);
 
-        if ($userId && $user = User::find($userId)) {
-            if (array_key_exists('name', $werte)) {
-                $werte['name'] = $user->name;
+        foreach ((array) $request->input('werte', []) as $name => $wert) {
+            if (array_key_exists($name, $werte) && is_scalar($wert)) {
+                $werte[$name] = (string) $wert;
             }
         }
 
@@ -194,6 +196,11 @@ class MailVorlageController extends Controller
             'link' => 'https://intranet.example/passwort/setzen',
             'code' => '123456',
             'minuten' => '10',
+            'neue_mail' => 'anna.neu@example.org',
+            'inhalt' => 'Hier steht der Text der jeweiligen Mail.',
+            'ueberschrift' => 'Beispiel-Überschrift der Meldung',
+            'text' => "Beispieltext der Meldung.\nKann mehrere Zeilen und einen Link enthalten.",
+            'quelle' => 'Beispiel/Task',
         ];
 
         $werte = [];

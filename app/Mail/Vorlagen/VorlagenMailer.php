@@ -60,6 +60,13 @@ class VorlagenMailer
         $htmlInhalt = $this->ersetzen($this->wert($fassung?->html, $definition->html), $werte + $rahmenWerte);
         $textInhalt = $this->ersetzen($this->wert($fassung?->text, $definition->text), $werte + $rahmenWerte);
 
+        // Wird der RAHMEN selbst gerendert (Vorschau im Editor), darf er nicht
+        // noch einmal eingerahmt werden – sonst steckt er in sich selbst. Sein
+        // `{{ inhalt }}` kommt dann aus den übergebenen Werten (Beispieltext).
+        if ($definition->schluessel === VorlagenDefinition::RAHMEN) {
+            return ['betreff' => $betreff, 'html' => $htmlInhalt, 'text' => $textInhalt];
+        }
+
         $html = $this->ersetzen($rahmen['html'], $rahmenWerte + ['inhalt' => $htmlInhalt]);
         $text = $this->ersetzen($rahmen['text'], $rahmenWerte + ['inhalt' => $textInhalt]);
 
