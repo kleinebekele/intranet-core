@@ -8,6 +8,18 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Geändert
+- **Der Mailvorlagen-Editor hat Reiter** statt zweier nebeneinanderliegender Spalten:
+  *Formatierte Fassung* · *Reiner Text* · *Vorschau* (die Testmail sitzt jetzt in der Vorschau,
+  wo sie hingehört). Betreff und Platzhalter-Knöpfe stehen darüber, weil sie in jedem Reiter
+  gebraucht werden. Dadurch nimmt jedes Feld die volle Seitenbreite ein.
+- **Der Rahmen (`_rahmen`) hat ein neues Standard-Layout**, nachgebaut nach dem Seitenlayout ohne
+  Sidebar: weiße Kopfzeile mit grauer Unterkante statt des indigo Balkens, Haupttitel links,
+  Logo rechts. Wer den Rahmen schon angepasst hat, behält seine Fassung – der neue Standard
+  greift erst nach „Auf Standard zurücksetzen".
+- **Der Rahmen wird nur noch als Quelltext bearbeitet.** Er ist ein vollständiges HTML-Dokument;
+  ein Rich-Text-Feld verwirft `<!DOCTYPE>` und `<html>` schon beim Einlesen und schrieb den
+  Rumpf beim Speichern zurück. Alle anderen Vorlagen sind HTML-Ausschnitte und behalten das
+  Formatier-Feld.
 - **Module ohne sichtbare Unterseite erscheinen nicht mehr in Sidebar und Dashboard.** Ein Modul,
   das (noch) keine Seiten mitbringt, hatte dort nur ein totes Ziel (`#`) – so ging es dem
   Linear-Modul auf der Waldorf-Instanz. Dieselbe Regel greift benutzerbezogen: Wer keinen
@@ -16,6 +28,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   noch entfernen.
 
 ### Behoben
+- **Breite Inhalte ragten aus dem Formatier-Feld heraus.** Eine Mail-Tabelle mit fester Breite
+  stand sichtbar über den Rand des Eingabekastens hinaus (gemessen: 1412 px Inhalt in einem
+  880 px breiten Feld). Bilder und Tabellen werden jetzt auf die Feldbreite begrenzt, der Rest
+  scrollt im Feld.
 - **Die Live-Vorschau der Mailvorlagen hat nie aktualisiert.** Alpines Magie (`$root`, `$refs`)
   ist nur im Auswertungs-Kontext von Alpine verfügbar; in einem `setTimeout`- oder
   `await`-Callback ist sie `undefined`. Der Zugriff warf eine TypeError, die das `try/catch` der
