@@ -45,7 +45,7 @@
 
             @if ($definition->schluessel !== \App\Mail\Vorlagen\VorlagenDefinition::RAHMEN)
                 <label class="mb-1 block text-sm font-medium text-gray-700">Betreff</label>
-                <input type="text" name="betreff" value="{{ $betreffWert }}"
+                <input type="text" name="betreff" x-model="betreffWert" @input="nachVorschau"
                        class="mb-6 block w-full rounded-lg border-gray-300 text-sm">
             @endif
 
@@ -192,6 +192,11 @@
                 htmlModus: false,
                 html: @js($htmlWert),
                 text: @js($textWert),
+                // Betreff als Zustand, NICHT per DOM-Zugriff lesen: Alpines
+                // $root ist in einem setTimeout-Callback nicht verfügbar – der
+                // frühere `this.$root.querySelector(...)` warf dort still einen
+                // Fehler, und die Vorschau blieb auf dem alten Stand stehen.
+                betreffWert: @js((string) ($betreffWert ?? '')),
                 vorschauBetreff: '',
                 // Die Platzhalter-Werte dieser Vorlage (Vorbelegung: Beispiele).
                 werte: @js($beispielwerte),
@@ -204,18 +209,28 @@
                 testOk: false,
                 testMeldung: '',
                 _timer: null,
+                _lauf: 0,
+                // Elementbezüge, EINMAL beim Start gemerkt. Alpines $refs/$root
+                // sind nur im Auswertungs-Kontext von Alpine verfügbar – in einem
+                // setTimeout- oder await-Callback sind sie undefined und ein
+                // Zugriff wirft still einen Fehler (die Vorschau blieb dann stehen).
+                _wysiwyg: null,
+                _vorschau: null,
 
                 init() {
+                    this._wysiwyg = this.$refs.wysiwyg;
+                    this._vorschau = this.$refs.vorschau;
+
                     // Zieladresse aus ?testmail vorbefüllen (Aufruf aus einer
                     // Benachrichtigungs-Route: dann steht der Empfänger schon fest).
                     const ziel = new URLSearchParams(location.search).get('testmail');
                     if (ziel) this.testEmail = ziel;
 
                     // WYSIWYG mit dem gespeicherten HTML füllen …
-                    this.$refs.wysiwyg.innerHTML = this.html;
+                    this._wysiwyg.innerHTML = this.html;
                     // … und beim Wechsel in die Ansicht neu synchronisieren.
                     this.$watch('htmlModus', (an) => {
-                        if (! an) this.$refs.wysiwyg.innerHTML = this.html;
+                        if (! an) this._wysiwyg.innerHTML = this.html;
                     });
                     this.nachVorschau();
                 },
@@ -231,7 +246,7 @@
                 },
 
                 ausWysiwyg() {
-                    this.html = this.$refs.wysiwyg.innerHTML;
+                    this.html = this._wysiwyg.innerHTML;
                     this.nachVorschau();
                 },
 
@@ -251,21 +266,27 @@
                 },
 
                 async vorschauLaden() {
+                    // Laufende Nummer je Anfrage: Beim Tippen (oder direkt nach
+                    // dem Laden) sind mehrere unterwegs. Ohne diese Prüfung kann
+                    // eine ÄLTERE Antwort zuletzt eintreffen und die neuere
+                    // überschreiben – die Vorschau zeigt dann veraltete Werte.
+                    const lauf = ++this._lauf;
+
                     try {
                         const res = await fetch(config.vorschauUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': config.csrf },
-                            body: JSON.stringify({ betreff: this.betreff(), html: this.html, text: this.text, werte: this.werte }),
+                            body: JSON.stringify({ betreff: this.betreffWert, html: this.html, text: this.text, werte: this.werte }),
                         });
                         const daten = await res.json();
+
+                        if (lauf !== this._lauf) return; // überholt – verwerfen
+
                         this.vorschauBetreff = daten.betreff;
-                        this.$refs.vorschau.srcdoc = daten.html;
+                        this._vorschau.srcdoc = daten.html;
                     } catch (e) { /* Vorschau ist unkritisch */ }
                 },
 
-                betreff() {
-                    return this.$root.querySelector('[name=betreff]')?.value ?? '';
-                },
 
                 suchen() {
                     const q = this.suche.trim().toLowerCase();
@@ -292,7 +313,7 @@
                         const res = await fetch(config.testmailUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': config.csrf },
-                            body: JSON.stringify({ an: this.testEmail, werte: this.werte, betreff: this.betreff(), html: this.html, text: this.text }),
+                            body: JSON.stringify({ an: this.testEmail, werte: this.werte, betreff: this.betreffWert, html: this.html, text: this.text }),
                         });
                         const daten = await res.json();
                         this.testOk = daten.ok;
@@ -307,7 +328,7 @@
 
                 vorSpeichern() {
                     // Sicherstellen, dass das versteckte html-Feld aktuell ist.
-                    if (! this.htmlModus) this.html = this.$refs.wysiwyg.innerHTML;
+                    if (! this.htmlModus) this.html = this._wysiwyg.innerHTML;
                 },
             };
         }
