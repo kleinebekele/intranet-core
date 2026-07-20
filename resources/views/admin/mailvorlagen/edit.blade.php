@@ -7,51 +7,91 @@
         $htmlWert = old('html', $gespeichert->html ?? $definition->html);
         $textWert = old('text', $gespeichert->text ?? $definition->text);
         $betreffWert = old('betreff', $gespeichert->betreff ?? $definition->betreff);
+        $istRahmen = $definition->schluessel === \App\Mail\Vorlagen\VorlagenDefinition::RAHMEN;
+        // Das Logo ist ein fertiges <img>-Tag aus den Einstellungen, kein Text,
+        // den man in ein Vorschau-Feld tippen würde.
+        $werteFelder = array_diff_key($definition->platzhalter, ['logo' => true]);
     @endphp
 
-    <div class="max-w-5xl"
-         x-data="mailEditor({
+    <div x-data="mailEditor({
              vorschauUrl: '{{ route('admin.mailvorlagen.vorschau', $definition->schluessel) }}',
              testmailUrl: '{{ route('admin.mailvorlagen.testmail', $definition->schluessel) }}',
-             csrf: '{{ csrf_token() }}'
+             csrf: '{{ csrf_token() }}',
+             istRahmen: @js($istRahmen)
          })">
         <div class="mb-4">
             <a href="{{ route('admin.mailvorlagen.index') }}" class="text-sm text-indigo-600 hover:underline">&larr; alle Vorlagen</a>
         </div>
 
-        <p class="mb-4 text-gray-600">{{ $definition->beschreibung }}</p>
-
-        {{-- Platzhalter-Hilfe --}}
-        <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Platzhalter (Klick zum Kopieren)</div>
-            <div class="flex flex-wrap gap-2">
-                @foreach ($definition->platzhalter as $name => $erklaerung)
-                    {{-- Klammern getrennt zusammensetzen: Blade würde ein literales
-                         Doppel-Geschweift auch hier im PHP-String als Ausgabe deuten. --}}
-                    @php($marke = '{'.'{ '.$name.' }'.'}')
-                    <button type="button" @click="platzhalterKopieren(@js($marke))"
-                            title="{{ $erklaerung }}"
-                            class="rounded-lg border border-gray-300 bg-white px-2 py-1 font-mono text-xs text-gray-700 hover:border-indigo-400 hover:text-indigo-700">
-                        {{ $marke }}
-                    </button>
-                @endforeach
-            </div>
-        </div>
+        <p class="mb-4 max-w-3xl text-gray-600">{{ $definition->beschreibung }}</p>
 
         <form method="POST" action="{{ route('admin.mailvorlagen.update', $definition->schluessel) }}"
               @submit="vorSpeichern">
             @csrf
             @method('PUT')
 
-            @if ($definition->schluessel !== \App\Mail\Vorlagen\VorlagenDefinition::RAHMEN)
+            {{-- Über den Reitern steht, was in JEDEM Reiter gebraucht wird. --}}
+            @unless ($istRahmen)
                 <label class="mb-1 block text-sm font-medium text-gray-700">Betreff</label>
                 <input type="text" name="betreff" x-model="betreffWert" @input="nachVorschau"
-                       class="mb-6 block w-full rounded-lg border-gray-300 text-sm">
-            @endif
+                       class="mb-4 block w-full max-w-3xl rounded-lg border-gray-300 text-sm">
+            @endunless
 
-            <div class="grid gap-6 lg:grid-cols-2">
-                {{-- HTML-Fassung: WYSIWYG + Umschalter --}}
-                <div>
+            {{-- Platzhalter-Hilfe: gilt für formatierte Fassung UND reinen Text. --}}
+            <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Platzhalter (Klick zum Kopieren)</div>
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($definition->platzhalter as $name => $erklaerung)
+                        {{-- Klammern getrennt zusammensetzen: Blade würde ein literales
+                             Doppel-Geschweift auch hier im PHP-String als Ausgabe deuten. --}}
+                        @php($marke = '{'.'{ '.$name.' }'.'}')
+                        <button type="button" @click="platzhalterKopieren(@js($marke))"
+                                title="{{ $erklaerung }}"
+                                class="rounded-lg border border-gray-300 bg-white px-2 py-1 font-mono text-xs text-gray-700 hover:border-indigo-400 hover:text-indigo-700">
+                            {{ $marke }}
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Reiter --}}
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex gap-6">
+                    @foreach ([
+                        'html' => 'Formatierte Fassung',
+                        'text' => 'Reiner Text',
+                        'vorschau' => 'Vorschau',
+                    ] as $schluessel => $beschriftung)
+                        <button type="button" @click="reiter = '{{ $schluessel }}'"
+                                class="border-b-2 px-1 py-3 text-sm font-medium"
+                                :class="reiter === '{{ $schluessel }}'
+                                    ? 'border-indigo-600 text-indigo-700'
+                                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'">
+                            {{ $beschriftung }}
+                        </button>
+                    @endforeach
+                </nav>
+            </div>
+
+            {{-- ── Reiter 1: Formatierte Fassung ───────────────────────────── --}}
+            <div x-show="reiter === 'html'" class="pt-4">
+                @if ($istRahmen)
+                    {{-- Der Rahmen ist ein vollständiges HTML-Dokument (<!DOCTYPE>,
+                         <html>, <body>). Ein Rich-Text-Feld kann das nicht halten:
+                         Beim Einlesen in ein contenteditable wirft der Browser die
+                         Dokumenthülle weg – gespeichert würde ein Rumpf ohne Kopf.
+                         Deshalb hier bewusst nur der Quelltext. --}}
+                    <p class="mb-2 flex items-start gap-1.5 text-xs text-gray-500">
+                        <i class='bx bx-info-circle mt-0.5'></i>
+                        <span>
+                            Der Rahmen ist ein vollständiges HTML-Dokument – deshalb gibt es hier
+                            nur den Quelltext. Ein Formatier-Feld würde <code>&lt;!DOCTYPE&gt;</code>
+                            und <code>&lt;html&gt;</code> beim Speichern verwerfen.
+                        </span>
+                    </p>
+                    <textarea x-model="html" @input="nachVorschau" spellcheck="false"
+                              class="block h-[32rem] w-full rounded-lg border-gray-300 font-mono text-xs"></textarea>
+                @else
                     <div class="mb-1 flex items-center justify-between">
                         <label class="text-sm font-medium text-gray-700">Formatierte Fassung (HTML)</label>
                         <button type="button" @click="htmlModus = ! htmlModus"
@@ -67,105 +107,111 @@
                         <button type="button" @click="linkSetzen" class="rounded px-2 py-1 text-sm hover:bg-gray-200">🔗 Link</button>
                     </div>
 
-                    {{-- WYSIWYG --}}
+                    {{-- WYSIWYG. `overflow-auto` + die Regeln in <style> halten
+                         breite Inhalte (Tabellen, Bilder) im Feld – vorher ragte
+                         eine Mail-Tabelle sichtbar aus ihrem Kasten heraus. --}}
                     <div x-show="! htmlModus" x-ref="wysiwyg" contenteditable="true"
                          @input="ausWysiwyg"
-                         class="min-h-[16rem] rounded-b-lg border border-gray-300 bg-white p-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"></div>
+                         class="mail-wysiwyg block max-h-96 min-h-[16rem] w-full overflow-auto break-words rounded-b-lg border border-gray-300 bg-white p-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"></div>
 
                     {{-- HTML-Quelltext --}}
-                    <textarea x-show="htmlModus" x-model="html" @input="nachVorschau"
-                              class="block h-72 w-full rounded-lg border-gray-300 font-mono text-xs"></textarea>
-
-                    <input type="hidden" name="html" :value="html">
-                </div>
-
-                {{-- Text-Fassung --}}
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Reiner Text (ohne Formatierung)</label>
-                    <textarea name="text" x-model="text" @input="nachVorschau"
-                              class="block h-[19.5rem] w-full rounded-lg border-gray-300 font-mono text-xs">{{ $textWert }}</textarea>
-                </div>
-            </div>
-
-            {{-- Vorschau-Werte: genau die Platzhalter DIESER Vorlage --}}
-            <div class="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <div class="mb-1 text-sm font-medium text-gray-700">Werte für Vorschau &amp; Testmail</div>
-                <p class="mb-3 text-xs text-gray-500">
-                    Nur zum Ansehen und Testen – gespeichert wird davon nichts.
-                </p>
-
-                @php($hatName = array_key_exists('name', $definition->platzhalter))
-
-                @if ($hatName)
-                    {{-- Benutzer suchen und übernehmen (Muster: Korrektoren-Feld im Zeugnismodul) --}}
-                    <div class="mb-3 relative" @click.outside="treffer = []">
-                        <label class="mb-1 block text-xs font-medium text-gray-600">Benutzer übernehmen</label>
-                        <input type="text" x-model="suche" @input="suchen" placeholder="Name oder E-Mail tippen …"
-                               autocomplete="off" class="w-full max-w-md rounded-lg border-gray-300 text-sm">
-                        <ul x-show="treffer.length" x-cloak
-                            class="absolute z-10 mt-1 max-h-56 w-full max-w-md overflow-auto rounded-lg border border-gray-200 bg-white shadow">
-                            <template x-for="t in treffer" :key="t.id">
-                                <li @click="benutzerUebernehmen(t)"
-                                    class="cursor-pointer px-3 py-2 text-sm hover:bg-indigo-50">
-                                    <span x-text="t.name" class="font-medium"></span>
-                                    <span x-text="t.email" class="ml-1 text-gray-500"></span>
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
+                    <textarea x-show="htmlModus" x-model="html" @input="nachVorschau" spellcheck="false"
+                              class="block h-96 w-full rounded-lg border-gray-300 font-mono text-xs"></textarea>
                 @endif
 
-                <div class="grid gap-3 md:grid-cols-2">
-                    @foreach ($definition->platzhalter as $name => $erklaerung)
-                        <div @class(['md:col-span-2' => $name === 'text' || $name === 'inhalt'])>
-                            <label class="mb-1 block text-xs font-medium text-gray-600">
-                                <code>{{ $name }}</code>
-                                <span class="ml-1 font-normal text-gray-400">{{ $erklaerung }}</span>
-                            </label>
-                            @if ($name === 'text' || $name === 'inhalt')
-                                <textarea x-model="werte['{{ $name }}']" @input="nachVorschau" rows="3"
-                                          class="block w-full rounded-lg border-gray-300 text-sm"></textarea>
-                            @else
-                                <input type="text" x-model="werte['{{ $name }}']" @input="nachVorschau"
-                                       class="block w-full rounded-lg border-gray-300 text-sm">
-                            @endif
-                        </div>
-                    @endforeach
-                </div>
+                <input type="hidden" name="html" :value="html">
             </div>
 
-            {{-- Vorschau --}}
-            <div class="mt-4">
-                <div class="mb-2 text-sm font-medium text-gray-700">Vorschau</div>
+            {{-- ── Reiter 2: Reiner Text ──────────────────────────────────── --}}
+            <div x-show="reiter === 'text'" class="pt-4">
+                <label class="mb-1 block text-sm font-medium text-gray-700">Reiner Text (ohne Formatierung)</label>
+                <p class="mb-2 text-xs text-gray-500">
+                    Diese Fassung geht als zweite Spur mit und wird angezeigt, wenn ein
+                    Mailprogramm kein HTML darstellt.
+                </p>
+                <textarea name="text" x-model="text" @input="nachVorschau" spellcheck="false"
+                          class="block h-[32rem] w-full rounded-lg border-gray-300 font-mono text-xs">{{ $textWert }}</textarea>
+            </div>
+
+            {{-- ── Reiter 3: Vorschau (samt Testmail) ─────────────────────── --}}
+            <div x-show="reiter === 'vorschau'" class="pt-4">
+                {{-- Vorschau-Werte: genau die Platzhalter DIESER Vorlage --}}
+                <div class="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div class="mb-1 text-sm font-medium text-gray-700">Werte für Vorschau &amp; Testmail</div>
+                    <p class="mb-3 text-xs text-gray-500">
+                        Nur zum Ansehen und Testen – gespeichert wird davon nichts.
+                    </p>
+
+                    @php($hatName = array_key_exists('name', $werteFelder))
+
+                    @if ($hatName)
+                        {{-- Benutzer suchen und übernehmen (Muster: Korrektoren-Feld im Zeugnismodul) --}}
+                        <div class="mb-3 relative" @click.outside="treffer = []">
+                            <label class="mb-1 block text-xs font-medium text-gray-600">Benutzer übernehmen</label>
+                            <input type="text" x-model="suche" @input="suchen" placeholder="Name oder E-Mail tippen …"
+                                   autocomplete="off" class="w-full max-w-md rounded-lg border-gray-300 text-sm">
+                            <ul x-show="treffer.length" x-cloak
+                                class="absolute z-10 mt-1 max-h-56 w-full max-w-md overflow-auto rounded-lg border border-gray-200 bg-white shadow">
+                                <template x-for="t in treffer" :key="t.id">
+                                    <li @click="benutzerUebernehmen(t)"
+                                        class="cursor-pointer px-3 py-2 text-sm hover:bg-indigo-50">
+                                        <span x-text="t.name" class="font-medium"></span>
+                                        <span x-text="t.email" class="ml-1 text-gray-500"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        @foreach ($werteFelder as $name => $erklaerung)
+                            <div @class(['md:col-span-2 xl:col-span-3' => $name === 'text' || $name === 'inhalt'])>
+                                <label class="mb-1 block text-xs font-medium text-gray-600">
+                                    <code>{{ $name }}</code>
+                                    <span class="ml-1 font-normal text-gray-400">{{ $erklaerung }}</span>
+                                </label>
+                                @if ($name === 'text' || $name === 'inhalt')
+                                    <textarea x-model="werte['{{ $name }}']" @input="nachVorschau" rows="3"
+                                              class="block w-full rounded-lg border-gray-300 text-sm"></textarea>
+                                @else
+                                    <input type="text" x-model="werte['{{ $name }}']" @input="nachVorschau"
+                                           class="block w-full rounded-lg border-gray-300 text-sm">
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Vorschau --}}
                 <div class="rounded-xl border border-gray-200 bg-white p-2">
                     <div class="mb-2 border-b border-gray-100 px-2 py-1 text-sm text-gray-500">
                         Betreff: <span class="font-medium text-gray-700" x-text="vorschauBetreff"></span>
                     </div>
-                    <iframe x-ref="vorschau" class="h-96 w-full rounded" title="Vorschau"></iframe>
+                    <iframe x-ref="vorschau" class="h-[36rem] w-full rounded" title="Vorschau"></iframe>
+                </div>
+
+                {{-- Testmail --}}
+                <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div class="mb-1 text-sm font-medium text-gray-700">Testmail versenden</div>
+                    <p class="mb-3 max-w-3xl text-xs text-gray-500">
+                        Schickt die Vorlage mit den aktuell eingegebenen Texten und den oben gewählten
+                        Benutzerdaten an eine beliebige Adresse. Der Link bleibt ein Beispiel — es wird kein
+                        echter Zugang verschickt.
+                    </p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <input type="email" x-model="testEmail" placeholder="empfaenger@example.org"
+                               class="w-64 rounded-lg border-gray-300 text-sm">
+                        <button type="button" @click="testSenden" :disabled="testLaeuft"
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-600 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">
+                            <i class='bx bx-mail-send'></i>
+                            <span x-text="testLaeuft ? 'Sende…' : 'Testmail senden'"></span>
+                        </button>
+                        <span class="text-sm" :class="testOk ? 'text-emerald-600' : 'text-red-600'" x-text="testMeldung"></span>
+                    </div>
                 </div>
             </div>
 
-            {{-- Testmail --}}
-            <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <div class="mb-1 text-sm font-medium text-gray-700">Testmail versenden</div>
-                <p class="mb-3 text-xs text-gray-500">
-                    Schickt die Vorlage mit den aktuell eingegebenen Texten und den oben gewählten
-                    Benutzerdaten an eine beliebige Adresse. Der Link bleibt ein Beispiel — es wird kein
-                    echter Zugang verschickt.
-                </p>
-                <div class="flex flex-wrap items-center gap-2">
-                    <input type="email" x-model="testEmail" placeholder="empfaenger@example.org"
-                           class="w-64 rounded-lg border-gray-300 text-sm">
-                    <button type="button" @click="testSenden" :disabled="testLaeuft"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-600 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">
-                        <i class='bx bx-mail-send'></i>
-                        <span x-text="testLaeuft ? 'Sende…' : 'Testmail senden'"></span>
-                    </button>
-                    <span class="text-sm" :class="testOk ? 'text-emerald-600' : 'text-red-600'" x-text="testMeldung"></span>
-                </div>
-            </div>
-
-            <div class="mt-6 flex items-center gap-3">
+            <div class="mt-6 flex items-center gap-3 border-t border-gray-200 pt-4">
                 <button type="submit"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                     <i class='bx bx-save'></i> Speichern
@@ -186,10 +232,21 @@
         @endif
     </div>
 
+    {{-- Bewusst echtes CSS statt Tailwind-Klassen: die Regeln greifen auf
+         Elemente, die erst der Benutzer in das Feld schreibt. --}}
+    <style>
+        .mail-wysiwyg img,
+        .mail-wysiwyg table { max-width: 100%; }
+        .mail-wysiwyg img { height: auto; }
+    </style>
+
     <script>
         function mailEditor(config) {
             return {
-                htmlModus: false,
+                reiter: 'html',
+                // Der Rahmen hat kein Formatier-Feld (siehe Kommentar in der View),
+                // dort ist der Quelltext-Modus der einzige.
+                htmlModus: config.istRahmen,
                 html: @js($htmlWert),
                 text: @js($textWert),
                 // Betreff als Zustand, NICHT per DOM-Zugriff lesen: Alpines
@@ -218,20 +275,22 @@
                 _vorschau: null,
 
                 init() {
-                    this._wysiwyg = this.$refs.wysiwyg;
+                    this._wysiwyg = this.$refs.wysiwyg ?? null;
                     this._vorschau = this.$refs.vorschau;
 
                     // Zieladresse aus ?testmail vorbefüllen (Aufruf aus einer
                     // Benachrichtigungs-Route: dann steht der Empfänger schon fest).
                     const ziel = new URLSearchParams(location.search).get('testmail');
-                    if (ziel) this.testEmail = ziel;
+                    if (ziel) { this.testEmail = ziel; this.reiter = 'vorschau'; }
 
-                    // WYSIWYG mit dem gespeicherten HTML füllen …
-                    this._wysiwyg.innerHTML = this.html;
-                    // … und beim Wechsel in die Ansicht neu synchronisieren.
-                    this.$watch('htmlModus', (an) => {
-                        if (! an) this._wysiwyg.innerHTML = this.html;
-                    });
+                    if (this._wysiwyg) {
+                        // WYSIWYG mit dem gespeicherten HTML füllen …
+                        this._wysiwyg.innerHTML = this.html;
+                        // … und beim Wechsel in die Ansicht neu synchronisieren.
+                        this.$watch('htmlModus', (an) => {
+                            if (! an) this._wysiwyg.innerHTML = this.html;
+                        });
+                    }
                     this.nachVorschau();
                 },
 
@@ -251,13 +310,17 @@
                 },
 
                 platzhalterKopieren(text) {
-                    // In den WYSIWYG an der Cursorposition, sonst ans Textende.
-                    if (! this.htmlModus) {
+                    // An die Cursorposition – aber nur, wenn der Cursor auch
+                    // wirklich im Formatier-Feld steht. Sonst (Quelltext-Modus,
+                    // anderer Reiter, gar kein Fokus) in die Zwischenablage,
+                    // weil `insertText` sonst ins Leere liefe.
+                    if (this._wysiwyg && ! this.htmlModus && document.activeElement === this._wysiwyg) {
                         document.execCommand('insertText', false, text);
                         this.ausWysiwyg();
-                    } else {
-                        navigator.clipboard?.writeText(text);
+                        return;
                     }
+
+                    navigator.clipboard?.writeText(text);
                 },
 
                 nachVorschau() {
@@ -328,7 +391,7 @@
 
                 vorSpeichern() {
                     // Sicherstellen, dass das versteckte html-Feld aktuell ist.
-                    if (! this.htmlModus) this.html = this._wysiwyg.innerHTML;
+                    if (this._wysiwyg && ! this.htmlModus) this.html = this._wysiwyg.innerHTML;
                 },
             };
         }

@@ -7,6 +7,7 @@ use App\Mail\Vorlagen\VorlagenMailer;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\MailOutbox;
 use App\Models\MailVorlage;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\WelcomeNewUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -154,5 +155,48 @@ class MailVorlagenTest extends TestCase
         $this->mailer()->senden('einladung', 'schueler-1@schueler.intern', ['name' => 'S', 'link' => 'x']);
 
         $this->assertSame(0, MailOutbox::count());
+    }
+
+    /** Ohne hinterlegtes Logo bleibt im Kopf einfach nichts stehen. */
+    public function test_ohne_logo_verschwindet_der_platzhalter_rueckstandslos(): void
+    {
+        $fertig = $this->mailer()->rendern('einladung', ['name' => 'A', 'link' => 'x']);
+
+        $this->assertStringNotContainsString('{{ logo }}', $fertig['html']);
+        $this->assertStringNotContainsString('<img', $fertig['html']);
+    }
+
+    public function test_logo_aus_den_einstellungen_steht_mit_absoluter_url_im_rahmen(): void
+    {
+        Setting::set('logo', 'branding/marke.png');
+
+        $fertig = $this->mailer()->rendern('einladung', ['name' => 'A', 'link' => 'x']);
+
+        $this->assertStringContainsString('<img', $fertig['html']);
+        $this->assertStringContainsString('/storage/branding/marke.png', $fertig['html']);
+        // Absolut, nicht wurzelrelativ: im Postfach gibt es keine Seite, gegen
+        // die ein relativer Pfad auflösen könnte.
+        $this->assertMatchesRegularExpression('~src="https?://[^"]+/storage/branding/marke\.png~', $fertig['html']);
+        // In der Textfassung hat ein Bild nichts verloren.
+        $this->assertStringNotContainsString('<img', $fertig['text']);
+        $this->assertStringNotContainsString('{{ logo }}', $fertig['text']);
+    }
+
+    /**
+     * Das Logo ist ein fertiges <img>-Tag – kein Wert, den der Editor
+     * überschreiben können darf (sonst stünde dort der Beispieltext „[logo]").
+     */
+    public function test_editor_werte_koennen_das_logo_nicht_ueberschreiben(): void
+    {
+        Setting::set('logo', 'branding/marke.png');
+
+        $definition = app(VorlagenRegister::class)->finden(VorlagenDefinition::RAHMEN);
+        $fertig = $this->mailer()->rendernMit(null, $definition, [
+            'inhalt' => 'PROBETEXT',
+            'logo' => '[logo]',
+        ]);
+
+        $this->assertStringNotContainsString('[logo]', $fertig['html']);
+        $this->assertStringContainsString('/storage/branding/marke.png', $fertig['html']);
     }
 }

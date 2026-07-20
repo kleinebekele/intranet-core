@@ -178,4 +178,51 @@ class MailVorlagenBackendTest extends TestCase
             ->get(route('admin.mailvorlagen.edit', 'gibtsnicht'))
             ->assertNotFound();
     }
+
+    public function test_editor_hat_die_drei_reiter(): void
+    {
+        $this->actingAs($this->admin())
+            ->get(route('admin.mailvorlagen.edit', 'einladung'))
+            ->assertOk()
+            ->assertSee('Formatierte Fassung')
+            ->assertSee('Reiner Text')
+            ->assertSee('Vorschau')
+            // Testmail gehört in den Vorschau-Reiter, nicht mehr darunter.
+            ->assertSee('Testmail versenden');
+    }
+
+    /**
+     * Der Rahmen ist ein vollständiges HTML-Dokument. Ein contenteditable-Feld
+     * würde <!DOCTYPE> und <html> beim Einlesen verwerfen und beim Speichern
+     * einen Rumpf zurückschreiben – deshalb dort nur der Quelltext.
+     */
+    public function test_rahmen_editor_bietet_kein_formatier_feld(): void
+    {
+        $antwort = $this->actingAs($this->admin())
+            ->get(route('admin.mailvorlagen.edit', '_rahmen'))
+            ->assertOk();
+
+        $this->assertStringNotContainsString('contenteditable', $antwort->getContent());
+
+        // Eine normale Vorlage behält es dagegen.
+        $normal = $this->actingAs($this->admin())
+            ->get(route('admin.mailvorlagen.edit', 'einladung'))
+            ->assertOk();
+
+        $this->assertStringContainsString('contenteditable', $normal->getContent());
+    }
+
+    /** Das Logo ist ein <img>-Tag – kein Feld, in das man etwas tippt. */
+    public function test_logo_bekommt_kein_vorschau_eingabefeld(): void
+    {
+        $inhalt = $this->actingAs($this->admin())
+            ->get(route('admin.mailvorlagen.edit', '_rahmen'))
+            ->assertOk()
+            ->getContent();
+
+        // Als Platzhalter-Knopf zum Einfügen: ja.
+        $this->assertStringContainsString('{{ logo }}', $inhalt);
+        // Als Eingabefeld unter „Werte für Vorschau": nein.
+        $this->assertStringNotContainsString("werte['logo']", $inhalt);
+    }
 }

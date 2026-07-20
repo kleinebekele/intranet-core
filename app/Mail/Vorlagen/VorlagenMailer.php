@@ -5,6 +5,7 @@ namespace App\Mail\Vorlagen;
 use App\Models\MailVorlage;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Baut aus einer Vorlage die fertige Mail und verschickt sie.
@@ -54,11 +55,18 @@ class VorlagenMailer
         $rahmen = $this->rahmen();
 
         $titel = Setting::get('haupttitel', config('app.name', 'Intranet'));
-        $rahmenWerte = ['titel' => $titel, 'jahr' => date('Y')];
+        $rahmenWerte = ['titel' => $titel, 'jahr' => date('Y'), 'logo' => $this->logoBild($titel)];
 
-        $betreff = $this->ersetzen($this->wert($fassung?->betreff, $definition->betreff ?? ''), $werte + $rahmenWerte);
-        $htmlInhalt = $this->ersetzen($this->wert($fassung?->html, $definition->html), $werte + $rahmenWerte);
-        $textInhalt = $this->ersetzen($this->wert($fassung?->text, $definition->text), $werte + $rahmenWerte);
+        // Titel und Jahr darf der Editor zum Ausprobieren überschreiben ($werte
+        // gewinnt). Das Logo NICHT: dessen Wert ist ein fertiges <img>-Tag, kein
+        // Text, den man sinnvoll eintippen könnte.
+        $alle = $werte + $rahmenWerte;
+        $alle['logo'] = $rahmenWerte['logo'];
+
+        $betreff = $this->ersetzen($this->wert($fassung?->betreff, $definition->betreff ?? ''), $alle);
+        $htmlInhalt = $this->ersetzen($this->wert($fassung?->html, $definition->html), $alle);
+        // In der Textfassung hat ein Bild nichts verloren.
+        $textInhalt = $this->ersetzen($this->wert($fassung?->text, $definition->text), ['logo' => ''] + $alle);
 
         // Wird der RAHMEN selbst gerendert (Vorschau im Editor), darf er nicht
         // noch einmal eingerahmt werden – sonst steckt er in sich selbst. Sein
@@ -68,7 +76,7 @@ class VorlagenMailer
         }
 
         $html = $this->ersetzen($rahmen['html'], $rahmenWerte + ['inhalt' => $htmlInhalt]);
-        $text = $this->ersetzen($rahmen['text'], $rahmenWerte + ['inhalt' => $textInhalt]);
+        $text = $this->ersetzen($rahmen['text'], ['logo' => ''] + $rahmenWerte + ['inhalt' => $textInhalt]);
 
         return ['betreff' => $betreff, 'html' => $html, 'text' => $text];
     }
@@ -91,6 +99,36 @@ class VorlagenMailer
         Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig) {
             $nachricht->to($an)->subject($fertig['betreff'])->text($fertig['text']);
         });
+    }
+
+    /**
+     * Das Logo aus den Einstellungen als fertiges <img>-Tag – oder ein leerer
+     * String, wenn keins hinterlegt ist (dann bleibt im Rahmen einfach nichts).
+     *
+     * Anders als die Web-Komponente `<x-marken-logo>`, die bewusst einen
+     * wurzelrelativen Pfad ausgibt (das Intranet ist über mehrere Adressen
+     * erreichbar), braucht eine Mail zwingend eine ABSOLUTE URL – im Postfach
+     * gibt es keine Seite, gegen die ein relativer Pfad auflösen könnte.
+     * `url()` nimmt dafür den Host der laufenden Anfrage und fällt außerhalb
+     * einer solchen (Scheduler, Queue) auf `APP_URL` zurück.
+     */
+    private function logoBild(string $titel): string
+    {
+        $pfad = Setting::get('logo');
+
+        if (! $pfad) {
+            return '';
+        }
+
+        $url = url(parse_url(Storage::disk('public')->url($pfad), PHP_URL_PATH));
+        $stempel = substr(md5($pfad), 0, 8);
+
+        return sprintf(
+            '<img src="%s?v=%s" alt="%s" height="36" style="display:block;height:36px;width:auto;max-width:180px;border:0;">',
+            e($url),
+            $stempel,
+            e($titel),
+        );
     }
 
     /**

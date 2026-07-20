@@ -60,6 +60,7 @@ class VorlagenRegister
             platzhalter: [
                 'inhalt' => 'Der Inhalt der jeweiligen Mail (nicht selbst eintippen)',
                 'titel' => 'Haupttitel aus den Einstellungen',
+                'logo' => 'Logo aus den Einstellungen (leer, wenn keins hinterlegt ist)',
                 'jahr' => 'Aktuelles Jahr',
             ],
             betreff: null,
@@ -127,6 +128,11 @@ class VorlagenRegister
     // Bewusst schlichtes, tabellenbasiertes Mail-HTML mit Inline-Styles: Nur so
     // sieht es in Outlook, Gmail & Co. verlässlich gleich aus.
 
+    // Nachgebaut ist das Seitenlayout ohne die Sidebar: weiße Kopfzeile mit
+    // grauer Unterkante (wie `layouts/header.blade.php`), darin der Haupttitel
+    // links und das Logo rechts. Die Kopfzeile trägt deshalb KEINE Farbfläche
+    // mehr – ein Logo mit weißem Hintergrund stand auf dem früheren indigo
+    // Balken als sichtbarer Kasten.
     private const RAHMEN_HTML = <<<'HTML'
 <!DOCTYPE html>
 <html lang="de">
@@ -134,8 +140,13 @@ class VorlagenRegister
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
-        <tr><td style="background:#4f46e5;padding:20px 32px;">
-          <span style="color:#ffffff;font-size:18px;font-weight:bold;">{{ titel }}</span>
+        <tr><td style="background:#ffffff;padding:16px 32px;border-bottom:1px solid #e5e7eb;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td align="left" valign="middle" style="color:#1f2937;font-size:18px;font-weight:bold;">{{ titel }}</td>
+              <td align="right" valign="middle">{{ logo }}</td>
+            </tr>
+          </table>
         </td></tr>
         <tr><td style="padding:32px;">
           {{ inhalt }}

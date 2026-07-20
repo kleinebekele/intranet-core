@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\Vorlagen\VorlagenMailer;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\MailVorlage;
+use App\Models\Setting;
 use App\Models\User;
 use App\Support\Zustellbarkeit;
 use Illuminate\Http\JsonResponse;
@@ -192,6 +193,11 @@ class MailVorlageController extends Controller
     private function beispielwerte(array $platzhalter): array
     {
         $beispiele = [
+            // Titel und Jahr sind keine erfundenen Beispiele, sondern die echten
+            // Werte – sonst stünde in der Rahmen-Vorschau „[titel]" statt des
+            // Haupttitels, und man könnte den Kopf gar nicht beurteilen.
+            'titel' => Setting::get('haupttitel', config('app.name', 'Intranet')),
+            'jahr' => date('Y'),
             'name' => 'Anna Beispiel',
             'link' => 'https://intranet.example/passwort/setzen',
             'code' => '123456',
