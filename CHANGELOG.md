@@ -7,7 +7,23 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Behoben
+- **Die Live-Vorschau der Mailvorlagen hat nie aktualisiert.** Alpines Magie (`$root`, `$refs`)
+  ist nur im Auswertungs-Kontext von Alpine verfügbar; in einem `setTimeout`- oder
+  `await`-Callback ist sie `undefined`. Der Zugriff warf eine TypeError, die das `try/catch` der
+  Vorschau als „unkritisch" verschluckte – die Vorschau blieb still auf dem ersten Stand stehen
+  und sah dabei normal aus. Jetzt ist der Betreff regulärer Alpine-Zustand statt DOM-Zugriff, die
+  Elementbezüge werden einmal in `init()` gemerkt, und eine laufende Nummer je Anfrage verhindert,
+  dass eine ältere Antwort eine neuere überschreibt.
+- **Der Rahmen rahmte sich in seiner eigenen Vorschau selbst ein** (zwei `<body>`). Beim
+  Bearbeiten des Rahmens wird er jetzt direkt gerendert; sein `{{ inhalt }}` kommt aus den
+  Vorschau-Werten.
+
 ### Hinzugefügt
+- **Vorschau-Werte je Vorlage.** Der Editor zeigt genau die Platzhalter *dieser* Vorlage als
+  Eingabefelder (statt eines festen Benutzer-Dropdowns) – bei einer Ekkon-Meldung also
+  `ueberschrift`/`text`/`quelle`, beim Passwort-Reset `name`/`link`. Kennt eine Vorlage `name`,
+  gibt es zusätzlich eine Suche nach Name/E-Mail, die einen echten Benutzer übernimmt.
 - **Spalte `users.import_email`** + **Mailvorlage „Anmelde-Adresse geändert" (`login_geaendert`).**
   Gegenstück zu `import_name` für die E-Mail; die neue Vorlage ist im Backend bearbeitbar wie die
   anderen und geht an die **alte** Adresse, wenn ein Import die Anmelde-E-Mail eines bereits
