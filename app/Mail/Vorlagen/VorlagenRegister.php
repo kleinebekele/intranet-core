@@ -37,7 +37,7 @@ class VorlagenRegister
     }
 
     /**
-     * Die versendbaren Vorlagen (alle außer dem Rahmen), für die Übersicht.
+     * Die versendbaren Vorlagen (alle außer den Rahmen), für die Übersicht.
      *
      * @return array<string, VorlagenDefinition>
      */
@@ -45,7 +45,21 @@ class VorlagenRegister
     {
         return array_filter(
             $this->definitionen,
-            fn (VorlagenDefinition $d) => $d->schluessel !== VorlagenDefinition::RAHMEN,
+            fn (VorlagenDefinition $d) => ! $d->istRahmen(),
+        );
+    }
+
+    /**
+     * Die Rahmen – der Core bringt einen mit, Module dürfen eigene anmelden
+     * (z. B. der Newsletter, der anders aussehen soll als eine Einladungsmail).
+     *
+     * @return array<string, VorlagenDefinition>
+     */
+    public function rahmen(): array
+    {
+        return array_filter(
+            $this->definitionen,
+            fn (VorlagenDefinition $d) => $d->istRahmen(),
         );
     }
 
@@ -66,6 +80,7 @@ class VorlagenRegister
             betreff: null,
             html: self::RAHMEN_HTML,
             text: self::RAHMEN_TEXT,
+            rahmen: null, // ist selbst der Rahmen
         ));
 
         $this->registrieren(new VorlagenDefinition(

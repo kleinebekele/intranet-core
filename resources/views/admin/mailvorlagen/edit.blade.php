@@ -7,7 +7,7 @@
         $htmlWert = old('html', $gespeichert->html ?? $definition->html);
         $textWert = old('text', $gespeichert->text ?? $definition->text);
         $betreffWert = old('betreff', $gespeichert->betreff ?? $definition->betreff);
-        $istRahmen = $definition->schluessel === \App\Mail\Vorlagen\VorlagenDefinition::RAHMEN;
+        $istRahmen = $definition->istRahmen();
         // Das Logo ist ein fertiges <img>-Tag aus den Einstellungen, kein Text,
         // den man in ein Vorschau-Feld tippen würde.
         $werteFelder = array_diff_key($definition->platzhalter, ['logo' => true]);

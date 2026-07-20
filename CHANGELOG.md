@@ -7,6 +7,20 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- **Eine Vorlage kann sich ihren Rahmen aussuchen.** Bisher gab es genau einen (`_rahmen`), in den
+  jede Mail gelegt wurde. `VorlagenDefinition` hat jetzt ein optionales Feld `rahmen`; `null`
+  heißt „ich bin selbst einer". Damit dürfen Module eigene Rahmen anmelden – der Newsletter tut
+  das, weil ein Rundbrief anders aussehen darf als eine Passwort-Mail. Bestehende Vorlagen merken
+  nichts davon. Die Übersicht unter *Mailvorlagen* trennt jetzt **Rahmen** und **Mails**.
+- **HTML- und Textfassung dürfen unterschiedliche Werte bekommen** (`VorlagenMailer::senden()`
+  und `rendern()` nehmen ein zweites Werte-Array). Nötig, sobald ein Platzhalter HTML enthält:
+  Im Klartext hätten Tags nichts verloren. Das Logo wurde seit jeher genauso behandelt – die
+  Sonderbehandlung ist jetzt allgemein nutzbar.
+- **Eine Vorlage kann eigene Vorschauwerte mitbringen** (`VorlagenDefinition::$beispiele`). Vorher
+  zeigte der Editor für modul-eigene Platzhalter nur `[schluessel]`.
+- Icon-Namen `envelope` und `send` für `<x-module-icon>`.
+
 ### Geändert
 - **Der Mailvorlagen-Editor hat Reiter** statt zweier nebeneinanderliegender Spalten:
   *Formatierte Fassung* · *Reiner Text* · *Vorschau* (die Testmail sitzt jetzt in der Vorschau,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\Vorlagen\VorlagenDefinition;
 use App\Mail\Vorlagen\VorlagenMailer;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\MailVorlage;
@@ -28,8 +29,11 @@ class MailVorlageController extends Controller
 
     public function index(): View
     {
+        // Rahmen und Mails getrennt: Seit Module eigene Rahmen anmelden dürfen
+        // (z. B. der Newsletter), stünden sie sonst irgendwo zwischen den Mails.
         return view('admin.mailvorlagen.index', [
-            'vorlagen' => $this->register->alle(),
+            'rahmen' => $this->register->rahmen(),
+            'vorlagen' => $this->register->versendbare(),
         ]);
     }
 
@@ -40,7 +44,7 @@ class MailVorlageController extends Controller
         return view('admin.mailvorlagen.edit', [
             'definition' => $definition,
             'gespeichert' => MailVorlage::find($schluessel),
-            'beispielwerte' => $this->beispielwerte($definition->platzhalter),
+            'beispielwerte' => $this->beispielwerte($definition),
             // Für die „Vorschau anhand eines Benutzers" – nur die Felder, die
             // die Auswahl braucht.
             'benutzer' => User::orderBy('name')->get(['id', 'name', 'email']),
@@ -107,7 +111,7 @@ class MailVorlageController extends Controller
         $fertig = $this->mailer->rendernMit(
             $fassung,
             $definition,
-            $this->werteAusRequest($definition->platzhalter, $request),
+            $this->werteAusRequest($definition, $request),
         );
 
         return response()->json($fertig);
@@ -148,7 +152,7 @@ class MailVorlageController extends Controller
         $fertig = $this->mailer->rendernMit(
             $fassung,
             $definition,
-            $this->werteAusRequest($definition->platzhalter, $request),
+            $this->werteAusRequest($definition, $request),
         );
 
         Mail::html($fertig['html'], function ($nachricht) use ($daten, $fertig) {
@@ -168,12 +172,11 @@ class MailVorlageController extends Controller
      * wurde, überschreibt sie. Es werden nur Platzhalter übernommen, die diese
      * Vorlage überhaupt kennt – Fremdes wird verworfen.
      *
-     * @param  array<string, string>  $platzhalter
      * @return array<string, string>
      */
-    private function werteAusRequest(array $platzhalter, Request $request): array
+    private function werteAusRequest(VorlagenDefinition $definition, Request $request): array
     {
-        $werte = $this->beispielwerte($platzhalter);
+        $werte = $this->beispielwerte($definition);
 
         foreach ((array) $request->input('werte', []) as $name => $wert) {
             if (array_key_exists($name, $werte) && is_scalar($wert)) {
@@ -187,10 +190,13 @@ class MailVorlageController extends Controller
     /**
      * Nachvollziehbare Beispielwerte für die Vorschau.
      *
-     * @param  array<string, string>  $platzhalter
+     * Grundstock ist die Liste unten. Eine Vorlage darf eigene Beispiele
+     * mitbringen (`VorlagenDefinition::$beispiele`) – die gewinnen. So kann ein
+     * Modul für seine Platzhalter etwas Sinnvolles zeigen, statt „[key]".
+     *
      * @return array<string, string>
      */
-    private function beispielwerte(array $platzhalter): array
+    private function beispielwerte(VorlagenDefinition $definition): array
     {
         $beispiele = [
             // Titel und Jahr sind keine erfundenen Beispiele, sondern die echten
@@ -209,8 +215,10 @@ class MailVorlageController extends Controller
             'quelle' => 'Beispiel/Task',
         ];
 
+        $beispiele = $definition->beispiele + $beispiele;
+
         $werte = [];
-        foreach (array_keys($platzhalter) as $schluessel) {
+        foreach (array_keys($definition->platzhalter) as $schluessel) {
             $werte[$schluessel] = $beispiele[$schluessel] ?? '['.$schluessel.']';
         }
 

@@ -29,9 +29,10 @@ class VorlagenMailer
      * Vorschau erzeugen, ohne zu verschicken – für den Editor.
      *
      * @param  array<string, string|int>  $werte
+     * @param  array<string, string|int>  $textWerte
      * @return array{betreff: string, html: string, text: string}
      */
-    public function rendern(string $schluessel, array $werte): array
+    public function rendern(string $schluessel, array $werte, array $textWerte = []): array
     {
         $definition = $this->register->finden($schluessel);
 
@@ -39,7 +40,7 @@ class VorlagenMailer
             throw new \InvalidArgumentException("Unbekannte Mailvorlage „{$schluessel}\".");
         }
 
-        return $this->rendernMit(MailVorlage::find($schluessel), $definition, $werte);
+        return $this->rendernMit(MailVorlage::find($schluessel), $definition, $werte, $textWerte);
     }
 
     /**
@@ -48,12 +49,17 @@ class VorlagenMailer
      *
      * @param  MailVorlage|null  $fassung  null = Standard verwenden
      * @param  array<string, string|int>  $werte
+     * @param  array<string, string|int>  $textWerte  Werte, die in der TEXTFASSUNG
+     *                                                anders lauten. Nötig, sobald
+     *                                                ein Platzhalter HTML enthält
+     *                                                (Newsletter-Bausteine) – im
+     *                                                Klartext hätten Tags nichts
+     *                                                verloren. Das Logo macht es
+     *                                                seit jeher genauso.
      * @return array{betreff: string, html: string, text: string}
      */
-    public function rendernMit(?MailVorlage $fassung, VorlagenDefinition $definition, array $werte): array
+    public function rendernMit(?MailVorlage $fassung, VorlagenDefinition $definition, array $werte, array $textWerte = []): array
     {
-        $rahmen = $this->rahmen();
-
         $titel = Setting::get('haupttitel', config('app.name', 'Intranet'));
         $rahmenWerte = ['titel' => $titel, 'jahr' => date('Y'), 'logo' => $this->logoBild($titel)];
 
@@ -66,14 +72,17 @@ class VorlagenMailer
         $betreff = $this->ersetzen($this->wert($fassung?->betreff, $definition->betreff ?? ''), $alle);
         $htmlInhalt = $this->ersetzen($this->wert($fassung?->html, $definition->html), $alle);
         // In der Textfassung hat ein Bild nichts verloren.
-        $textInhalt = $this->ersetzen($this->wert($fassung?->text, $definition->text), ['logo' => ''] + $alle);
+        $alleText = ['logo' => ''] + $textWerte + $alle;
+        $textInhalt = $this->ersetzen($this->wert($fassung?->text, $definition->text), $alleText);
 
-        // Wird der RAHMEN selbst gerendert (Vorschau im Editor), darf er nicht
+        // Wird ein RAHMEN selbst gerendert (Vorschau im Editor), darf er nicht
         // noch einmal eingerahmt werden – sonst steckt er in sich selbst. Sein
         // `{{ inhalt }}` kommt dann aus den übergebenen Werten (Beispieltext).
-        if ($definition->schluessel === VorlagenDefinition::RAHMEN) {
+        if ($definition->istRahmen()) {
             return ['betreff' => $betreff, 'html' => $htmlInhalt, 'text' => $textInhalt];
         }
+
+        $rahmen = $this->rahmen($definition->rahmen);
 
         $html = $this->ersetzen($rahmen['html'], $rahmenWerte + ['inhalt' => $htmlInhalt]);
         $text = $this->ersetzen($rahmen['text'], ['logo' => ''] + $rahmenWerte + ['inhalt' => $textInhalt]);
@@ -91,10 +100,11 @@ class VorlagenMailer
      * Eine Vorlagen-Mail an eine Adresse verschicken.
      *
      * @param  array<string, string|int>  $werte
+     * @param  array<string, string|int>  $textWerte  s. {@see rendernMit()}
      */
-    public function senden(string $schluessel, string $an, array $werte): void
+    public function senden(string $schluessel, string $an, array $werte, array $textWerte = []): void
     {
-        $fertig = $this->rendern($schluessel, $werte);
+        $fertig = $this->rendern($schluessel, $werte, $textWerte);
 
         Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig) {
             $nachricht->to($an)->subject($fertig['betreff'])->text($fertig['text']);
@@ -132,14 +142,21 @@ class VorlagenMailer
     }
 
     /**
-     * Den Rahmen holen – gespeicherte Fassung oder Standard.
+     * Einen Rahmen holen – gespeicherte Fassung oder Standard.
+     *
+     * Module dürfen eigene Rahmen anmelden (der Newsletter tut das). Ist der
+     * gewünschte Rahmen nicht da – etwa weil das Modul gerade entfernt wurde,
+     * eine gespeicherte Vorlage aber noch darauf verweist –, gilt der Rahmen des
+     * Core. Lieber schlichter aussehen als gar nicht verschicken.
      *
      * @return array{html: string, text: string}
      */
-    private function rahmen(): array
+    private function rahmen(string $schluessel): array
     {
-        $definition = $this->register->finden(VorlagenDefinition::RAHMEN);
-        $gespeichert = MailVorlage::find(VorlagenDefinition::RAHMEN);
+        $definition = $this->register->finden($schluessel)
+            ?? $this->register->finden(VorlagenDefinition::RAHMEN);
+
+        $gespeichert = MailVorlage::find($definition->schluessel);
 
         return [
             'html' => $gespeichert->html ?? $definition->html,

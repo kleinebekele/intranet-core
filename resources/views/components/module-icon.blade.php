@@ -51,6 +51,8 @@
         'layout'       => 'bx-layout',
         'import'       => 'bx-import',
         'transfer'     => 'bx-transfer-alt',
+        'envelope'     => 'bx-envelope',
+        'send'         => 'bx-send',
         'default'   => 'bx-grid-alt',
     ];
     $icon = $icons[$name] ?? $icons['default'];
