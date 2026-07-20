@@ -32,8 +32,11 @@ Ersten Benutzer über `/register` anlegen – der **erste** Benutzer wird automa
   - `ModuleServiceProvider` (abstrakt) – Module erben davon und liefern ein `ModuleManifest`.
     Lädt Routen/Views/Migrationen automatisch relativ zur Provider-Datei (**muss in `src/` liegen**).
   - `ModuleRegistry` – Singleton, sammelt alle Manifeste ein.
-  - `Navigation` – baut die Sidebar-Daten; zeigt nur Module, die **in der DB aktiv UND im
-    Registry vorhanden** sind (deinstallierte Pakete verschwinden lautlos).
+  - `Navigation` – baut die Sidebar-Daten (und über `dashboard.blade.php` auch die
+    Dashboard-Kacheln); zeigt nur Module, die **in der DB aktiv UND im Registry vorhanden**
+    sind (deinstallierte Pakete verschwinden lautlos) **und mindestens einen für den
+    Benutzer sichtbaren Unterpunkt** haben. Die Modulverwaltung fragt `Module` direkt ab und
+    zeigt deshalb auch leere Module.
 - ⚠️ **Provider-Reihenfolge:** Paket-(Modul-)Provider registrieren **vor** dem
   `AppServiceProvider`. Deshalb wird die Registry mit `singletonIf` gebunden (in beiden),
   sonst überschreibt der Core die bereits gefüllte Registry mit einer leeren.

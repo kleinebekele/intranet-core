@@ -15,6 +15,11 @@ use Illuminate\Support\Collection;
  * A module is only shown when it is BOTH enabled in the database AND
  * actually installed (its package is present in the registry). That way a
  * removed package silently disappears instead of producing dead links.
+ *
+ * Aus demselben Grund fliegt auch ein Modul raus, von dem der Benutzer
+ * KEINEN Unterpunkt sehen darf – etwa weil es (noch) gar keine Seiten
+ * mitbringt. Es hätte in Sidebar und Dashboard nur ein totes Ziel (`#`).
+ * Die Modulverwaltung fragt die Module direkt ab und zeigt es weiterhin.
  */
 class Navigation
 {
@@ -36,6 +41,8 @@ class Navigation
                 'menuItems',
                 $module->menuItems->filter(fn ($item) => $item->isVisibleTo($user))->values()
             ))
+            // Nach dem Filtern: ohne sichtbaren Unterpunkt gibt es nichts zu verlinken.
+            ->reject(fn (Module $module) => $module->menuItems->isEmpty())
             ->values();
     }
 

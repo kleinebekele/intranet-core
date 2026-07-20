@@ -7,6 +7,14 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Geändert
+- **Module ohne sichtbare Unterseite erscheinen nicht mehr in Sidebar und Dashboard.** Ein Modul,
+  das (noch) keine Seiten mitbringt, hatte dort nur ein totes Ziel (`#`) – so ging es dem
+  Linear-Modul auf der Waldorf-Instanz. Dieselbe Regel greift benutzerbezogen: Wer keinen
+  einzigen Unterpunkt sehen darf, dem wird das Modul auch nicht mehr angeboten. In der
+  **Modulverwaltung bleibt es unverändert sichtbar**, sonst ließe es sich weder einordnen
+  noch entfernen.
+
 ### Behoben
 - **Die Live-Vorschau der Mailvorlagen hat nie aktualisiert.** Alpines Magie (`$root`, `$refs`)
   ist nur im Auswertungs-Kontext von Alpine verfügbar; in einem `setTimeout`- oder
