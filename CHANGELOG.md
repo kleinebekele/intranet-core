@@ -8,6 +8,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Drei neue Modul-Icons:** `network` (bx-network-chart), `wifi` (bx-wifi) und `server`
+  (bx-server). Erste Nutzung: das neue Netzwerk-Modul (`do1emu/module-netzwerk`) und seine
+  künftigen Unterseiten (Karte, Switches, WLAN).
 - **Der Ausgangskorb hat eine freie `referenz`-Spalte.** Ein Modul kann seine verschickten Mails
   darüber im Maillog gezielt wiederfinden – gesetzt über den internen Header `X-Intranet-Referenz`
   (`VorlagenMailer::senden(..., $quelle, $referenz)` bzw. `quelleMarkieren($nachricht, $quelle, $referenz)`),

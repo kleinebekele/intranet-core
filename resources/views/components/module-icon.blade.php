@@ -53,6 +53,9 @@
         'transfer'     => 'bx-transfer-alt',
         'envelope'     => 'bx-envelope',
         'send'         => 'bx-send',
+        'network'      => 'bx-network-chart',
+        'wifi'         => 'bx-wifi',
+        'server'       => 'bx-server',
         'default'   => 'bx-grid-alt',
     ];
     $icon = $icons[$name] ?? $icons['default'];
