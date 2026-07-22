@@ -53,6 +53,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   einzigen Unterpunkt sehen darf, dem wird das Modul auch nicht mehr angeboten. In der
   **Modulverwaltung bleibt es unverändert sichtbar**, sonst ließe es sich weder einordnen
   noch entfernen.
+- **`deploy.sh` zieht die eigenen Module automatisch nach.** Statt `composer install` läuft nun
+  `composer update "do1emu/*"` – jeder Deploy holt die neueste per Constraint erlaubte Version der
+  `do1emu/*`-Module (Fremdpakete bleiben lockgenau). Dazu startet `deploy.sh` sich selbst mit der
+  neuen Fassung neu, wenn ein `git pull` das Skript verändert hat – so genügt **ein** `./deploy.sh`,
+  auch wenn sich das Deploy-Skript selbst ändert. Setzt voraus, dass nur getaggt wird, was live soll.
 
 ### Behoben
 - **Breite Inhalte ragten aus dem Formatier-Feld heraus.** Eine Mail-Tabelle mit fester Breite

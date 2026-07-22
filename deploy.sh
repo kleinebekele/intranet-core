@@ -53,12 +53,30 @@ artisan down --retry=15 || true
 trap 'echo; echo "==> Wartungsmodus aus"; $PHP artisan up || true' EXIT
 
 schritt "Code holen"
+vorher_deploy="$(git rev-parse "HEAD:$(basename "$0")" 2>/dev/null || true)"
 git pull --ff-only
 
+# Hat der Pull DIESES Skript veraendert, mit der neuen Fassung NEU starten - sonst
+# liefe der Rest des Deploys noch mit der alten Logik (etwa einem alten composer-
+# Schritt). So genuegt EIN ./deploy.sh, auch wenn sich das Deploy-Skript selbst
+# aendert. Der Blob-Vergleich vermeidet eine Endlosschleife: nach dem exec ist
+# nichts mehr zu ziehen, vorher == nachher, und es laeuft normal durch.
+if [ -n "$vorher_deploy" ] \
+    && [ "$vorher_deploy" != "$(git rev-parse "HEAD:$(basename "$0")" 2>/dev/null || true)" ]; then
+    schritt "deploy.sh wurde aktualisiert - Neustart mit der neuen Fassung"
+    exec "$0" "$@"
+fi
+
 schritt "PHP-Abhaengigkeiten"
+# update statt install: Die eigenen Module (do1emu/*) sollen bei jedem Deploy
+# automatisch auf die neueste per Constraint erlaubte Version ziehen (^1.0 =
+# neuestes 1.x), ohne dass jemand sie auf dem Server einzeln benennt. Alles Fremde
+# (Laravel ...) bleibt exakt auf dem Lock-Stand - nur die gematchten Pakete bewegen
+# sich. Setzt voraus, dass nur getaggt wird, was live gehen soll.
+#
 # Kein --prefer-dist: Instanzen setzen preferred-install teils bewusst auf "source"
 # (private VCS-Repos ohne API). Das Flag wuerde diese Einstellung ueberstimmen.
-$COMPOSER install --no-dev --optimize-autoloader --no-interaction
+$COMPOSER update "do1emu/*" --no-dev --optimize-autoloader --no-interaction
 
 schritt "Assets bauen"
 if command -v "${NPM%% *}" >/dev/null 2>&1; then
