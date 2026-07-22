@@ -8,6 +8,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Der Ausgangskorb hat eine freie `referenz`-Spalte.** Ein Modul kann seine verschickten Mails
+  darüber im Maillog gezielt wiederfinden – gesetzt über den internen Header `X-Intranet-Referenz`
+  (`VorlagenMailer::senden(..., $quelle, $referenz)` bzw. `quelleMarkieren($nachricht, $quelle, $referenz)`),
+  der beim Einliefern ausgelesen und wieder entfernt wird. Der Core wertet die Referenz nicht selbst
+  aus. Erste Nutzung: das Newsletter-Modul zeigt damit auf der Ausgaben-Seite den echten
+  Zustellstatus je Empfänger.
 - **Eine über `Mail::html()` verschickte Mail kann ihren Auslöser fürs Maillog benennen.**
   `VorlagenMailer::senden()` nimmt dafür einen optionalen Namen; wer `Mail::html()` direkt
   aufruft, setzt ihn über `VorlagenMailer::quelleMarkieren($nachricht, 'Newsletter')`. Der Name

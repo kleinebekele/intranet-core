@@ -38,11 +38,12 @@ class MailInDieOutbox
             return false;
         }
 
-        // Den Auslöser-Header VOR dem Notausgang auslesen und entfernen: Er ist
-        // nur intern gedacht und hätte in der ausgehenden Mail nichts verloren –
-        // auch dann nicht, wenn der Ausgangskorb abgeschaltet ist und die Mail
-        // gleich direkt rausgeht.
-        $headerQuelle = $this->quelleAusHeaderZiehen($email);
+        // Auslöser- und Referenz-Header VOR dem Notausgang auslesen und
+        // entfernen: Sie sind nur intern gedacht und hätten in der ausgehenden
+        // Mail nichts verloren – auch dann nicht, wenn der Ausgangskorb
+        // abgeschaltet ist und die Mail gleich direkt rausgeht.
+        $headerQuelle = $this->headerZiehen($email, \App\Mail\Vorlagen\VorlagenMailer::QUELLE_HEADER);
+        $referenz = $this->headerZiehen($email, \App\Mail\Vorlagen\VorlagenMailer::REFERENZ_HEADER);
 
         // Notausgang: Ist der Ausgangskorb abgeschaltet, geht alles wie bisher
         // sofort raus. Wichtig fuer lokale Entwicklung ohne laufenden Scheduler.
@@ -63,6 +64,7 @@ class MailInDieOutbox
                 'betreff' => $email->getSubject(),
                 'an' => array_map(fn (Address $a) => $a->getAddress(), $email->getTo()),
                 'quelle' => $quelle,
+                'referenz' => $referenz,
                 'nachricht' => MailOutbox::verpacken($email),
             ]);
         } catch (\Throwable $e) {
@@ -117,16 +119,16 @@ class MailInDieOutbox
     }
 
     /**
-     * Den Auslöser aus dem internen Header lesen und ihn danach entfernen.
+     * Einen internen Intranet-Header lesen und ihn danach aus der Mail entfernen.
      *
-     * So kann ein Modul, das über {@see \Illuminate\Support\Facades\Mail::html()}
-     * verschickt (und damit keine Mailable-Klasse hat), im Maillog trotzdem als
-     * Auslöser erscheinen – gesetzt über {@see \App\Mail\Vorlagen\VorlagenMailer::quelleMarkieren()}.
+     * Damit kann ein Modul, das über {@see \Illuminate\Support\Facades\Mail::html()}
+     * verschickt (und damit keine Mailable-Klasse hat), im Maillog als Auslöser
+     * erscheinen und seine Mail dort später wiederfinden – gesetzt über
+     * {@see \App\Mail\Vorlagen\VorlagenMailer::quelleMarkieren()}.
      */
-    private function quelleAusHeaderZiehen(Email $email): ?string
+    private function headerZiehen(Email $email, string $name): ?string
     {
         $headers = $email->getHeaders();
-        $name = \App\Mail\Vorlagen\VorlagenMailer::QUELLE_HEADER;
 
         if (! $headers->has($name)) {
             return null;

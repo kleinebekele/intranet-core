@@ -26,6 +26,13 @@ class VorlagenMailer
     /** Interner Header, über den der Auslöser zum Ausgangskorb wandert. */
     public const QUELLE_HEADER = 'X-Intranet-Quelle';
 
+    /**
+     * Interner Header für eine freie Referenz, mit der ein Modul seine Mail im
+     * Ausgangskorb wiederfindet (z. B. „newsletter:12:834"). Landet in der
+     * Spalte `mail_outbox.referenz`.
+     */
+    public const REFERENZ_HEADER = 'X-Intranet-Referenz';
+
     public function __construct(private VorlagenRegister $register) {}
 
     /**
@@ -109,31 +116,37 @@ class VorlagenMailer
      *                               verschickte Mail hat sonst keine Klasse, an
      *                               der der Ausgangskorb den Auslöser erkennen
      *                               könnte – dann steht dort „—".
+     * @param  string|null  $referenz  Freie Referenz, mit der ein Modul die Mail
+     *                                 später im Ausgangskorb wiederfindet.
      */
-    public function senden(string $schluessel, string $an, array $werte, array $textWerte = [], ?string $quelle = null): void
+    public function senden(string $schluessel, string $an, array $werte, array $textWerte = [], ?string $quelle = null, ?string $referenz = null): void
     {
         $fertig = $this->rendern($schluessel, $werte, $textWerte);
 
-        Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig, $quelle) {
+        Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig, $quelle, $referenz) {
             $nachricht->to($an)->subject($fertig['betreff'])->text($fertig['text']);
-            self::quelleMarkieren($nachricht, $quelle);
+            self::quelleMarkieren($nachricht, $quelle, $referenz);
         });
     }
 
     /**
-     * Den Auslöser als internen Header vermerken, den der Ausgangskorb ausliest
-     * und wieder entfernt (siehe {@see \App\Listeners\MailInDieOutbox}).
+     * Auslöser und (optional) Referenz als interne Header vermerken, die der
+     * Ausgangskorb ausliest und wieder entfernt (siehe {@see \App\Listeners\MailInDieOutbox}).
      *
      * Öffentlich, damit auch Module, die {@see Mail::html()} direkt aufrufen
      * (statt über eine Vorlage), ihren Auslöser benennen können.
      */
-    public static function quelleMarkieren(\Illuminate\Mail\Message $nachricht, ?string $quelle): void
+    public static function quelleMarkieren(\Illuminate\Mail\Message $nachricht, ?string $quelle, ?string $referenz = null): void
     {
-        if ($quelle === null || $quelle === '') {
-            return;
+        $headers = $nachricht->getSymfonyMessage()->getHeaders();
+
+        if ($quelle !== null && $quelle !== '') {
+            $headers->addTextHeader(self::QUELLE_HEADER, $quelle);
         }
 
-        $nachricht->getSymfonyMessage()->getHeaders()->addTextHeader(self::QUELLE_HEADER, $quelle);
+        if ($referenz !== null && $referenz !== '') {
+            $headers->addTextHeader(self::REFERENZ_HEADER, $referenz);
+        }
     }
 
     /**
