@@ -38,14 +38,22 @@ class MailInDieOutbox
             return false;
         }
 
+        // Den Auslöser-Header VOR dem Notausgang auslesen und entfernen: Er ist
+        // nur intern gedacht und hätte in der ausgehenden Mail nichts verloren –
+        // auch dann nicht, wenn der Ausgangskorb abgeschaltet ist und die Mail
+        // gleich direkt rausgeht.
+        $headerQuelle = $this->quelleAusHeaderZiehen($email);
+
         // Notausgang: Ist der Ausgangskorb abgeschaltet, geht alles wie bisher
         // sofort raus. Wichtig fuer lokale Entwicklung ohne laufenden Scheduler.
         if (! config('mail.outbox.aktiv', true)) {
             return true;
         }
+        // Eine Mailable-/Notification-Klasse ist am aussagekräftigsten; erst wo
+        // es keine gibt (Mail::html aus einem Modul), greift der Header.
         $quelle = $event->data['__laravel_mailable']
             ?? $event->data['__laravel_notification']
-            ?? null;
+            ?? $headerQuelle;
 
         try {
             MailOutbox::create([
@@ -106,6 +114,28 @@ class MailInDieOutbox
         }
 
         return $uebrig > 0;
+    }
+
+    /**
+     * Den Auslöser aus dem internen Header lesen und ihn danach entfernen.
+     *
+     * So kann ein Modul, das über {@see \Illuminate\Support\Facades\Mail::html()}
+     * verschickt (und damit keine Mailable-Klasse hat), im Maillog trotzdem als
+     * Auslöser erscheinen – gesetzt über {@see \App\Mail\Vorlagen\VorlagenMailer::quelleMarkieren()}.
+     */
+    private function quelleAusHeaderZiehen(Email $email): ?string
+    {
+        $headers = $email->getHeaders();
+        $name = \App\Mail\Vorlagen\VorlagenMailer::QUELLE_HEADER;
+
+        if (! $headers->has($name)) {
+            return null;
+        }
+
+        $wert = trim((string) $headers->get($name)?->getBodyAsString());
+        $headers->remove($name);
+
+        return $wert !== '' ? $wert : null;
     }
 
     /**

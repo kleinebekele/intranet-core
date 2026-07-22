@@ -8,6 +8,13 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Eine über `Mail::html()` verschickte Mail kann ihren Auslöser fürs Maillog benennen.**
+  `VorlagenMailer::senden()` nimmt dafür einen optionalen Namen; wer `Mail::html()` direkt
+  aufruft, setzt ihn über `VorlagenMailer::quelleMarkieren($nachricht, 'Newsletter')`. Der Name
+  reist als interner Header `X-Intranet-Quelle` zum Ausgangskorb, wird dort ausgelesen und wieder
+  entfernt (er hat in der ausgehenden Mail nichts verloren). Bisher stand bei solchen Mails im
+  Maillog nur „—", weil es keine Mailable-Klasse gibt, an der der Auslöser erkennbar wäre.
+  Auslöser des Ganzen: das Newsletter-Modul.
 - **Eine Vorlage kann sich ihren Rahmen aussuchen.** Bisher gab es genau einen (`_rahmen`), in den
   jede Mail gelegt wurde. `VorlagenDefinition` hat jetzt ein optionales Feld `rahmen`; `null`
   heißt „ich bin selbst einer". Damit dürfen Module eigene Rahmen anmelden – der Newsletter tut

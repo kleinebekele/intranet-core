@@ -23,6 +23,9 @@ use Illuminate\Support\Facades\Storage;
  */
 class VorlagenMailer
 {
+    /** Interner Header, über den der Auslöser zum Ausgangskorb wandert. */
+    public const QUELLE_HEADER = 'X-Intranet-Quelle';
+
     public function __construct(private VorlagenRegister $register) {}
 
     /**
@@ -101,14 +104,36 @@ class VorlagenMailer
      *
      * @param  array<string, string|int>  $werte
      * @param  array<string, string|int>  $textWerte  s. {@see rendernMit()}
+     * @param  string|null  $quelle  Name des Auslösers fürs Maillog (z. B.
+     *                               „Newsletter"). Eine über {@see Mail::html()}
+     *                               verschickte Mail hat sonst keine Klasse, an
+     *                               der der Ausgangskorb den Auslöser erkennen
+     *                               könnte – dann steht dort „—".
      */
-    public function senden(string $schluessel, string $an, array $werte, array $textWerte = []): void
+    public function senden(string $schluessel, string $an, array $werte, array $textWerte = [], ?string $quelle = null): void
     {
         $fertig = $this->rendern($schluessel, $werte, $textWerte);
 
-        Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig) {
+        Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig, $quelle) {
             $nachricht->to($an)->subject($fertig['betreff'])->text($fertig['text']);
+            self::quelleMarkieren($nachricht, $quelle);
         });
+    }
+
+    /**
+     * Den Auslöser als internen Header vermerken, den der Ausgangskorb ausliest
+     * und wieder entfernt (siehe {@see \App\Listeners\MailInDieOutbox}).
+     *
+     * Öffentlich, damit auch Module, die {@see Mail::html()} direkt aufrufen
+     * (statt über eine Vorlage), ihren Auslöser benennen können.
+     */
+    public static function quelleMarkieren(\Illuminate\Mail\Message $nachricht, ?string $quelle): void
+    {
+        if ($quelle === null || $quelle === '') {
+            return;
+        }
+
+        $nachricht->getSymfonyMessage()->getHeaders()->addTextHeader(self::QUELLE_HEADER, $quelle);
     }
 
     /**
