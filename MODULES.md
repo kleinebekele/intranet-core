@@ -52,7 +52,8 @@ mein-modul/
 ├── routes/
 │   └── web.php                    # Routen des Moduls
 ├── resources/
-│   └── views/                     # Blade-Views des Moduls
+│   ├── views/                     # Blade-Views des Moduls
+│   └── hilfe/                     # Anleitungen als *.md (optional, Abschnitt 5a)
 └── database/
     └── migrations/                # eigene Tabellen (optional)
 ```
@@ -134,6 +135,44 @@ registrieren.
   für Formularprüfungen.
 - **Models/Migrationen** gehören dem Modul. Nutze einen eigenen Tabellennamen mit klarem
   Präfix (z. B. `news_posts`), um Kollisionen zu vermeiden.
+
+---
+
+## 5a. Anleitungen mitliefern (`resources/hilfe/*.md`)
+
+Ein Modul darf seine eigene Bedienungsanleitung mitbringen. Sie gehört ins Paket und nicht in
+die Datenbank: So gehört sie zur Programmversion, wird mit ihr getaggt und deployt und muss
+nicht auf jedem Server einzeln gepflegt werden.
+
+```markdown
+---
+titel: Speiseplan pflegen
+route: module.kantine.plan          # optional: Ziel des "?"-Knopfs in der Kopfzeile
+kategorie: Schulkantine             # optional
+position: 10                        # optional
+---
+
+Einleitung ohne Überschrift (optional).
+
+## Nur für die Küche
+rollen: kueche, admin
+
+Markdown-Text dieses Abschnitts …
+```
+
+- Jede `##`-Überschrift beginnt einen **Abschnitt**; eine Zeile `rollen:` direkt darunter
+  begrenzt genau diesen Abschnitt auf die genannten Rollen. Ohne Angabe: für alle sichtbar.
+- Nennt eine Datei eine Rolle, die es in der Instanz nicht gibt, bleibt der Abschnitt
+  **verborgen** (und der Abgleich meldet es) – er war ja für jemand Bestimmten gedacht.
+- `##`-Zeilen innerhalb eines Code-Blocks (```) sind Beispieltext, keine Überschriften.
+
+Eingelesen werden die Dateien vom Wiki-Modul (`do1emu/module-wiki`) mit
+`php artisan wiki:hilfe-sync` – im Deploy direkt hinter `modules:sync`. Ist kein Wiki
+installiert, liegen die Dateien einfach ungenutzt im Paket; eine Abhängigkeit entsteht nicht.
+
+Nach dem Vorbild der Mailvorlagen gilt: Der Standard liegt im Paket, die Instanz speichert nur
+die Abweichung. Wer eine Anleitung im Backend bearbeitet, schützt sie damit vor dem nächsten
+Abgleich.
 
 ---
 

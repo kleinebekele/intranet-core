@@ -27,6 +27,8 @@
             @auth
                 {{-- Kein Verwaltungs-Link mehr hier: Er fuehrte zum selben Ziel wie der
                      Punkt unten in der Seitenleiste. Ein Ziel, ein Weg. --}}
+                <x-hilfe-knopf />
+
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 focus:outline-none">

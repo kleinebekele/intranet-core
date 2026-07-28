@@ -13,9 +13,23 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   der Repo-Lock — die Server ziehen es mit dem nächsten Deploy nach.
 
 ### Hinzugefügt
+- **Kontexthilfe: der Fragezeichen-Knopf in der Kopfzeile.** Neu ist `App\Support\Hilfe` – eine
+  Vermittlungsstelle, mehr nicht: Ein Modul meldet über `Hilfe::anbieten(fn ($route, $user) => …)`
+  einen Auflöser an, der Core fragt beim Rendern der Kopfzeile, ob es zur aktuellen Route eine
+  Anleitung gibt. Ist kein Anbieter da (kein Wiki installiert), rendert `<x-hilfe-knopf />` nichts –
+  eine Instanz ohne Wiki bekommt also keinen toten Knopf. Der Core weiß dabei nichts über das Wiki
+  und speichert selbst keine Hilfetexte. Erste Nutzung: `do1emu/module-wiki`.
+- **Hilfetexte des Cores unter `resources/hilfe/*.md`.** Anleitungen zu Startseite, Profil und
+  Zwei-Faktor, Benutzern, Rollen, Modulen, Mailvorlagen, Mailversand, Einladungen, sprechenden
+  Adressen und Einstellungen. Sie liegen als Datei im Repo (nicht in der Datenbank), damit sie zur
+  Programmversion gehören und mit ihr deployt werden; jedes Modul darf denselben Ordner mitbringen.
+  Eingelesen werden sie vom Wiki-Modul (`php artisan wiki:hilfe-sync`) – ohne Wiki liegen sie
+  einfach nur da.
 - **Drei neue Modul-Icons:** `network` (bx-network-chart), `wifi` (bx-wifi) und `server`
   (bx-server). Erste Nutzung: das neue Netzwerk-Modul (`do1emu/module-netzwerk`) und seine
   künftigen Unterseiten (Karte, Switches, WLAN).
+- **Drei weitere Modul-Icons:** `help` (bx-help-circle), `tag` (bx-purchase-tag) und `history`
+  (bx-history) – für Kontexthilfe, Rollen-Tags und Änderungsverlauf im Wiki-Modul.
 - **Der Ausgangskorb hat eine freie `referenz`-Spalte.** Ein Modul kann seine verschickten Mails
   darüber im Maillog gezielt wiederfinden – gesetzt über den internen Header `X-Intranet-Referenz`
   (`VorlagenMailer::senden(..., $quelle, $referenz)` bzw. `quelleMarkieren($nachricht, $quelle, $referenz)`),

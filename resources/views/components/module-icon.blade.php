@@ -56,6 +56,9 @@
         'network'      => 'bx-network-chart',
         'wifi'         => 'bx-wifi',
         'server'       => 'bx-server',
+        'help'         => 'bx-help-circle',
+        'tag'          => 'bx-purchase-tag',
+        'history'      => 'bx-history',
         'default'   => 'bx-grid-alt',
     ];
     $icon = $icons[$name] ?? $icons['default'];
