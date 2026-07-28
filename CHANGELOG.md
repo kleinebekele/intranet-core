@@ -7,6 +7,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Sicherheit
+- **npm-Lock: postcss auf abgesicherte Version** (GHSA-r28c-9q8g-f849, Path-Traversal beim
+  automatischen Source-Map-Laden; reine Build-Abhängigkeit, kein Laufzeit-Risiko). Behoben in
+  der Repo-Lock — die Server ziehen es mit dem nächsten Deploy nach.
+
 ### Hinzugefügt
 - **Drei neue Modul-Icons:** `network` (bx-network-chart), `wifi` (bx-wifi) und `server`
   (bx-server). Erste Nutzung: das neue Netzwerk-Modul (`do1emu/module-netzwerk`) und seine
