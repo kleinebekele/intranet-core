@@ -150,18 +150,26 @@ titel: Speiseplan pflegen
 route: module.kantine.plan          # optional: Ziel des "?"-Knopfs in der Kopfzeile
 kategorie: Schulkantine             # optional
 position: 10                        # optional
+rollen: kueche, admin               # optional: Vorgabe für die ganze Datei
 ---
 
 Einleitung ohne Überschrift (optional).
 
 ## Nur für die Küche
-rollen: kueche, admin
+rollen: kueche
 
 Markdown-Text dieses Abschnitts …
 ```
 
 - Jede `##`-Überschrift beginnt einen **Abschnitt**; eine Zeile `rollen:` direkt darunter
   begrenzt genau diesen Abschnitt auf die genannten Rollen. Ohne Angabe: für alle sichtbar.
+- `rollen` **im Kopf** ist die Vorgabe für alle Abschnitte der Datei – der richtige Ort für
+  eine reine Verwaltungs-Anleitung. Ein Abschnitt sticht sie mit einer eigenen Zeile; eine
+  leere Zeile `rollen:` hebt sie für diesen Abschnitt auf.
+- ⚠️ Die `route` muss eine Seite sein, die auch **gerendert** wird. Leitet eine Route nur
+  weiter (`return redirect()->route(…)`), erscheint der Knopf dort nie – dann gehört die
+  Anleitung an die Ziel-Route. Vollbild-Seiten ohne Core-Kopfzeile haben ebenfalls keinen
+  Knopf.
 - Nennt eine Datei eine Rolle, die es in der Instanz nicht gibt, bleibt der Abschnitt
   **verborgen** (und der Abgleich meldet es) – er war ja für jemand Bestimmten gedacht.
 - `##`-Zeilen innerhalb eines Code-Blocks (```) sind Beispieltext, keine Überschriften.
