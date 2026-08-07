@@ -6,6 +6,7 @@ use App\Listeners\MailInDieOutbox;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\Setting;
 use App\Modules\Support\ModuleRegistry;
+use App\Support\Mailausloeser;
 use App\View\Composers\NavigationComposer;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
@@ -49,6 +50,16 @@ class AppServiceProvider extends ServiceProvider
         // Protokoll). Bewusst hier und nicht per Auto-Discovery: der Listener
         // greift so tief in den Versand ein, dass man ihn sehen soll.
         Event::listen(MessageSending::class, MailInDieOutbox::class);
+
+        // Die Core-Vorlagen als Auslöser anmelden, damit man ihren Absender
+        // einstellen kann, bevor die erste solche Mail rausgegangen ist. Lazy:
+        // die Liste wird erst gebaut, wenn die Konfig-Seite sie abfragt.
+        Mailausloeser::anbieten(function () {
+            return array_map(
+                fn ($d) => ['modul' => $d->modul, 'ausloeser' => $d->ausloeser()],
+                array_values(app(VorlagenRegister::class)->versendbare()),
+            );
+        });
 
         // Das Mail-Stundenlimit kommt ausschließlich aus der Verwaltung – es
         // hängt am Vertrag des Mailproviders, nicht am Server. Ohne Eintrag

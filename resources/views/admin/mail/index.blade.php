@@ -68,24 +68,32 @@
             </div>
         </div>
 
-        {{-- Filter --}}
-        <div class="mb-4 flex flex-wrap gap-1">
-            @php
-                $filter = [
-                    null => 'Alle',
-                    'wartend' => 'Wartet',
-                    'versendet' => 'Versendet',
-                    'fehlgeschlagen' => 'Fehlgeschlagen',
-                ];
-            @endphp
-            @foreach ($filter as $wert => $beschriftung)
-                <a href="{{ route('admin.mail.index', $wert ? ['status' => $wert] : []) }}"
-                   @class([
-                       'rounded-lg px-3 py-1.5 text-sm font-medium transition',
-                       'bg-indigo-600 text-white' => $status === $wert,
-                       'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' => $status !== $wert,
-                   ])>{{ $beschriftung }}</a>
-            @endforeach
+        {{-- Filter + Absender-Konfiguration --}}
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap gap-1">
+                @php
+                    $filter = [
+                        null => 'Alle',
+                        'wartend' => 'Wartet',
+                        'versendet' => 'Versendet',
+                        'fehlgeschlagen' => 'Fehlgeschlagen',
+                    ];
+                @endphp
+                @foreach ($filter as $wert => $beschriftung)
+                    <a href="{{ route('admin.mail.index', $wert ? ['status' => $wert] : []) }}"
+                       @class([
+                           'rounded-lg px-3 py-1.5 text-sm font-medium transition',
+                           'bg-indigo-600 text-white' => $status === $wert,
+                           'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50' => $status !== $wert,
+                       ])>{{ $beschriftung }}</a>
+                @endforeach
+            </div>
+
+            <a href="{{ route('admin.mail.absender') }}"
+               class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <i class='bx bx-envelope text-base leading-none'></i>
+                Absender je Auslöser
+            </a>
         </div>
 
         @if ($mails->isEmpty())
@@ -103,6 +111,7 @@
                             <th class="px-4 py-3">Status</th>
                             <th class="px-4 py-3">Betreff</th>
                             <th class="px-4 py-3">An</th>
+                            <th class="px-4 py-3">Modul</th>
                             <th class="px-4 py-3">Auslöser</th>
                             <th class="px-4 py-3 whitespace-nowrap">Eingang</th>
                             <th class="px-4 py-3 whitespace-nowrap">Versendet</th>
@@ -139,6 +148,12 @@
 
                                 <td class="px-4 py-3 text-gray-600">
                                     {{ implode(', ', $mail->an ?? []) ?: '—' }}
+                                </td>
+
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                                        {{ $mail->modul ?: 'Core' }}
+                                    </span>
                                 </td>
 
                                 <td class="px-4 py-3 text-gray-500">

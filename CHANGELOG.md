@@ -13,6 +13,17 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   der Repo-Lock — die Server ziehen es mit dem nächsten Deploy nach.
 
 ### Hinzugefügt
+- **Maillog: neue Spalte „Modul" und eigener Absender je Modul+Auslöser.** Das Log trennt jetzt
+  zwei Achsen: `modul` (Core oder Modulname) und `quelle` (der Auslöser, z. B. „Zahlungserinnerung").
+  Ein ausdrücklich gesetzter Auslöser-Header **gewinnt über den Klassennamen** – dadurch steht dort
+  ein sprechender Name statt der Mailable-Klasse (z. B. nicht mehr „KundenNachricht"). Die Eiligkeit
+  (2FA/Passwort) wird weiterhin am Klassennamen erkannt und bleibt davon unberührt. Neuer Header
+  `X-Intranet-Modul` (`VorlagenMailer::MODUL_HEADER`); `senden()`/`quelleMarkieren()` nehmen einen
+  `$modul`-Parameter. Unter Verwaltung → Maillog → „Absender je Auslöser" lässt sich je Kombination
+  ein eigener Absender und eine Antwort-Adresse festlegen (Tabelle `mail_absender`); ist eine Zeile
+  hinterlegt, **gewinnt sie** über den Absender, den das Modul selbst setzt – sonst bleibt alles wie
+  bisher. Neu ist `App\Support\Mailausloeser`, eine Vermittlungsstelle, über die Module ihre Auslöser
+  anmelden, damit man den Absender einstellen kann, bevor die erste solche Mail rausging.
 - **Kontexthilfe: der Fragezeichen-Knopf in der Kopfzeile.** Neu ist `App\Support\Hilfe` – eine
   Vermittlungsstelle, mehr nicht: Ein Modul meldet über `Hilfe::anbieten(fn ($route, $user) => …)`
   einen Auflöser an, der Core fragt beim Rendern der Kopfzeile, ob es zur aktuellen Route eine

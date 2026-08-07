@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Models\MailAbsender;
 use App\Models\MailOutbox;
 use App\Support\Zustellbarkeit;
 use Illuminate\Mail\Events\MessageSending;
@@ -38,32 +39,50 @@ class MailInDieOutbox
             return false;
         }
 
-        // Auslöser- und Referenz-Header VOR dem Notausgang auslesen und
+        // Auslöser-, Referenz- und Modul-Header VOR dem Notausgang auslesen und
         // entfernen: Sie sind nur intern gedacht und hätten in der ausgehenden
         // Mail nichts verloren – auch dann nicht, wenn der Ausgangskorb
         // abgeschaltet ist und die Mail gleich direkt rausgeht.
         $headerQuelle = $this->headerZiehen($email, \App\Mail\Vorlagen\VorlagenMailer::QUELLE_HEADER);
         $referenz = $this->headerZiehen($email, \App\Mail\Vorlagen\VorlagenMailer::REFERENZ_HEADER);
+        $headerModul = $this->headerZiehen($email, \App\Mail\Vorlagen\VorlagenMailer::MODUL_HEADER);
+
+        // Die auslösende Klasse (Mailable/Notification) bestimmt die EILIGKEIT –
+        // sie wird über den Klassennamen erkannt (2FA, Passwort-Link). Das bleibt
+        // getrennt von der ANZEIGE: ein Modul, das einen sprechenden Auslöser
+        // per Header setzt, soll damit nicht die Vorfahrt-Erkennung aushebeln.
+        $klasse = $event->data['__laravel_mailable']
+            ?? $event->data['__laravel_notification']
+            ?? null;
+
+        // Auslöser fürs Log: ein ausdrücklich gesetzter Header GEWINNT (sprechend),
+        // sonst der Klassenname als Rückfall (z. B. „TwoFactorCodeMail").
+        $quelle = ($headerQuelle !== null && $headerQuelle !== '')
+            ? $headerQuelle
+            : $klasse;
+
+        $modul = $this->modulErmitteln($headerModul, $klasse);
+
+        // Eigenen Absender/Antwort-an setzen, falls für Modul+Auslöser hinterlegt.
+        // Vor dem Serialisieren, damit die gespeicherte Nachricht schon stimmt –
+        // auch beim Notausgang unten geht sie so korrekt raus.
+        $this->absenderAnwenden($email, $modul, $quelle);
 
         // Notausgang: Ist der Ausgangskorb abgeschaltet, geht alles wie bisher
         // sofort raus. Wichtig fuer lokale Entwicklung ohne laufenden Scheduler.
         if (! config('mail.outbox.aktiv', true)) {
             return true;
         }
-        // Eine Mailable-/Notification-Klasse ist am aussagekräftigsten; erst wo
-        // es keine gibt (Mail::html aus einem Modul), greift der Header.
-        $quelle = $event->data['__laravel_mailable']
-            ?? $event->data['__laravel_notification']
-            ?? $headerQuelle;
 
         try {
             MailOutbox::create([
                 'status' => MailOutbox::WARTEND,
-                'prioritaet' => $this->prioritaet($quelle),
+                'prioritaet' => $this->prioritaet($klasse),
                 'mailer' => $event->data['__laravel_mailer'] ?? null,
                 'betreff' => $email->getSubject(),
                 'an' => array_map(fn (Address $a) => $a->getAddress(), $email->getTo()),
                 'quelle' => $quelle,
+                'modul' => $modul,
                 'referenz' => $referenz,
                 'nachricht' => MailOutbox::verpacken($email),
             ]);
@@ -134,7 +153,16 @@ class MailInDieOutbox
             return null;
         }
 
-        $wert = trim((string) $headers->get($name)?->getBodyAsString());
+        $header = $headers->get($name);
+
+        // getBodyAsString() liefert die MIME-kodierte Fassung (Umlaute/ß werden
+        // zu „=?utf-8?Q?…"). Der UnstructuredHeader kennt den Klartext über
+        // getBody(); nur darauf zurückfallen, falls es doch ein anderer Typ ist.
+        $wert = $header instanceof \Symfony\Component\Mime\Header\UnstructuredHeader
+            ? $header->getBody()
+            : (string) $header?->getBodyAsString();
+
+        $wert = trim($wert);
         $headers->remove($name);
 
         return $wert !== '' ? $wert : null;
@@ -144,20 +172,69 @@ class MailInDieOutbox
      * Eilige Mails bekommen Vorfahrt in der Warteschlange.
      *
      * Zeitkritisch ist alles, wo jemand vor dem Bildschirm wartet: ein
-     * 2FA-Code oder ein Passwort-Link ist nach zehn Minuten wertlos.
+     * 2FA-Code oder ein Passwort-Link ist nach zehn Minuten wertlos. Erkannt
+     * wird das am KLASSENNAMEN (Mailable/Notification), nicht am Auslöser-Text –
+     * darum bekommt diese Methode die Klasse, nicht die Anzeige-Quelle.
      */
-    private function prioritaet(?string $quelle): int
+    private function prioritaet(?string $klasse): int
     {
-        if ($quelle === null) {
+        if ($klasse === null) {
             return 0;
         }
 
-        foreach ((array) config('mail.outbox.eilig', []) as $klasse) {
-            if ($quelle === $klasse || is_subclass_of($quelle, $klasse)) {
+        foreach ((array) config('mail.outbox.eilig', []) as $eilig) {
+            if ($klasse === $eilig || is_subclass_of($klasse, $eilig)) {
                 return 10;
             }
         }
 
         return 0;
+    }
+
+    /**
+     * Das auslösende Modul bestimmen: ein gesetzter Header gewinnt, sonst wird
+     * es aus dem Namensraum der Klasse abgeleitet. `App\…` ist der Core, ein
+     * Modul liegt unter `Intranet\Modules\<Name>\…`.
+     */
+    private function modulErmitteln(?string $headerModul, ?string $klasse): ?string
+    {
+        if ($headerModul !== null && $headerModul !== '') {
+            return $headerModul;
+        }
+
+        if (is_string($klasse) && str_starts_with($klasse, 'Intranet\\Modules\\')) {
+            $teile = explode('\\', $klasse);
+
+            return $teile[2] ?? 'Core';
+        }
+
+        // Alles aus dem Core-Namensraum – und alles, was wir nicht zuordnen
+        // können – zählt als Core. Eine reine `Mail::html()`-Mail ohne Header
+        // ist praktisch immer Core.
+        return 'Core';
+    }
+
+    /**
+     * Eigenen Absender/Antwort-an aus der Konfig (Modul+Auslöser) setzen.
+     *
+     * Ist eine Zeile hinterlegt, GEWINNT sie über das, was das Modul selbst
+     * gesetzt hat – genau das ist der Sinn der zentralen Einstellung. Ohne
+     * Zeile bleibt alles, wie die Mail es mitbringt.
+     */
+    private function absenderAnwenden(Email $email, ?string $modul, ?string $quelle): void
+    {
+        $konfig = MailAbsender::fuer($modul, $quelle);
+
+        if (! $konfig instanceof MailAbsender) {
+            return;
+        }
+
+        if (filled($konfig->absender_mail)) {
+            $email->from(new Address($konfig->absender_mail, (string) ($konfig->absender_name ?? '')));
+        }
+
+        if (filled($konfig->antwort_an)) {
+            $email->replyTo(new Address($konfig->antwort_an));
+        }
     }
 }
