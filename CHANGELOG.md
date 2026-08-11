@@ -13,6 +13,13 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   der Repo-Lock — die Server ziehen es mit dem nächsten Deploy nach.
 
 ### Hinzugefügt
+- **Admin-Fehlerseite & Systemlog im Browser.** Eingeloggte Administratoren sehen bei einem
+  Fehler die detaillierte Laravel-Fehlerseite direkt im Browser – die Middleware
+  `AdminSiehtFehlerdetails` schaltet `app.debug` **nur für ihren eigenen Request** ein, `APP_DEBUG`
+  bleibt für alle anderen aus (kein Datenleck). Dazu ein neuer Reiter **Verwaltung → Logs**
+  (`admin.logs.index`, `Admin\LogController`): zeigt die letzten Einträge der Laravel-Logdateien
+  (neueste zuerst, je Datei die letzten 300 KB, mit aufklappbaren Details), damit man für die
+  Fehlersuche nicht mehr per SSH ins Logfile schauen muss.
 - **Maillog: neue Spalte „Modul" und eigener Absender je Modul+Auslöser.** Das Log trennt jetzt
   zwei Achsen: `modul` (Core oder Modulname) und `quelle` (der Auslöser, z. B. „Zahlungserinnerung").
   Ein ausdrücklich gesetzter Auslöser-Header **gewinnt über den Klassennamen** – dadurch steht dort

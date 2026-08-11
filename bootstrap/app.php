@@ -32,6 +32,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Sichtbarkeits-Einstellungen der Modul-Verwaltung als Zugriffs-Regel
         // für alle module.{key}.*-Routen (nicht nur fürs Menü).
         $middleware->web(append: \App\Http\Middleware\EnsureModuleAccess::class);
+
+        // Admins sehen bei einem Fehler die detaillierte Fehlerseite direkt im
+        // Browser (nur für ihren Request) – APP_DEBUG bleibt für alle anderen aus.
+        $middleware->web(append: \App\Http\Middleware\AdminSiehtFehlerdetails::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

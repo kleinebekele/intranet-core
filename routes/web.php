@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\EinladungController;
+use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\MailAbsenderController;
 use App\Http\Controllers\Admin\MailOutboxController;
 use App\Http\Controllers\Admin\MailVorlageController;
@@ -45,6 +46,9 @@ Route::middleware('auth')->group(function () {
         // Einstellungen: Erscheinungsbild und Betriebsgrenzen.
         Route::get('einstellungen', [SettingController::class, 'index'])->name('settings.index');
         Route::put('einstellungen', [SettingController::class, 'update'])->name('settings.update');
+
+        // Systemlog im Browser (Fehlersuche ohne SSH ins Logfile).
+        Route::get('logs', [LogController::class, 'index'])->name('logs.index');
 
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
         Route::post('/modules/reorder', [ModuleController::class, 'reorder'])->name('modules.reorder');

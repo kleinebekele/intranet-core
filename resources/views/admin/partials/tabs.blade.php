@@ -14,6 +14,7 @@
         ['route' => 'admin.mailvorlagen.index', 'muster' => 'admin.mailvorlagen.*', 'label' => 'Mailvorlagen'],
         ['route' => 'admin.mail.index', 'muster' => 'admin.mail.*', 'label' => 'Maillog'],
         ['route' => 'admin.modules.index', 'muster' => 'admin.modules.*', 'label' => 'Module'],
+        ['route' => 'admin.logs.index', 'muster' => 'admin.logs.*', 'label' => 'Logs'],
     ];
 @endphp
 
