@@ -261,6 +261,82 @@ class MicrosoftSsoTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_verknuepftes_konto_kommt_nicht_mehr_per_passwort_herein(): void
+    {
+        $admin = User::factory()->create();            // der erste ist automatisch Admin
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $benutzer->forceFill(['is_admin' => false, 'microsoft_id' => self::OID])->save();
+
+        $antwort = $this->post('/login', ['email' => 'anna@firma.de', 'password' => 'password']);
+
+        $this->assertGuest();
+        $antwort->assertSessionHasErrors(['email' => trans('auth.nur_microsoft')]);
+    }
+
+    public function test_admin_kommt_weiterhin_per_passwort_herein(): void
+    {
+        $admin = User::factory()->create(['email' => 'chef@firma.de']);
+        $admin->forceFill(['is_admin' => true, 'microsoft_id' => self::OID])->save();
+
+        $this->post('/login', ['email' => 'chef@firma.de', 'password' => 'password']);
+
+        $this->assertAuthenticatedAs($admin->fresh());
+    }
+
+    public function test_ohne_eingerichtetes_sso_bleibt_der_passwort_weg_offen(): void
+    {
+        // Wichtig: Wird die Microsoft-Anmeldung abgeschaltet, darf niemand
+        // ausgesperrt bleiben.
+        config()->set('services.microsoft.client_secret', null);
+
+        $admin = User::factory()->create();
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $benutzer->forceFill(['is_admin' => false, 'microsoft_id' => self::OID])->save();
+
+        $this->post('/login', ['email' => 'anna@firma.de', 'password' => 'password']);
+
+        $this->assertAuthenticatedAs($benutzer->fresh());
+    }
+
+    public function test_passwort_vergessen_fuehrt_nicht_in_die_sackgasse(): void
+    {
+        $admin = User::factory()->create();
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $benutzer->forceFill(['is_admin' => false, 'microsoft_id' => self::OID])->save();
+
+        $antwort = $this->post('/forgot-password', ['email' => 'anna@firma.de']);
+
+        $antwort->assertSessionHasErrors(['email' => trans('auth.nur_microsoft')]);
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_neu_angelegte_konten_haben_die_quelle_microsoft(): void
+    {
+        Role::firstOrCreate(['role_id' => 'user'], ['name' => 'Benutzer']);
+
+        $this->microsoftAntwortet('neu@firma.de', gruppen: [self::GRUPPE]);
+
+        $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state');
+
+        $this->assertSame('microsoft', User::where('email', 'neu@firma.de')->firstOrFail()->source);
+    }
+
+    public function test_hinweis_im_profil_nur_bei_verknuepftem_konto(): void
+    {
+        $admin = User::factory()->create();
+        $benutzer = User::factory()->create();
+        $benutzer->forceFill(['is_admin' => false])->save();
+
+        $this->actingAs($benutzer)->get('/profile')->assertDontSee('Dein Konto läuft über Microsoft.');
+
+        $benutzer->forceFill(['microsoft_id' => self::OID])->save();
+
+        $this->actingAs($benutzer->fresh())
+            ->get('/profile')
+            ->assertSee('Dein Konto läuft über Microsoft.')
+            ->assertSee('die Anmeldung damit wird abgelehnt', false);
+    }
+
     public function test_protokoll_ist_nur_fuer_admins_sichtbar(): void
     {
         // Achtung: Der allererste Benutzer wird im Core automatisch Admin

@@ -33,6 +33,7 @@ class User extends Authenticatable
             'totp_confirmed_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
             'gesperrt_am' => 'datetime',
+            'microsoft_angemeldet_am' => 'datetime',
         ];
     }
 
@@ -58,6 +59,18 @@ class User extends Authenticatable
     public function entsperren(): void
     {
         $this->forceFill(['gesperrt_am' => null, 'gesperrt_grund' => null])->save();
+    }
+
+    /**
+     * Läuft die Anmeldung dieses Kontos über Microsoft statt über ein
+     * Passwort? Das gilt, sobald es einmal per Microsoft hereinkam.
+     *
+     * Administratoren sind bewusst ausgenommen: Ihr Passwort bleibt gültig,
+     * damit bei einer Störung bei Microsoft niemand vor der eigenen Tür steht.
+     */
+    public function nurUeberMicrosoft(): bool
+    {
+        return $this->microsoft_id !== null && ! $this->isAdmin();
     }
 
     /**

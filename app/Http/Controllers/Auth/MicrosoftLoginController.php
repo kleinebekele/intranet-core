@@ -136,6 +136,8 @@ class MicrosoftLoginController extends Controller
         // "Passwort vergessen" freigeschaltet werden.
         $benutzer->password = Str::random(64);
         $benutzer->microsoft_id = $profil->id;
+        // Woher das Konto stammt – in der Benutzerliste als Quelle sichtbar.
+        $benutzer->source = 'microsoft';
         // Die Adresse hat Microsoft gerade bestätigt.
         $benutzer->email_verified_at = now();
         $benutzer->microsoft_angemeldet_am = now();

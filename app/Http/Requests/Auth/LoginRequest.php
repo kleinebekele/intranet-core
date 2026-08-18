@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\Microsoft\MicrosoftSso;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -47,6 +48,19 @@ class LoginRequest extends FormRequest
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
+            ]);
+        }
+
+        // Konten, die über Microsoft laufen: Das Passwort stimmt zwar noch,
+        // ist aber nicht mehr der vorgesehene Weg. Greift nur, solange die
+        // Microsoft-Anmeldung überhaupt eingerichtet ist – sonst käme
+        // niemand mehr herein, wenn sie einmal abgeschaltet wird.
+        if (Auth::user()?->nurUeberMicrosoft() && app(MicrosoftSso::class)->aktiv()) {
+            Auth::guard('web')->logout();
+            $this->session()->invalidate();
+
+            throw ValidationException::withMessages([
+                'email' => trans('auth.nur_microsoft'),
             ]);
         }
 

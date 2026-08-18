@@ -36,6 +36,22 @@ Was in `MS_ROLLEN` steht, bekommt **jeder**, der sich über Microsoft anmeldet �
 es schon lange gibt. Rollen werden dabei nur **ergänzt**, nie entzogen: Was ein Admin von Hand
 vergeben hat, bleibt stehen.
 
+## Das Passwort entfällt – außer bei Administratoren
+
+rollen: admin
+
+Sobald ein Konto einmal über Microsoft hereingekommen ist, gilt es als Microsoft-Konto: Die
+Anmeldung mit E-Mail und Passwort wird ab dann **abgelehnt**, mit dem Hinweis auf den
+Microsoft-Knopf. Auch „Passwort vergessen" läuft für diese Konten nicht mehr – es würde ja
+nichts nützen. Im eigenen Profil steht der Hinweis dazu.
+
+**Administratoren sind ausgenommen.** Ihr Passwort bleibt gültig, damit bei einer Störung bei
+Microsoft niemand vor der eigenen Tür steht. In der Benutzerliste steht bei ihnen deshalb
+„Passwort bleibt gültig".
+
+Und noch eine Sicherung: Wird die Microsoft-Anmeldung in der `.env` wieder abgeschaltet, ist
+der Passwort-Weg für **alle** sofort wieder offen. Niemand bleibt ausgesperrt.
+
 ## Was mit der Zwei-Faktor-Abfrage passiert
 
 rollen: admin

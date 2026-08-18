@@ -88,6 +88,17 @@
                                 @if ($user->source)
                                     <div class="text-xs text-gray-400">Quelle: {{ $user->source }}</div>
                                 @endif
+                                @if ($user->microsoft_id)
+                                    <div class="text-xs text-sky-600">
+                                        Microsoft-Anmeldung
+                                        @if ($user->microsoft_angemeldet_am)
+                                            · zuletzt {{ $user->microsoft_angemeldet_am->format('d.m.Y') }}
+                                        @endif
+                                        @if ($user->is_admin)
+                                            · Passwort bleibt gültig
+                                        @endif
+                                    </div>
+                                @endif
                                 @if ($user->istGesperrt())
                                     <div class="text-xs text-red-400">
                                         seit {{ $user->gesperrt_am->format('d.m.Y') }}{{ $user->gesperrt_grund ? ' · '.$user->gesperrt_grund : '' }}
