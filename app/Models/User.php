@@ -63,14 +63,30 @@ class User extends Authenticatable
 
     /**
      * Läuft die Anmeldung dieses Kontos über Microsoft statt über ein
-     * Passwort? Das gilt, sobald es einmal per Microsoft hereinkam.
+     * Passwort?
      *
-     * Administratoren sind bewusst ausgenommen: Ihr Passwort bleibt gültig,
+     * Grundregel ist die Automatik: Sobald ein Konto einmal per Microsoft
+     * hereinkam, gilt es als Microsoft-Konto. Ein Administrator kann das je
+     * Benutzer überschreiben (Spalte `anmeldeweg`).
+     *
+     * Administratoren sind immer ausgenommen: Ihr Passwort bleibt gültig,
      * damit bei einer Störung bei Microsoft niemand vor der eigenen Tür steht.
      */
     public function nurUeberMicrosoft(): bool
     {
-        return $this->microsoft_id !== null && ! $this->isAdmin();
+        if ($this->isAdmin() || $this->anmeldeweg === 'passwort') {
+            return false;
+        }
+
+        return $this->anmeldeweg === 'microsoft' || $this->microsoft_id !== null;
+    }
+
+    /**
+     * Wurde der Anmeldeweg von Hand festgelegt (statt der Automatik zu folgen)?
+     */
+    public function anmeldewegFestgelegt(): bool
+    {
+        return in_array($this->anmeldeweg, ['microsoft', 'passwort'], true);
     }
 
     /**

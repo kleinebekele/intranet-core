@@ -88,14 +88,20 @@
                                 @if ($user->source)
                                     <div class="text-xs text-gray-400">Quelle: {{ $user->source }}</div>
                                 @endif
-                                @if ($user->microsoft_id)
-                                    <div class="text-xs text-sky-600">
-                                        Microsoft-Anmeldung
+                                @if ($user->microsoft_id || $user->anmeldeweg === 'microsoft')
+                                    <div class="text-xs {{ $user->nurUeberMicrosoft() ? 'text-sky-600' : 'text-gray-400' }}">
+                                        {{ $user->nurUeberMicrosoft() ? 'Nur Microsoft-Anmeldung' : 'Microsoft-Anmeldung' }}
                                         @if ($user->microsoft_angemeldet_am)
                                             · zuletzt {{ $user->microsoft_angemeldet_am->format('d.m.Y') }}
+                                        @elseif ($user->microsoft_id === null)
+                                            · noch nie so angemeldet
                                         @endif
                                         @if ($user->is_admin)
                                             · Passwort bleibt gültig
+                                        @elseif ($user->anmeldeweg === 'passwort')
+                                            · Passwort erlaubt (von Hand)
+                                        @elseif ($user->anmeldeweg === 'microsoft')
+                                            · von Hand festgelegt
                                         @endif
                                     </div>
                                 @endif
@@ -127,6 +133,25 @@
                                             <i class='bx bx-mail-send'></i>
                                         </button>
                                     </form>
+
+                                    {{-- Anmeldeweg umschalten: nur Microsoft oder Passwort erlaubt.
+                                         Bei Administratoren nicht angeboten – deren Passwort gilt immer. --}}
+                                    @unless ($user->isAdmin())
+                                        @php $nurMs = $user->nurUeberMicrosoft(); @endphp
+                                        <form method="POST" action="{{ route('admin.users.anmeldeweg', $user) }}"
+                                              onsubmit="return confirm('{{ $nurMs ? 'Soll sich „'.$user->name.'“ wieder mit Passwort anmelden dürfen?' : '„'.$user->name.'“ ab jetzt nur noch über Microsoft anmelden lassen? Das lokale Passwort wird damit abgelehnt.' }}');">
+                                            @csrf
+                                            <button type="submit"
+                                                    title="{{ $nurMs ? 'Passwort wieder erlauben' : 'Nur noch über Microsoft anmelden' }}"
+                                                    @class([
+                                                        'block rounded-md p-1.5',
+                                                        'text-sky-600 hover:bg-sky-50' => $nurMs,
+                                                        'text-gray-500 hover:bg-gray-100 hover:text-gray-700' => ! $nurMs,
+                                                    ])>
+                                                <i class="bx {{ $nurMs ? 'bx-key' : 'bxl-microsoft' }}"></i>
+                                            </button>
+                                        </form>
+                                    @endunless
 
                                     @if (! $user->is(auth()->user()))
                                         <form method="POST" action="{{ route('admin.users.sperre', $user) }}"

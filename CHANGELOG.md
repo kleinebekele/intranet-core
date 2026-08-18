@@ -30,6 +30,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   dazu. **Administratoren sind ausgenommen** – ihr Passwort bleibt gültig, damit bei einer Störung
   bei Microsoft niemand vor der eigenen Tür steht; in der Benutzerliste ist das vermerkt. Wird die
   Microsoft-Anmeldung in der `.env` abgeschaltet, ist der Passwort-Weg für alle sofort wieder offen.
+  In der Benutzerübersicht lässt sich der Anmeldeweg je Benutzer **von Hand umschalten** (Spalte
+  `users.anmeldeweg`): auf „nur Microsoft" – auch für Konten, die sich noch nie so angemeldet haben –
+  und wieder zurück auf „Passwort erlaubt", damit niemand versehentlich dauerhaft ausgesperrt bleibt.
   Wer über Microsoft kommt, wird nicht noch einmal nach dem
   zweiten Faktor gefragt. Jeder Versuch landet in `microsoft_anmeldungen` und ist unter
   **Verwaltung → Microsoft-SSO** samt Fehlergrund, geltenden Werten und Einrichtungsanleitung

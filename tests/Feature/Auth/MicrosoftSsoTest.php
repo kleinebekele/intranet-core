@@ -337,6 +337,70 @@ class MicrosoftSsoTest extends TestCase
             ->assertSee('die Anmeldung damit wird abgelehnt', false);
     }
 
+    public function test_admin_kann_ein_konto_von_hand_auf_microsoft_umstellen(): void
+    {
+        $admin = User::factory()->create();
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $benutzer->forceFill(['is_admin' => false])->save();
+
+        // Konto war noch nie über Microsoft angemeldet – Passwort geht.
+        $this->post('/login', ['email' => 'anna@firma.de', 'password' => 'password']);
+        $this->assertAuthenticated();
+        $this->post('/logout');
+
+        $this->actingAs($admin)
+            ->post("/admin/users/{$benutzer->id}/anmeldeweg")
+            ->assertSessionHas('status');
+
+        $this->assertSame('microsoft', $benutzer->fresh()->anmeldeweg);
+
+        $this->post('/logout');
+        $this->post('/login', ['email' => 'anna@firma.de', 'password' => 'password'])
+            ->assertSessionHasErrors(['email' => trans('auth.nur_microsoft')]);
+    }
+
+    public function test_admin_kann_den_passwort_weg_wieder_freigeben(): void
+    {
+        $admin = User::factory()->create();
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $benutzer->forceFill(['is_admin' => false, 'microsoft_id' => self::OID])->save();
+
+        $this->actingAs($admin)->post("/admin/users/{$benutzer->id}/anmeldeweg");
+
+        $this->assertSame('passwort', $benutzer->fresh()->anmeldeweg);
+        $this->assertFalse($benutzer->fresh()->nurUeberMicrosoft());
+
+        $this->post('/logout');
+        $this->post('/login', ['email' => 'anna@firma.de', 'password' => 'password']);
+        $this->assertAuthenticatedAs($benutzer->fresh());
+    }
+
+    public function test_zuruecknehmen_ohne_verknuepfung_fuehrt_in_die_automatik(): void
+    {
+        $admin = User::factory()->create();
+        $benutzer = User::factory()->create();
+        $benutzer->forceFill(['is_admin' => false, 'anmeldeweg' => 'microsoft'])->save();
+
+        // Nie mit Microsoft verknüpft: Dann braucht es keine Ausnahme, der
+        // Weg zurück in die Automatik genügt.
+        $this->actingAs($admin)->post("/admin/users/{$benutzer->id}/anmeldeweg");
+
+        $this->assertNull($benutzer->fresh()->anmeldeweg);
+    }
+
+    public function test_ein_admin_konto_laesst_sich_nicht_umstellen(): void
+    {
+        $admin = User::factory()->create();
+        $zweiter = User::factory()->create();
+        $zweiter->forceFill(['is_admin' => true])->save();
+
+        $this->actingAs($admin)
+            ->post("/admin/users/{$zweiter->id}/anmeldeweg")
+            ->assertSessionHas('error');
+
+        $this->assertNull($zweiter->fresh()->anmeldeweg);
+    }
+
     public function test_protokoll_ist_nur_fuer_admins_sichtbar(): void
     {
         // Achtung: Der allererste Benutzer wird im Core automatisch Admin

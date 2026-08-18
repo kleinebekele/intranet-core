@@ -52,6 +52,21 @@ Microsoft niemand vor der eigenen Tür steht. In der Benutzerliste steht bei ihn
 Und noch eine Sicherung: Wird die Microsoft-Anmeldung in der `.env` wieder abgeschaltet, ist
 der Passwort-Weg für **alle** sofort wieder offen. Niemand bleibt ausgesperrt.
 
+## Einen Benutzer von Hand umstellen
+
+rollen: admin
+
+In der Benutzerübersicht gibt es je Zeile einen Knopf, der den Anmeldeweg umschaltet:
+
+- **Microsoft-Symbol** – ab jetzt nur noch über Microsoft. Das geht auch bei jemandem, der sich
+  hier noch nie so angemeldet hat (praktisch für neue Kollegen). Achtung: Wenn zu der Adresse
+  kein Microsoft-Konto gehört, kommt derjenige damit gar nicht mehr herein.
+- **Schlüssel-Symbol** – Passwort wieder erlauben. Das ist der Rückweg, falls jemand versehentlich
+  ausgesperrt wurde.
+
+Unter dem Namen steht jeweils, was gerade gilt und ob es von Hand festgelegt wurde. Bei
+Administratoren erscheint der Knopf nicht – ihr Passwort gilt immer.
+
 ## Was mit der Zwei-Faktor-Abfrage passiert
 
 rollen: admin

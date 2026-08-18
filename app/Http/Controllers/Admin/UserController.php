@@ -178,6 +178,39 @@ class UserController extends Controller
     }
 
     /**
+     * Den Anmeldeweg eines Benutzers umschalten: nur Microsoft oder Passwort
+     * erlaubt. Der Knopf zeigt immer das Gegenteil des aktuellen Zustands.
+     *
+     * Administratoren bleiben außen vor – ihr Passwort gilt immer, damit bei
+     * einer Störung bei Microsoft niemand vor der eigenen Tür steht.
+     */
+    public function anmeldewegUmschalten(User $user): RedirectResponse
+    {
+        if ($user->isAdmin()) {
+            return back()->with('error', 'Administratoren behalten ihren Passwort-Zugang – das lässt sich nicht umstellen.');
+        }
+
+        if ($user->nurUeberMicrosoft()) {
+            // Bei einem verknüpften Konto braucht es die ausdrückliche
+            // Ausnahme, sonst würde die Automatik sofort wieder greifen. War
+            // es nie verknüpft, genügt der Weg zurück in die Automatik.
+            $user->forceFill([
+                'anmeldeweg' => $user->microsoft_id === null ? null : 'passwort',
+            ])->save();
+
+            return back()->with('status', "{$user->name} darf sich wieder mit Passwort anmelden.");
+        }
+
+        $user->forceFill(['anmeldeweg' => 'microsoft'])->save();
+
+        $zusatz = $user->microsoft_id === null
+            ? ' Achtung: Das Konto war noch nie über Microsoft angemeldet – es kommt erst herein, wenn die Adresse zu einem Microsoft-Konto gehört.'
+            : '';
+
+        return back()->with('status', "{$user->name} meldet sich ab jetzt nur noch über Microsoft an.".$zusatz);
+    }
+
+    /**
      * TOTP zurücksetzen (z. B. Handy verloren): der Benutzer fällt auf den
      * Standard-Mail-Code zurück und kann TOTP im Profil neu einrichten.
      */

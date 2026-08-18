@@ -7,9 +7,9 @@ use App\Http\Controllers\Admin\MailOutboxController;
 use App\Http\Controllers\Admin\MailVorlageController;
 use App\Http\Controllers\Admin\MicrosoftSsoController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SeoController;
 use App\Http\Controllers\Admin\SettingController;
-use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\ProfileController;
@@ -71,6 +71,7 @@ Route::middleware('auth')->group(function () {
         Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
         Route::post('users/{user}/reset-totp', [UserController::class, 'resetTotp'])->name('users.reset-totp');
         Route::post('users/{user}/sperre', [UserController::class, 'sperreUmschalten'])->name('users.sperre');
+        Route::post('users/{user}/anmeldeweg', [UserController::class, 'anmeldewegUmschalten'])->name('users.anmeldeweg');
 
         // Mailvorlagen: Betreff/HTML/Text jeder Mail bearbeiten.
         Route::get('mailvorlagen', [MailVorlageController::class, 'index'])->name('mailvorlagen.index');
