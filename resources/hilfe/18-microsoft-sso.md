@@ -1,0 +1,59 @@
+---
+titel: Anmeldung mit dem Microsoft-Konto
+route: admin.microsoft.index
+kategorie: Verwaltung
+position: 18
+---
+
+rollen: admin
+
+Wer im Haus schon mit einem Microsoft-365-Konto arbeitet, kann sich damit auch im Intranet
+anmelden – ohne zweites Passwort. Diese Seite zeigt, ob das eingerichtet ist, welche Werte
+gelten, und wer es in letzter Zeit versucht hat.
+
+## Wer hereinkommt
+
+rollen: admin
+
+Zwei Fälle, und der Unterschied ist wichtig:
+
+**Bestehende Benutzer** melden sich immer per Microsoft an. Beim ersten Mal wird das
+Microsoft-Konto über die **E-Mail-Adresse** dem vorhandenen Intranet-Konto zugeordnet, danach
+zählt eine unveränderliche Kennung von Microsoft – ein späterer Namenswechsel schadet also
+nicht.
+
+**Unbekannte** bekommen nur dann automatisch ein Konto, wenn sie Mitglied einer freigegebenen
+Microsoft-365-Gruppe sind. Welche Gruppen das sind, steht in der `.env` des Servers unter
+`MS_GRUPPEN`. Ist dort nichts eingetragen, wird **niemand** automatisch angelegt.
+
+Ein gesperrtes Intranet-Konto bleibt gesperrt – auch über Microsoft kommt da niemand herein.
+
+## Was mit der Zwei-Faktor-Abfrage passiert
+
+rollen: admin
+
+Wer sich über Microsoft anmeldet, wird im Intranet **nicht** noch einmal nach einem Code
+gefragt. Der zweite Faktor ist bei Microsoft schon abgehandelt worden; eine zweite Abfrage
+wäre eine Hürde ohne zusätzlichen Schutz. Für die Anmeldung mit Passwort ändert sich nichts.
+
+## Der Passwort-Weg bleibt
+
+rollen: admin
+
+Die gewohnte Anmeldung mit E-Mail und Passwort bleibt daneben bestehen. Das ist Absicht:
+Sollte Microsoft einmal nicht erreichbar sein, kommt man trotzdem noch in sein eigenes
+Intranet.
+
+## Wenn es nicht klappt
+
+rollen: admin
+
+In der Tabelle **Letzte Anmeldeversuche** steht bei jedem Versuch, woran es lag. Die
+häufigsten Fälle:
+
+- *Kein Intranet-Konto* – die Adresse ist hier unbekannt und es ist keine Gruppe freigegeben.
+  Konto in der Benutzerverwaltung anlegen, dann klappt der nächste Versuch.
+- *Nicht in der freigegebenen Gruppe* – das Microsoft-Konto ist in keiner der Gruppen aus
+  `MS_GRUPPEN`.
+- *Fehler* mit Hinweis auf die Tokenkonfiguration – in der App-Registrierung fehlt der
+  optionale Anspruch `groups`. Ohne ihn kann das Intranet die Gruppen nicht sehen.

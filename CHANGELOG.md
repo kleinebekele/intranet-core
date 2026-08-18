@@ -13,6 +13,21 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   der Repo-Lock — die Server ziehen es mit dem nächsten Deploy nach.
 
 ### Hinzugefügt
+- **Anmeldung mit dem Microsoft-Konto (Entra ID / Microsoft 365).** Auf der Anmeldeseite gibt es
+  den Knopf „Mit Microsoft anmelden" – aber nur, wenn in der `.env` Zugangsdaten stehen
+  (`MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`); ohne sie ändert sich für eine Instanz gar
+  nichts. Umgesetzt ohne Fremdpaket als üblicher OpenID-Connect-Ablauf (Authorization Code + PKCE,
+  `state` und `nonce`) in `App\Support\Microsoft\MicrosoftSso`; die maßgebliche Identitätsquelle ist
+  die Graph-Antwort auf `/me`, geprüft werden zusätzlich Empfänger und Tenant des ID-Tokens.
+  **Wer hereinkommt:** Bestehende Konten werden beim ersten Mal über die E-Mail-Adresse zugeordnet
+  (danach über die unveränderliche Objekt-ID in `users.microsoft_id`). **Neu angelegt** wird nur, wer
+  Mitglied einer in `MS_GRUPPEN` freigegebenen Microsoft-365-Gruppe ist (Gruppen aus dem
+  `groups`-Anspruch des Tokens, ersatzweise über Graph `checkMemberGroups`); ohne Eintrag wird
+  niemand angelegt. Gesperrte Konten bleiben auch über Microsoft gesperrt, und der Passwort-Weg
+  bleibt bewusst daneben bestehen. Wer über Microsoft kommt, wird nicht noch einmal nach dem
+  zweiten Faktor gefragt. Jeder Versuch landet in `microsoft_anmeldungen` und ist unter
+  **Verwaltung → Microsoft-SSO** samt Fehlergrund, geltenden Werten und Einrichtungsanleitung
+  sichtbar.
 - **Admin-Fehlerseite & Systemlog im Browser.** Eingeloggte Administratoren sehen bei einem
   Fehler die detaillierte Laravel-Fehlerseite direkt im Browser – die Middleware
   `AdminSiehtFehlerdetails` schaltet `app.debug` **nur für ihren eigenen Request** ein, `APP_DEBUG`

@@ -1,6 +1,41 @@
+@php
+    // Der Microsoft-Knopf erscheint nur, wenn in der .env Zugangsdaten
+    // hinterlegt sind. Instanzen ohne Microsoft 365 sehen die Anmeldeseite
+    // unverändert.
+    $microsoft = app(\App\Support\Microsoft\MicrosoftSso::class)->aktiv();
+@endphp
+
 <x-guest-layout>
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
+
+    @if ($microsoft)
+        <div class="mb-6">
+            <x-input-error :messages="$errors->get('microsoft')" class="mb-3" />
+
+            <a href="{{ route('auth.microsoft.start') }}"
+               class="flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                {{-- Das Microsoft-Signet: vier Quadrate, wie von Microsoft für
+                     den Anmelde-Knopf vorgegeben. --}}
+                <svg class="h-5 w-5" viewBox="0 0 21 21" aria-hidden="true">
+                    <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                    <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                    <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Mit Microsoft anmelden
+            </a>
+
+            <div class="relative mt-6">
+                <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div class="w-full border-t border-gray-200"></div>
+                </div>
+                <div class="relative flex justify-center">
+                    <span class="bg-white px-3 text-xs uppercase tracking-wide text-gray-400">oder</span>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <form method="POST" action="{{ route('login') }}">
         @csrf

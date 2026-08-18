@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\MailAbsenderController;
 use App\Http\Controllers\Admin\MailOutboxController;
 use App\Http\Controllers\Admin\MailVorlageController;
+use App\Http\Controllers\Admin\MicrosoftSsoController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\SeoController;
 use App\Http\Controllers\Admin\SettingController;
@@ -49,6 +50,10 @@ Route::middleware('auth')->group(function () {
 
         // Systemlog im Browser (Fehlersuche ohne SSH ins Logfile).
         Route::get('logs', [LogController::class, 'index'])->name('logs.index');
+
+        // Anmeldung mit dem Microsoft-Konto: Zustand, Einrichtungshilfe und
+        // das Protokoll aller Anmeldeversuche.
+        Route::get('microsoft-sso', [MicrosoftSsoController::class, 'index'])->name('microsoft.index');
 
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
         Route::post('/modules/reorder', [ModuleController::class, 'reorder'])->name('modules.reorder');

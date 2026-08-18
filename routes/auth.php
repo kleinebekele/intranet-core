@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\MicrosoftLoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -21,6 +22,16 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    // Anmeldung mit dem Microsoft-Konto (Entra ID). Die Routen bestehen
+    // immer, melden aber 404, solange in der .env keine Zugangsdaten
+    // hinterlegt sind - dann erscheint auch kein Knopf.
+    Route::get('auth/microsoft', [MicrosoftLoginController::class, 'start'])
+        ->middleware('throttle:20,1')
+        ->name('auth.microsoft.start');
+
+    Route::get('auth/microsoft/callback', [MicrosoftLoginController::class, 'callback'])
+        ->name('auth.microsoft.callback');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
