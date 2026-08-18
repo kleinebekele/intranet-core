@@ -23,8 +23,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   (danach über die unveränderliche Objekt-ID in `users.microsoft_id`). **Neu angelegt** wird nur, wer
   Mitglied einer in `MS_GRUPPEN` freigegebenen Microsoft-365-Gruppe ist (Gruppen aus dem
   `groups`-Anspruch des Tokens, ersatzweise über Graph `checkMemberGroups`); ohne Eintrag wird
-  niemand angelegt. Gesperrte Konten bleiben auch über Microsoft gesperrt, und der Passwort-Weg
-  bleibt bewusst daneben bestehen. Wer über Microsoft kommt, wird nicht noch einmal nach dem
+  niemand angelegt. Die in `MS_ROLLEN` eingestellten Rollen bekommt jeder, der sich über Microsoft
+  anmeldet – auch bestehende Konten, und stets nur ergänzend. Gesperrte Konten bleiben gesperrt,
+  der Passwort-Weg bleibt bewusst daneben bestehen. Wer über Microsoft kommt, wird nicht noch einmal nach dem
   zweiten Faktor gefragt. Jeder Versuch landet in `microsoft_anmeldungen` und ist unter
   **Verwaltung → Microsoft-SSO** samt Fehlergrund, geltenden Werten und Einrichtungsanleitung
   sichtbar.

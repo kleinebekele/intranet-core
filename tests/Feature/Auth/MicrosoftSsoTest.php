@@ -39,7 +39,7 @@ class MicrosoftSsoTest extends TestCase
             'client_id' => self::CLIENT,
             'client_secret' => 'geheim',
             'gruppen' => self::GRUPPE,
-            'neue_rollen' => 'staff',
+            'rollen' => 'staff',
         ]);
     }
 
@@ -98,6 +98,36 @@ class MicrosoftSsoTest extends TestCase
             'email' => 'anna@firma.de',
             'ergebnis' => 'angemeldet',
         ]);
+    }
+
+    public function test_bestehendes_konto_bekommt_die_eingestellten_rollen_nachtraeglich(): void
+    {
+        // Konto war schon da (z. B. von Hand angelegt), bevor es die
+        // Microsoft-Anmeldung gab – die Rolle soll es trotzdem bekommen.
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $this->assertFalse($benutzer->roles()->where('roles.role_id', 'staff')->exists());
+
+        $this->microsoftAntwortet('anna@firma.de');
+
+        $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state');
+
+        $this->assertTrue($benutzer->fresh()->roles()->where('roles.role_id', 'staff')->exists());
+    }
+
+    public function test_vorhandene_rollen_bleiben_erhalten(): void
+    {
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        Role::firstOrCreate(['role_id' => 'buchhaltung'], ['name' => 'Buchhaltung']);
+        $benutzer->roles()->syncWithoutDetaching(['buchhaltung']);
+
+        $this->microsoftAntwortet('anna@firma.de');
+
+        $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state');
+
+        // Ergänzt, nicht ersetzt: Von Hand vergebene Rollen bleiben stehen.
+        $rollen = $benutzer->fresh()->roles()->pluck('roles.role_id')->all();
+        $this->assertContains('buchhaltung', $rollen);
+        $this->assertContains('staff', $rollen);
     }
 
     public function test_grossschreibung_der_adresse_ist_egal(): void

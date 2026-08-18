@@ -65,6 +65,8 @@ class MicrosoftLoginController extends Controller
 
         $this->kontoNachtragen($benutzer, $profil);
 
+        $this->rollenZuweisen($benutzer);
+
         $this->anmelden($request, $benutzer);
 
         $this->protokoll($request, 'angemeldet', null, $profil, $benutzer);
@@ -105,6 +107,8 @@ class MicrosoftLoginController extends Controller
 
         $benutzer = $this->kontoAnlegen($profil);
 
+        $this->rollenZuweisen($benutzer);
+
         $this->anmelden($request, $benutzer);
 
         $this->protokoll($request, 'neu_angelegt', null, $profil, $benutzer);
@@ -137,11 +141,6 @@ class MicrosoftLoginController extends Controller
         $benutzer->microsoft_angemeldet_am = now();
         $benutzer->save();
 
-        foreach ($this->sso->neueRollen() as $rolle) {
-            Role::firstOrCreate(['role_id' => $rolle], ['name' => $rolle]);
-            $benutzer->roles()->syncWithoutDetaching([$rolle]);
-        }
-
         return $benutzer;
     }
 
@@ -157,6 +156,23 @@ class MicrosoftLoginController extends Controller
         }
 
         $benutzer->forceFill($daten)->save();
+    }
+
+    /**
+     * Die eingestellten Rollen zuweisen – bei JEDER Anmeldung über Microsoft,
+     * nicht nur beim Anlegen. Wer über Microsoft hereinkommt, gehört zum Haus;
+     * die Rolle soll er auch dann bekommen, wenn sein Konto schon länger
+     * besteht (oder die Einstellung erst später gesetzt wurde).
+     *
+     * Rollen werden dabei nur ergänzt, nie entzogen: Was ein Admin im Intranet
+     * von Hand vergeben hat, bleibt unangetastet.
+     */
+    private function rollenZuweisen(User $benutzer): void
+    {
+        foreach ($this->sso->rollen() as $rolle) {
+            Role::firstOrCreate(['role_id' => $rolle], ['name' => $rolle]);
+            $benutzer->roles()->syncWithoutDetaching([$rolle]);
+        }
     }
 
     private function anmelden(Request $request, User $benutzer): void

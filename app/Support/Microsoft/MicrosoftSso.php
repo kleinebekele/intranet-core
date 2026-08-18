@@ -66,13 +66,14 @@ class MicrosoftSso
     }
 
     /**
-     * Rollen für automatisch angelegte Konten.
+     * Rollen für jeden, der sich über Microsoft anmeldet – auch für Konten,
+     * die es schon gab. Sie werden nur ergänzt, nie entzogen.
      *
      * @return array<int, string>
      */
-    public function neueRollen(): array
+    public function rollen(): array
     {
-        return $this->liste($this->wert('neue_rollen'));
+        return $this->liste($this->wert('rollen'));
     }
 
     /**

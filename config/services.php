@@ -41,15 +41,17 @@ return [
      * abgewiesen. Ohne Eintrag wird niemand automatisch angelegt – dann kommen
      * nur Benutzer herein, die es im Intranet schon gibt.
      *
-     * MS_NEUE_ROLLEN sind die Rollen, die ein so angelegtes Konto bekommt
-     * (Komma-getrennt, z. B. staff). Die Rolle user vergibt der Core ohnehin.
+     * MS_ROLLEN sind die Rollen, die jeder bekommt, der sich über Microsoft
+     * anmeldet (Komma-getrennt, z. B. staff) – nicht nur neu angelegte Konten.
+     * Rollen werden dabei nur ergänzt, nie entzogen. Die Rolle user vergibt
+     * der Core ohnehin. MS_NEUE_ROLLEN ist der frühere Name und gilt weiter.
      */
     'microsoft' => [
         'tenant' => env('MS_TENANT_ID'),
         'client_id' => env('MS_CLIENT_ID'),
         'client_secret' => env('MS_CLIENT_SECRET'),
         'gruppen' => env('MS_GRUPPEN', ''),
-        'neue_rollen' => env('MS_NEUE_ROLLEN', ''),
+        'rollen' => env('MS_ROLLEN', env('MS_NEUE_ROLLEN', '')),
     ],
 
     'slack' => [

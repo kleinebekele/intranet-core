@@ -30,7 +30,7 @@ class MicrosoftSsoController
                 && config('services.microsoft.client_secret') !== '',
             'umleitung' => $this->sso->umleitungsAdresse(),
             'gruppen' => $this->sso->gruppen(),
-            'rollen' => $this->sso->neueRollen(),
+            'rollen' => $this->sso->rollen(),
             'scopes' => $this->sso->scopes(),
             'darfAnlegen' => $this->sso->darfAnlegen(),
             'verknuepft' => User::query()->whereNotNull('microsoft_id')->count(),

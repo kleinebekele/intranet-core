@@ -80,15 +80,18 @@
                             <li class="break-all font-mono text-xs text-gray-800">{{ $gruppe }}</li>
                         @endforeach
                     </ul>
-                    <p class="text-sm text-gray-600">
-                        Neue Konten bekommen {!! $rollen ? 'die Rolle(n) <strong>'.e(implode(', ', $rollen)).'</strong> (und user)' : 'nur die Rolle <strong>user</strong>' !!}.
-                    </p>
                 @else
                     <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
                         Es ist keine Gruppe hinterlegt (MS_GRUPPEN). Damit wird <strong>niemand</strong> automatisch
                         angelegt: Es kommen ausschließlich Benutzer herein, die es im Intranet schon gibt.
                     </p>
                 @endif
+
+                <p class="mt-3 border-t border-gray-100 pt-3 text-sm text-gray-600">
+                    Rollen bei jeder Microsoft-Anmeldung:
+                    {!! $rollen ? '<strong>'.e(implode(', ', $rollen)).'</strong>' : 'keine (nur <strong>user</strong> vom Core)' !!}.
+                    Sie werden auch bestehenden Konten nachträglich ergänzt – und nie entzogen.
+                </p>
             </div>
         </div>
 

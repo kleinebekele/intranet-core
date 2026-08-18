@@ -28,6 +28,14 @@ Microsoft-365-Gruppe sind. Welche Gruppen das sind, steht in der `.env` des Serv
 
 Ein gesperrtes Intranet-Konto bleibt gesperrt – auch über Microsoft kommt da niemand herein.
 
+## Rollen
+
+rollen: admin
+
+Was in `MS_ROLLEN` steht, bekommt **jeder**, der sich über Microsoft anmeldet – auch Konten, die
+es schon lange gibt. Rollen werden dabei nur **ergänzt**, nie entzogen: Was ein Admin von Hand
+vergeben hat, bleibt stehen.
+
 ## Was mit der Zwei-Faktor-Abfrage passiert
 
 rollen: admin
