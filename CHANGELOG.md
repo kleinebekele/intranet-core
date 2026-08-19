@@ -112,8 +112,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Rumpf beim Speichern zurück. Alle anderen Vorlagen sind HTML-Ausschnitte und behalten das
   Formatier-Feld.
 - **Module ohne sichtbare Unterseite erscheinen nicht mehr in Sidebar und Dashboard.** Ein Modul,
-  das (noch) keine Seiten mitbringt, hatte dort nur ein totes Ziel (`#`) – so ging es dem
-  Linear-Modul auf der Waldorf-Instanz. Dieselbe Regel greift benutzerbezogen: Wer keinen
+  das (noch) keine Seiten mitbringt, hatte dort nur ein totes Ziel (`#`) – so ging es einem
+  Modul, das nur Hintergrund-Aufgaben mitbringt. Dieselbe Regel greift benutzerbezogen: Wer keinen
   einzigen Unterpunkt sehen darf, dem wird das Modul auch nicht mehr angeboten. In der
   **Modulverwaltung bleibt es unverändert sichtbar**, sonst ließe es sich weder einordnen
   noch entfernen.
@@ -300,7 +300,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Mail-Ausgangskorb (`mail_outbox`):** Alle ausgehenden E-Mails werden zwischengelagert
   und vom neuen Task `mail:ausliefern` im erlaubten Takt verschickt. Löst zwei Dinge auf
   einmal: die **Drosselung** (Stundenlimit aus der Verwaltung, gleitend über 60 Minuten – der
-  Provider der Waldorfschule erlaubt nur 250 Mails je Stunde) und ein **Versand-Protokoll**
+  Provider erlaubt oft nur wenige hundert Mails je Stunde) und ein **Versand-Protokoll**
   (Zeitpunkt, Empfänger, Betreff, Status, Fehlertext, Message-ID), das Laravel von sich aus
   nicht führt. Die Message-ID ist der Schlüssel, um später Zustellmeldungen des Providers
   (zugestellt/unzustellbar) daran zu hängen.
