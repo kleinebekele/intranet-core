@@ -66,8 +66,11 @@ class ModuleManifest
      *                              Rein optisch – der Punkt bleibt ein eigener
      *                              Eintrag mit eigenen Rollen und eigener
      *                              Zugriffsregel.
+     * @param  \Closure|null  $visibleWhen  Optionaler Laufzeit-Filter (siehe MenuItem):
+     *                              false = Punkt ausblenden. Für Zustände jenseits
+     *                              der Rollen (z. B. ein Saison-Schalter).
      */
-    public function item(string $key, string $label, string $routeName, ?string $icon = null, int $position = 0, bool $adminsOnly = false, ?string $group = null): static
+    public function item(string $key, string $label, string $routeName, ?string $icon = null, int $position = 0, bool $adminsOnly = false, ?string $group = null, ?\Closure $visibleWhen = null): static
     {
         $this->items[] = new MenuItem(
             key: $key,
@@ -77,6 +80,7 @@ class ModuleManifest
             icon: $icon,
             adminsOnly: $adminsOnly,
             group: $group,
+            visibleWhen: $visibleWhen,
         );
 
         return $this;

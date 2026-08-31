@@ -7,6 +7,13 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- **Menüpunkte können laufzeitabhängig ausgeblendet werden.** `ModuleManifest::item()` nimmt
+  optional eine `visibleWhen`-Closure; liefert sie `false`, blendet die Navigation den Punkt aus
+  (zusätzlich zur Rollen-Prüfung). Gedacht für Zustände, die sich nicht über Rollen abbilden
+  lassen – etwa ein Saison-Schalter „Bewertungen erlauben". Die Closure wird je Anfrage
+  ausgewertet (nicht beim Boot); Fehler in ihr blenden den Punkt nicht aus (im Zweifel sichtbar).
+
 ### Sicherheit
 - **npm-Lock: postcss auf abgesicherte Version** (GHSA-r28c-9q8g-f849, Path-Traversal beim
   automatischen Source-Map-Laden; reine Build-Abhängigkeit, kein Laufzeit-Risiko). Behoben in

@@ -3,6 +3,7 @@
 namespace App\Modules\Support;
 
 use App\Models\Module;
+use App\Models\ModuleMenuItem;
 use Illuminate\Support\Collection;
 
 /**
@@ -39,7 +40,10 @@ class Navigation
             ->filter(fn (Module $module) => $module->isVisibleTo($user))
             ->each(fn (Module $module) => $module->setRelation(
                 'menuItems',
-                $module->menuItems->filter(fn ($item) => $item->isVisibleTo($user))->values()
+                $module->menuItems
+                    ->filter(fn ($item) => $item->isVisibleTo($user))
+                    ->filter(fn ($item) => $this->runtimeVisible($module->key, $item))
+                    ->values()
             ))
             // Nach dem Filtern: ohne sichtbaren Unterpunkt gibt es nichts zu verlinken.
             ->reject(fn (Module $module) => $module->menuItems->isEmpty())
@@ -69,10 +73,39 @@ class Navigation
             $user = auth()->user();
             $module->setRelation(
                 'menuItems',
-                $module->menuItems->filter(fn ($item) => $item->isVisibleTo($user))->values()
+                $module->menuItems
+                    ->filter(fn ($item) => $item->isVisibleTo($user))
+                    ->filter(fn ($item) => $this->runtimeVisible($module->key, $item))
+                    ->values()
             );
         }
 
         return $module;
+    }
+
+    /**
+     * Laufzeit-Filter eines Menüpunkts (siehe MenuItem::$visibleWhen). Der
+     * Manifest-Eintrag des Moduls trägt die optionale Closure; ohne Closure
+     * (Normalfall) ist der Punkt sichtbar. Fehler in der Closure blenden den
+     * Punkt NICHT aus – im Zweifel sichtbar, statt das Menü zu zerreißen.
+     */
+    private function runtimeVisible(string $moduleKey, ModuleMenuItem $item): bool
+    {
+        $definition = collect($this->registry->manifest($moduleKey)?->items ?? [])
+            ->firstWhere('key', $item->key);
+
+        $callback = $definition?->visibleWhen;
+
+        if ($callback === null) {
+            return true;
+        }
+
+        try {
+            return (bool) $callback();
+        } catch (\Throwable $e) {
+            report($e);
+
+            return true;
+        }
     }
 }
