@@ -67,6 +67,17 @@ In der Benutzerübersicht gibt es je Zeile einen Knopf, der den Anmeldeweg umsch
 Unter dem Namen steht jeweils, was gerade gilt und ob es von Hand festgelegt wurde. Bei
 Administratoren erscheint der Knopf nicht – ihr Passwort gilt immer.
 
+## Angemeldet bleiben
+
+rollen: admin
+
+Wer sich über Microsoft anmeldet, bleibt angemeldet: Es wird ein Dauer-Cookie gesetzt, wie bei
+„Angemeldet bleiben" im Passwort-Formular. Ohne das wäre nach zwei Stunden Pause – und damit
+spätestens am nächsten Tag – wieder eine Anmeldung fällig gewesen.
+
+Wer sich abmeldet, ist auch wirklich abgemeldet; das Cookie wird dabei gelöscht. Auf einem
+gemeinsam genutzten Rechner also bitte abmelden statt nur das Fenster zu schließen.
+
 ## Was mit der Zwei-Faktor-Abfrage passiert
 
 rollen: admin

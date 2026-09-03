@@ -179,7 +179,13 @@ class MicrosoftLoginController extends Controller
 
     private function anmelden(Request $request, User $benutzer): void
     {
-        Auth::guard('web')->login($benutzer);
+        // Angemeldet bleiben (Dauer-Cookie). Beim Passwort-Login entscheidet
+        // das die Checkbox auf der Anmeldemaske; beim Microsoft-Knopf gibt es
+        // die nicht – und ohne Cookie war nach Ablauf der Sitzung
+        // (SESSION_LIFETIME, 120 Minuten) jeden Tag eine neue Anmeldung nötig.
+        // Wer hereinkommt, hat sich gerade bei Microsoft ausgewiesen; ihn
+        // täglich erneut hinzuschicken schützt nichts, es nervt nur.
+        Auth::guard('web')->login($benutzer, remember: true);
 
         $request->session()->regenerate();
 

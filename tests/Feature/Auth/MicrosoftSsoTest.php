@@ -7,7 +7,9 @@ use App\Models\Role;
 use App\Models\User;
 use App\Support\Microsoft\MicrosoftSso;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -98,6 +100,85 @@ class MicrosoftSsoTest extends TestCase
             'email' => 'anna@firma.de',
             'ergebnis' => 'angemeldet',
         ]);
+    }
+
+    public function test_die_anmeldung_setzt_das_dauer_cookie(): void
+    {
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+
+        $this->microsoftAntwortet('anna@firma.de');
+
+        $antwort = $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state');
+
+        // Ohne dieses Cookie wäre nach Ablauf der Sitzung (120 Minuten) jeden
+        // Tag eine neue Anmeldung nötig.
+        $this->assertNotNull($benutzer->fresh()->remember_token);
+        $this->assertNotNull(
+            $antwort->getCookie(Auth::guard('web')->getRecallerName(), false),
+            'Es wurde kein Angemeldet-bleiben-Cookie gesetzt.'
+        );
+    }
+
+    public function test_rueckkehr_per_cookie_fragt_keinen_zweiten_faktor(): void
+    {
+        // Konto mit eingeschalteter 2FA, das nur über Microsoft hereinkommt.
+        $admin = User::factory()->create();
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $benutzer->forceFill(['is_admin' => false, 'two_factor_enabled' => true])->save();
+
+        $this->microsoftAntwortet('anna@firma.de');
+        $antwort = $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state');
+
+        // Frische Sitzung, nur das Dauer-Cookie aus der Anmeldung: So kommt
+        // jemand am nächsten Tag zurück. Der Merker aus dem SSO-Ablauf ist
+        // dann weg, der zweite Faktor darf trotzdem nicht abgefragt werden.
+        $zweiterAufruf = $this->neueSitzungMitCookie($antwort)->get('/dashboard');
+
+        $this->assertSame(
+            200,
+            $zweiterAufruf->status(),
+            'Umgeleitet nach: '.($zweiterAufruf->headers->get('Location') ?? '—')
+        );
+        $this->assertAuthenticatedAs($benutzer->fresh());
+    }
+
+    public function test_admin_wird_bei_rueckkehr_per_cookie_weiter_gefragt(): void
+    {
+        // Beim Admin darf das Cookie von einer PASSWORT-Anmeldung stammen –
+        // ihn durchzulassen würde die 2FA aushebeln.
+        $admin = User::factory()->create(['email' => 'chef@firma.de']);
+        $admin->forceFill(['is_admin' => true, 'two_factor_enabled' => true])->save();
+
+        $this->microsoftAntwortet('chef@firma.de');
+        $antwort = $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state');
+
+        $this->neueSitzungMitCookie($antwort)
+            ->get('/dashboard')
+            ->assertRedirect(route('two-factor.challenge'));
+    }
+
+    /**
+     * Das Angemeldet-bleiben-Cookie aus einer Anmelde-Antwort übernehmen und
+     * die Sitzung leeren – der Zustand am nächsten Tag.
+     */
+    private function neueSitzungMitCookie(TestResponse $antwort): self
+    {
+        $name = Auth::guard('web')->getRecallerName();
+
+        // Entschlüsselt übernehmen: withCookie() verschlüsselt beim Senden
+        // selbst wieder – der rohe Wert käme doppelt verschlüsselt an.
+        $cookie = $antwort->getCookie($name);
+
+        $this->assertNotNull($cookie, 'Es wurde kein Angemeldet-bleiben-Cookie gesetzt.');
+
+        $this->flushSession();
+
+        // Ohne das hier bliebe der bereits angemeldete Benutzer im Guard
+        // stehen: Der nächste Aufruf liefe gar nicht über das Cookie, und der
+        // Test würde etwas anderes prüfen als gemeint.
+        $this->app['auth']->forgetGuards();
+
+        return $this->withCookie($name, $cookie->getValue());
     }
 
     public function test_bestehendes_konto_bekommt_die_eingestellten_rollen_nachtraeglich(): void

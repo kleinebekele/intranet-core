@@ -7,6 +7,19 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Geändert
+- **Die Microsoft-Anmeldung bleibt bestehen („Angemeldet bleiben").** Bisher wurde beim
+  Microsoft-Knopf kein Dauer-Cookie gesetzt – die Checkbox gibt es ja nur im Passwort-Formular –,
+  also war nach Ablauf der Sitzung (`SESSION_LIFETIME`, standardmäßig 120 Minuten) praktisch
+  täglich eine neue Anmeldung fällig. `Auth::login(..., remember: true)` setzt das Cookie jetzt
+  beim SSO-Login. Wer hereinkommt, hat sich gerade bei Microsoft ausgewiesen; ihn täglich erneut
+  hinzuschicken schützt nichts. Damit die Rückkehr über das Cookie nicht an der Zwei-Faktor-Abfrage
+  hängen bleibt (die Sitzung ist dann neu, der Merker aus dem SSO-Ablauf fehlt), lässt
+  `EnsureTwoFactorChallenge` solche Rückkehrer durch – **aber nur, wenn das Konto ausschließlich
+  über Microsoft hereinkommt** (`nurUeberMicrosoft()`). Bei Administratoren, die sich auch mit
+  Passwort anmelden dürfen, könnte das Cookie von einer Passwort-Anmeldung stammen; dort bleibt
+  die 2FA-Abfrage bestehen.
+
 ### Hinzugefügt
 - **Menüpunkte können laufzeitabhängig ausgeblendet werden.** `ModuleManifest::item()` nimmt
   optional eine `visibleWhen`-Closure; liefert sie `false`, blendet die Navigation den Punkt aus
