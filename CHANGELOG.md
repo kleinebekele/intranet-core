@@ -8,9 +8,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
-- **Die Glocke in der Kopfzeile.** Neu ist `AppSupportHinweise` – wie die Kontexthilfe eine
+- **Die Glocke in der Kopfzeile.** Neu ist `App\Support\Hinweise` – wie die Kontexthilfe eine
   Vermittlungsstelle: Ein Modul meldet über `Hinweise::anbieten(fn (User $user) => [...])`
-  offene Zustände (`AppSupportHinweis`: Titel, Link, Quelle, Anzahl), der Core zählt sie in
+  offene Zustände (`App\Support\Hinweis`: Titel, Link, Quelle, Anzahl), der Core zählt sie in
   den roten Punkt an der Glocke und listet sie im Klappmenü mit Link zur Seite, auf der man sie
   behebt. Der Core merkt sich nichts – der Hinweis bleibt, bis das Modul ihn nicht mehr liefert.
   Anlass: eine Route auf einen gelöschten Teams-Workflow, die außer im Log nirgends auffiel.
