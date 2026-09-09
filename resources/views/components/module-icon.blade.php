@@ -57,6 +57,7 @@
         'wifi'         => 'bx-wifi',
         'server'       => 'bx-server',
         'help'         => 'bx-help-circle',
+        'bell'         => 'bx-bell',
         'tag'          => 'bx-purchase-tag',
         'history'      => 'bx-history',
         'default'   => 'bx-grid-alt',

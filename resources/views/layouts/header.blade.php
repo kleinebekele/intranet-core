@@ -27,6 +27,7 @@
             @auth
                 {{-- Kein Verwaltungs-Link mehr hier: Er fuehrte zum selben Ziel wie der
                      Punkt unten in der Seitenleiste. Ein Ziel, ein Weg. --}}
+                <x-hinweis-glocke />
                 <x-hilfe-knopf />
 
                 <x-dropdown align="right" width="48">

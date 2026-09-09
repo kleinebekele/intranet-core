@@ -169,7 +169,9 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Im Produktivbetrieb immer Secure (HTTPS-only) – der Core erzwingt dort ohnehin
+    // https (AppServiceProvider). Per .env nur noch abschaltbar, nicht mehr vergessbar.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

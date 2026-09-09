@@ -182,6 +182,41 @@ Nach dem Vorbild der Mailvorlagen gilt: Der Standard liegt im Paket, die Instanz
 die Abweichung. Wer eine Anleitung im Backend bearbeitet, schützt sie damit vor dem nächsten
 Abgleich.
 
+## 5b. Offene Zustände melden (die Glocke in der Kopfzeile)
+
+Manches darf nicht nur im Log stehen: eine Benachrichtigung, die drei Mal nicht zugestellt
+wurde, eine Meldungsart ohne Route, ein Zertifikat kurz vor Ablauf. Dafür gibt es die Glocke
+rechts in der Kopfzeile. Der Core zeigt sie immer; Module füllen sie über `App\Support\Hinweise`:
+
+```php
+use App\Support\Hinweis;
+use App\Support\Hinweise;
+
+// im boot() des Modul-Providers
+Hinweise::anbieten(function (User $user): iterable {
+    if (! $user->isAdmin()) {
+        return [];
+    }
+
+    $n = Notification::query()->whereIn('status', ['failed', 'ohne_ziel'])->count();
+
+    return $n > 0
+        ? [new Hinweis("$n Benachrichtigungen nicht zugestellt", route('module.ekkon.notifications.index'), 'Ekkon', $n)]
+        : [];
+});
+```
+
+- Ein `Hinweis` ist **Titel + Link + Quelle + Anzahl**. Der Link führt auf die Seite, auf der man
+  den Zustand behebt; die Anzahl zählt in den roten Punkt.
+- Der Anbieter entscheidet selbst, **wer** den Hinweis sieht – er bekommt den Benutzer.
+- Er läuft bei **jedem Seitenaufruf**: eine Zählabfrage, nicht mehr. Wirft er (Tabelle noch
+  nicht migriert), fällt nur sein Beitrag aus, nie die Seite.
+- Der Hinweis verschwindet, sobald der Anbieter ihn nicht mehr liefert – der Core merkt sich
+  nichts. Es gibt kein „gelesen"; ein offener Zustand bleibt offen, bis er behoben ist.
+- Ältere Cores kennen die Klasse nicht: `class_exists(\App\Support\Hinweise::class)` prüfen.
+
+---
+
 ---
 
 ## 6. Icons

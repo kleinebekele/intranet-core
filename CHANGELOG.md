@@ -7,7 +7,19 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- **Die Glocke in der Kopfzeile.** Neu ist `AppSupportHinweise` – wie die Kontexthilfe eine
+  Vermittlungsstelle: Ein Modul meldet über `Hinweise::anbieten(fn (User $user) => [...])`
+  offene Zustände (`AppSupportHinweis`: Titel, Link, Quelle, Anzahl), der Core zählt sie in
+  den roten Punkt an der Glocke und listet sie im Klappmenü mit Link zur Seite, auf der man sie
+  behebt. Der Core merkt sich nichts – der Hinweis bleibt, bis das Modul ihn nicht mehr liefert.
+  Anlass: eine Route auf einen gelöschten Teams-Workflow, die außer im Log nirgends auffiel.
+  MODULES.md 5b. Erste Nutzung: `do1emu/module-ekkon`.
+
 ### Geändert
+- **Session-Cookie im Produktivbetrieb immer mit Secure-Flag.** Bisher hing das an
+  `SESSION_SECURE_COOKIE` in der `.env` und fehlte auf den Servern; jetzt ist `production` der
+  Auslöser, die `.env`-Zeile bleibt nur zum Abschalten.
 - **Die Microsoft-Anmeldung bleibt bestehen („Angemeldet bleiben").** Bisher wurde beim
   Microsoft-Knopf kein Dauer-Cookie gesetzt – die Checkbox gibt es ja nur im Passwort-Formular –,
   also war nach Ablauf der Sitzung (`SESSION_LIFETIME`, standardmäßig 120 Minuten) praktisch
