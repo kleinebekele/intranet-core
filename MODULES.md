@@ -219,6 +219,32 @@ Hinweise::anbieten(function (User $user): iterable {
 
 ---
 
+## 5c. Rückfragen und Hinweise: kein `confirm()`/`alert()` mehr
+
+Der Core bringt einen eigenen Dialog mit (`layouts/dialog.blade.php`, Alpine-Store `dialog`).
+Die Browser-Popups sind damit tabu – sie sehen fremd aus und lassen sich nicht gestalten.
+
+```blade
+{{-- bevorzugt: Attribut am Formular oder Knopf --}}
+<form method="POST" action="…" data-bestaetigen="Rolle „{{ $role->name }}“ wirklich löschen?"
+      data-knopf="Löschen">
+```
+
+```js
+// eigenes JS
+if (await window.bestaetige('Meldung wirklich löschen?', { knopf: 'Löschen' })) { … }
+await window.hinweis('Gespeichert.');
+```
+
+- `data-titel`, `data-knopf` sind optional; enthält der Text „löschen/entfernen/verwerfen/
+  zurücksetzen", wird der Knopf rot.
+- **Bestandsschutz:** `onsubmit="return confirm('…')"` und `onclick="return confirm('…')"`
+  fängt der Core ab und zeigt denselben Dialog – alte Views laufen unverändert, neue nutzen
+  das Attribut. `window.alert()` landet ebenfalls im Dialog.
+- Der Dialog gehört zum `app`-Layout. Vollbild-Seiten ohne Core-Layout haben ihn nicht.
+
+---
+
 ## 6. Icons
 
 Das Icon im Manifest ist ein Name aus dem eingebauten Satz (Komponente

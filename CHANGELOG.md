@@ -8,6 +8,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Eigener Dialog statt Browser-Popups.** `confirm()`/`alert()` sind ersetzt: `data-bestaetigen`
+  an Formular oder Knopf, `window.bestaetige()` / `window.hinweis()` im JS, und Bestandsschutz –
+  bestehende `onsubmit="return confirm(…)"` fängt der Core ab und zeigt denselben Dialog. Kein
+  Modul muss dafür angefasst werden. MODULES.md 5c.
 - **Die Glocke in der Kopfzeile.** Neu ist `App\Support\Hinweise` – wie die Kontexthilfe eine
   Vermittlungsstelle: Ein Modul meldet über `Hinweise::anbieten(fn (User $user) => [...])`
   offene Zustände (`App\Support\Hinweis`: Titel, Link, Quelle, Anzahl), der Core zählt sie in
