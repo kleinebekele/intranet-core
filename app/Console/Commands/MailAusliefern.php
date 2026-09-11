@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\MailKonto;
 use App\Models\MailOutbox;
 use App\Support\Zustellbarkeit;
 use Illuminate\Console\Command;
@@ -99,10 +100,32 @@ class MailAusliefern extends Command
             return false;
         }
 
+        // Ein SMTP-Konto aus der Verwaltung? Dann seinen Mailer erst einhängen.
+        // Fehlt das Konto inzwischen, bleibt die Mail liegen statt still über den
+        // Standard-Absender rauszugehen – das wäre eine falsche Absenderadresse.
+        $mailer = $eintrag->mailer ?: null;
+        if ($mailer !== null && str_starts_with($mailer, MailKonto::PRAEFIX)) {
+            $konto = MailKonto::ausMailerName($mailer);
+
+            if (! $konto || ! $konto->aktiv) {
+                $eintrag->update([
+                    'status' => MailOutbox::FEHLGESCHLAGEN,
+                    'versuche' => $eintrag->versuche + 1,
+                    'fehler' => "SMTP-Absender {$mailer} ist gelöscht oder abgeschaltet.",
+                ]);
+
+                $this->warn("#{$eintrag->id} [{$eintrag->betreff}]: SMTP-Absender {$mailer} fehlt – nicht verschickt.");
+
+                return false;
+            }
+
+            $mailer = $konto->registrieren();
+        }
+
         try {
             // Direkt über den Transport, nicht über Mail::send – sonst würde
             // MailInDieOutbox die Mail sofort wieder einkassieren.
-            $gesendet = Mail::mailer($eintrag->mailer ?: null)
+            $gesendet = Mail::mailer($mailer)
                 ->getSymfonyTransport()
                 ->send($eintrag->alsEmail());
 

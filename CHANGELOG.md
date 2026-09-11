@@ -8,6 +8,13 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **SMTP-Absender.** Unter Maillog → „SMTP-Absender" lassen sich eigene Postfächer mit eigenem
+  Server-Zugang anlegen (Absenderadresse, Anzeigename, Antwort-an, Host/Port/Verschlüsselung,
+  Zugangsdaten verschlüsselt; Testmail an sich selbst). Ein Modul markiert eine Mail mit
+  `MailKonto::anMail($nachricht, $name, $antwortAn)`; der Ausgangskorb schickt sie dann über
+  genau dieses Konto (`mail_outbox.mailer = konto-<id>`, Mailer wird beim Versand aus der DB
+  eingehängt). Fehlt das Konto später oder ist es abgeschaltet, bleibt die Mail als
+  fehlgeschlagen liegen statt mit falscher Absenderadresse rauszugehen.
 - **Eigener Dialog statt Browser-Popups.** `confirm()`/`alert()` sind ersetzt: `data-bestaetigen`
   an Formular oder Knopf, `window.bestaetige()` / `window.hinweis()` im JS, und Bestandsschutz –
   bestehende `onsubmit="return confirm(…)"` fängt der Core ab und zeigt denselben Dialog. Kein

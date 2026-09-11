@@ -89,11 +89,18 @@
                 @endforeach
             </div>
 
-            <a href="{{ route('admin.mail.absender') }}"
-               class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                <i class='bx bx-envelope text-base leading-none'></i>
-                Absender je Auslöser
-            </a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.mail.absender') }}"
+                   class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <i class='bx bx-envelope text-base leading-none'></i>
+                    Absender je Auslöser
+                </a>
+                <a href="{{ route('admin.mail.konten.index') }}"
+                   class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <i class='bx bx-server text-base leading-none'></i>
+                    SMTP-Absender
+                </a>
+            </div>
         </div>
 
         @if ($mails->isEmpty())

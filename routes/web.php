@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\EinladungController;
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\MailAbsenderController;
+use App\Http\Controllers\Admin\MailKontoController;
 use App\Http\Controllers\Admin\MailOutboxController;
 use App\Http\Controllers\Admin\MailVorlageController;
 use App\Http\Controllers\Admin\MicrosoftSsoController;
@@ -98,6 +99,15 @@ Route::middleware('auth')->group(function () {
         // Eigener Absender/Antwort-an je Modul + Auslöser.
         Route::get('mails/absender', [MailAbsenderController::class, 'index'])->name('mail.absender');
         Route::put('mails/absender', [MailAbsenderController::class, 'speichern'])->name('mail.absender.speichern');
+
+        // SMTP-Absender: eigene Postfächer mit eigenem Server-Zugang.
+        Route::get('mails/konten', [MailKontoController::class, 'index'])->name('mail.konten.index');
+        Route::get('mails/konten/anlegen', [MailKontoController::class, 'create'])->name('mail.konten.create');
+        Route::post('mails/konten', [MailKontoController::class, 'store'])->name('mail.konten.store');
+        Route::get('mails/konten/{konto}/bearbeiten', [MailKontoController::class, 'edit'])->name('mail.konten.edit');
+        Route::put('mails/konten/{konto}', [MailKontoController::class, 'update'])->name('mail.konten.update');
+        Route::delete('mails/konten/{konto}', [MailKontoController::class, 'destroy'])->name('mail.konten.destroy');
+        Route::post('mails/konten/{konto}/testmail', [MailKontoController::class, 'testmail'])->name('mail.konten.testmail');
     });
 });
 

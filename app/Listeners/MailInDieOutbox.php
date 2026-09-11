@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Models\MailAbsender;
+use App\Models\MailKonto;
 use App\Models\MailOutbox;
 use App\Support\Zustellbarkeit;
 use Illuminate\Mail\Events\MessageSending;
@@ -47,6 +48,10 @@ class MailInDieOutbox
         $referenz = $this->headerZiehen($email, \App\Mail\Vorlagen\VorlagenMailer::REFERENZ_HEADER);
         $headerModul = $this->headerZiehen($email, \App\Mail\Vorlagen\VorlagenMailer::MODUL_HEADER);
 
+        // Über welches SMTP-Konto soll die Mail raus? (siehe MailKonto::anMail)
+        $mailerName = $this->headerZiehen($email, MailKonto::MAILER_HEADER)
+            ?: ($event->data['__laravel_mailer'] ?? null);
+
         // Die auslösende Klasse (Mailable/Notification) bestimmt die EILIGKEIT –
         // sie wird über den Klassennamen erkannt (2FA, Passwort-Link). Das bleibt
         // getrennt von der ANZEIGE: ein Modul, das einen sprechenden Auslöser
@@ -71,6 +76,17 @@ class MailInDieOutbox
         // Notausgang: Ist der Ausgangskorb abgeschaltet, geht alles wie bisher
         // sofort raus. Wichtig fuer lokale Entwicklung ohne laufenden Scheduler.
         if (! config('mail.outbox.aktiv', true)) {
+            // Ohne Ausgangskorb schickt Laravel sofort über den Standard-Mailer –
+            // ein gewähltes Konto käme dann nicht zum Zug. Deshalb hier selbst
+            // über dessen Transport verschicken und den Standardversand abbrechen.
+            if ($konto = MailKonto::ausMailerName($mailerName)) {
+                \Illuminate\Support\Facades\Mail::mailer($konto->registrieren())
+                    ->getSymfonyTransport()
+                    ->send($email);
+
+                return false;
+            }
+
             return true;
         }
 
@@ -78,7 +94,7 @@ class MailInDieOutbox
             MailOutbox::create([
                 'status' => MailOutbox::WARTEND,
                 'prioritaet' => $this->prioritaet($klasse),
-                'mailer' => $event->data['__laravel_mailer'] ?? null,
+                'mailer' => $mailerName ?: null,
                 'betreff' => $email->getSubject(),
                 'an' => array_map(fn (Address $a) => $a->getAddress(), $email->getTo()),
                 'quelle' => $quelle,
