@@ -14,17 +14,35 @@ use Illuminate\View\View;
  */
 class EinladungController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $wartend = Einladung::with('user.roles')->wartend()->oldest()->get();
+        $search = trim((string) $request->query('search', ''));
+
+        // Der Suchfilter greift auf Name und E-Mail des eingeladenen Benutzers –
+        // in beiden Listen, damit man eine Person auch nach der Entscheidung findet.
+        $nachPerson = fn ($query) => $query->when($search !== '', fn ($q) => $q->whereHas(
+            'user',
+            fn ($u) => $u->where(fn ($w) => $w
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")),
+        ));
+
+        $wartend = Einladung::with('user.roles')->wartend()
+            ->tap($nachPerson)
+            ->oldest()
+            ->paginate(50, ['*'], 'seite')
+            ->withQueryString();
 
         $erledigt = Einladung::with('user')
             ->where('status', '!=', Einladung::WARTEND)
+            ->tap($nachPerson)
             ->latest('entschieden_am')
-            ->take(25)
-            ->get();
+            ->paginate(25, ['*'], 'erledigt_seite')
+            ->withQueryString();
 
-        return view('admin.einladungen.index', compact('wartend', 'erledigt'));
+        $wartendGesamt = Einladung::wartend()->count();
+
+        return view('admin.einladungen.index', compact('wartend', 'erledigt', 'search', 'wartendGesamt'));
     }
 
     /** Eine einzelne Einladung verschicken. */

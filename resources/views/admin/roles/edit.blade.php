@@ -3,7 +3,7 @@
         <h1 class="text-xl font-semibold text-gray-800">Verwaltung</h1>
     </x-slot>
 
-    <div class="max-w-lg">
+    <div>
         @include('admin.partials.tabs')
 
         <h2 class="text-lg font-medium text-gray-800 mb-4">Rolle bearbeiten</h2>

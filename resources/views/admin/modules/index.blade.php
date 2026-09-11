@@ -3,7 +3,7 @@
         <h1 class="text-xl font-semibold text-gray-800">Modul-Verwaltung</h1>
     </x-slot>
 
-    <div class="max-w-3xl">
+    <div>
         @include('admin.partials.tabs')
 
         {{-- Erfolgsmeldungen rendert das Layout; Fehler aus dem Entfernen-Dialog hier. --}}

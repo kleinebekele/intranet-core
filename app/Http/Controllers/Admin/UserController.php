@@ -38,7 +38,8 @@ class UserController extends Controller
                 $query->whereHas('roles', fn ($q) => $q->where('roles.role_id', $roleFilter));
             })
             ->orderBy('name')
-            ->get();
+            ->paginate(50)
+            ->withQueryString();
 
         $roles = Role::orderByDesc('is_system')->orderBy('role_id')->get();
 

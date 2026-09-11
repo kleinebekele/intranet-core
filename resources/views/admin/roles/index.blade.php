@@ -3,7 +3,7 @@
         <h1 class="text-xl font-semibold text-gray-800">Verwaltung</h1>
     </x-slot>
 
-    <div class="max-w-3xl" x-data="{ detachOpen: false, detachAction: '', detachRole: '', detachCount: 0 }">
+    <div x-data="{ detachOpen: false, detachAction: '', detachRole: '', detachCount: 0 }">
         @include('admin.partials.tabs')
 
         @if ($errors->any())

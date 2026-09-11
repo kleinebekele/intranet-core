@@ -16,7 +16,7 @@
             </div>
         @endif
 
-        <p class="mb-4 max-w-3xl text-sm text-gray-600">
+        <p class="mb-4 text-sm text-gray-600">
             Hier bekommt jede Seite eine sprechende Adresse und einen festen Titel. Die Adresse
             <span class="font-medium">ersetzt</span> die bisherige – auch alle Menüpunkte und
             internen Verweise zeigen danach dorthin. Die alte Adresse leitet weiter, damit

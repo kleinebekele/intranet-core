@@ -3,7 +3,7 @@
         <h1 class="text-xl font-semibold text-gray-800">Verwaltung</h1>
     </x-slot>
 
-    <div class="max-w-4xl">
+    <div>
         @include('admin.partials.tabs')
 
         @if ($errors->any())
@@ -55,9 +55,12 @@
         </form>
 
         <div class="mb-2 text-xs text-gray-400">
-            {{ $users->count() }} Benutzer
+            {{ $users->total() }} Benutzer
             @if ($search !== '' || $roleFilter !== '')
                 <span class="text-gray-300">·</span> gefiltert
+            @endif
+            @if ($users->hasPages())
+                <span class="text-gray-300">·</span> Seite {{ $users->currentPage() }} von {{ $users->lastPage() }}
             @endif
         </div>
 
@@ -190,5 +193,9 @@
                 </tbody>
             </table>
         </div>
+
+        @if ($users->hasPages())
+            <div class="mt-4">{{ $users->links() }}</div>
+        @endif
     </div>
 </x-app-layout>

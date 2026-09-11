@@ -23,7 +23,7 @@
             <a href="{{ route('admin.mailvorlagen.index') }}" class="text-sm text-indigo-600 hover:underline">&larr; alle Vorlagen</a>
         </div>
 
-        <p class="mb-4 max-w-3xl text-gray-600">{{ $definition->beschreibung }}</p>
+        <p class="mb-4 text-gray-600">{{ $definition->beschreibung }}</p>
 
         <form method="POST" action="{{ route('admin.mailvorlagen.update', $definition->schluessel) }}"
               @submit="vorSpeichern">
@@ -34,7 +34,7 @@
             @unless ($istRahmen)
                 <label class="mb-1 block text-sm font-medium text-gray-700">Betreff</label>
                 <input type="text" name="betreff" x-model="betreffWert" @input="nachVorschau"
-                       class="mb-4 block w-full max-w-3xl rounded-lg border-gray-300 text-sm">
+                       class="mb-4 block w-full rounded-lg border-gray-300 text-sm">
             @endunless
 
             {{-- Platzhalter-Hilfe: gilt für formatierte Fassung UND reinen Text. --}}
@@ -193,7 +193,7 @@
                 {{-- Testmail --}}
                 <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <div class="mb-1 text-sm font-medium text-gray-700">Testmail versenden</div>
-                    <p class="mb-3 max-w-3xl text-xs text-gray-500">
+                    <p class="mb-3 text-xs text-gray-500">
                         Schickt die Vorlage mit den aktuell eingegebenen Texten und den oben gewählten
                         Benutzerdaten an eine beliebige Adresse. Der Link bleibt ein Beispiel — es wird kein
                         echter Zugang verschickt.

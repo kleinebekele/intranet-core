@@ -3,7 +3,7 @@
         <h1 class="text-xl font-semibold text-gray-800">Verwaltung</h1>
     </x-slot>
 
-    <div class="max-w-lg">
+    <div>
         @include('admin.partials.tabs')
 
         <h2 class="text-lg font-medium text-gray-800 mb-4">Neuen Benutzer anlegen</h2>
@@ -32,7 +32,7 @@
                 @if ($roles->isEmpty())
                     <p class="mt-1 text-sm text-gray-400">Noch keine Rollen vorhanden – lege welche im Tab „Rollen" an.</p>
                 @else
-                    <div class="mt-2 grid grid-cols-2 gap-2">
+                    <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
                         @foreach ($roles as $role)
                             @php($isBaseline = $role->role_id === 'user')
                             <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 {{ $isBaseline ? 'bg-gray-50' : '' }}">

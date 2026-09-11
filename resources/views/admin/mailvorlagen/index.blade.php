@@ -3,7 +3,7 @@
         <h1 class="text-xl font-semibold text-gray-800">Mailvorlagen</h1>
     </x-slot>
 
-    <div class="max-w-3xl">
+    <div>
         @include('admin.partials.tabs')
 
         <p class="mb-6 text-gray-600">

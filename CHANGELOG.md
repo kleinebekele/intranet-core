@@ -21,6 +21,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   MODULES.md 5b. Erste Nutzung: `do1emu/module-ekkon`.
 
 ### Geändert
+- **Verwaltung in voller Breite.** Alle Admin-Tabs nutzen die ganze Bildschirmbreite (keine
+  `max-w`-Begrenzer mehr, Rollen-Kacheln in den Benutzer-Formularen responsiv). Die
+  Benutzerliste ist seitenweise (50 je Seite, Filter bleiben in der URL); die Einladungen haben
+  einen Suchfilter (Name/E-Mail) und beide Listen dort sind seitenweise. „Alle verschicken"
+  meint weiterhin alle wartenden, unabhängig von Suche und Seite.
 - **Session-Cookie im Produktivbetrieb immer mit Secure-Flag.** Bisher hing das an
   `SESSION_SECURE_COOKIE` in der `.env` und fehlte auf den Servern; jetzt ist `production` der
   Auslöser, die `.env`-Zeile bleibt nur zum Abschalten.

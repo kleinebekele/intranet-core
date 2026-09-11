@@ -34,7 +34,7 @@
             </div>
         @endif
 
-        <p class="mb-6 max-w-3xl text-sm text-gray-500">
+        <p class="mb-6 text-sm text-gray-500">
             Für jede Kombination aus <span class="font-medium text-gray-700">Modul</span> und
             <span class="font-medium text-gray-700">Auslöser</span> lässt sich ein eigener Absender und
             eine Antwort-Adresse festlegen. Bleibt ein Feld leer, gilt weiter der Absender, den das Modul

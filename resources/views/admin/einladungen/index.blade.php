@@ -20,21 +20,53 @@
             sich an, ohne je eine Mail zu bekommen.
         </p>
 
+        {{-- Suche (GET, damit der Filter in der URL steht und die Seitenlinks ihn mitnehmen) --}}
+        <form method="GET" action="{{ route('admin.einladungen.index') }}"
+              class="mb-4 flex flex-wrap items-end gap-3">
+            <div class="flex-1 min-w-[12rem]">
+                <label for="search" class="block text-xs font-medium text-gray-500">Suche (Name oder E-Mail)</label>
+                <input id="search" name="search" type="text" value="{{ $search }}"
+                       placeholder="z. B. Schmidt oder @firma.de"
+                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+            </div>
+            <button type="submit"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                <i class='bx bx-search text-base'></i> Suchen
+            </button>
+            @if ($search !== '')
+                <a href="{{ route('admin.einladungen.index') }}"
+                   class="px-2 py-2 text-sm text-gray-500 hover:text-gray-700">Zurücksetzen</a>
+            @endif
+        </form>
+
         @if ($wartend->isEmpty())
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
-                Es wartet keine Einladung.
+                @if ($search !== '')
+                    Keine wartende Einladung passt zu „{{ $search }}".
+                @else
+                    Es wartet keine Einladung.
+                @endif
             </div>
         @else
             <div class="mb-3 flex items-center justify-between">
-                <div class="text-sm text-gray-500">{{ $wartend->count() }} wartend</div>
+                <div class="text-sm text-gray-500">
+                    {{ $wartend->total() }} wartend
+                    @if ($search !== '')
+                        <span class="text-gray-300">·</span> gefiltert, insgesamt {{ $wartendGesamt }}
+                    @endif
+                    @if ($wartend->hasPages())
+                        <span class="text-gray-300">·</span> Seite {{ $wartend->currentPage() }} von {{ $wartend->lastPage() }}
+                    @endif
+                </div>
 
+                {{-- „Alle" meint immer alle wartenden, unabhängig von Suche und Seite. --}}
                 <form method="POST" action="{{ route('admin.einladungen.alle') }}"
-                      onsubmit="return confirm('{{ $wartend->count() }} Einladungen jetzt verschicken?');">
+                      onsubmit="return confirm('{{ $wartendGesamt }} Einladungen jetzt verschicken?');">
                     @csrf
                     <button type="submit"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                         <i class='bx bx-mail-send text-base'></i>
-                        Alle {{ $wartend->count() }} verschicken
+                        Alle {{ $wartendGesamt }} verschicken
                     </button>
                 </form>
             </div>
@@ -92,10 +124,17 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($wartend->hasPages())
+                <div class="mt-4">{{ $wartend->links() }}</div>
+            @endif
         @endif
 
         @if ($erledigt->isNotEmpty())
-            <h2 class="mt-8 mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">Zuletzt entschieden</h2>
+            <h2 class="mt-8 mb-2 text-sm font-semibold uppercase tracking-wide text-gray-400">
+                Entschieden
+                <span class="font-normal normal-case tracking-normal text-gray-400">({{ $erledigt->total() }})</span>
+            </h2>
             <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white">
                 <table class="min-w-full text-sm">
                     <tbody class="divide-y divide-gray-100">
@@ -117,6 +156,10 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($erledigt->hasPages())
+                <div class="mt-4">{{ $erledigt->links() }}</div>
+            @endif
         @endif
     </div>
 </x-app-layout>
