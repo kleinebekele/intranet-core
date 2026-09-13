@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Role;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,6 +41,7 @@ class RoleController extends Controller
         ]);
 
         Role::create($data);
+        Audit::schreiben('rolle.angelegt', "Rolle „{$data['name']}\" angelegt.", ziel: 'Rolle '.$data['role_id']);
 
         return redirect()->route('admin.roles.index')
             ->with('status', "Rolle \"{$data['role_id']}\" wurde angelegt.");
@@ -56,7 +58,11 @@ class RoleController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
+        $alt = $role->name;
         $role->update($data);
+        if ($alt !== $role->name) {
+            Audit::schreiben('rolle.geaendert', "Umbenannt: „{$alt}\" → „{$role->name}\".", ziel: 'Rolle '.$role->role_id);
+        }
 
         return redirect()->route('admin.roles.index')
             ->with('status', "Rolle \"{$role->role_id}\" wurde umbenannt.");
@@ -74,6 +80,7 @@ class RoleController extends Controller
 
         $roleId = $role->role_id;
         $role->delete();
+        Audit::schreiben('rolle.geloescht', "Rolle „{$role->name}\" gelöscht.", ziel: 'Rolle '.$roleId);
 
         return redirect()->route('admin.roles.index')
             ->with('status', "Rolle \"{$roleId}\" wurde gelöscht.");
@@ -88,6 +95,7 @@ class RoleController extends Controller
 
         $count = $role->users()->count();
         $role->users()->detach();
+        Audit::schreiben('rolle.zuweisungen_aufgehoben', "{$count} Zuweisung(en) aufgehoben.", ziel: 'Rolle '.$role->role_id, daten: ['anzahl' => $count]);
 
         return redirect()->route('admin.roles.index')
             ->with('status', "Alle {$count} Zuweisung(en) der Rolle \"{$role->name}\" wurden aufgehoben.");

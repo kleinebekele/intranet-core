@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
+use App\Support\Audit;
 use App\Support\Microsoft\MicrosoftSso;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -43,21 +45,29 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Erst prüfen, dann anmelden – nicht anmelden und wieder rauswerfen.
+        // Sonst stünde jeder abgewiesene Versuch als „Anmeldung" + „Abmeldung"
+        // im Audit-Log und der Zeitpunkt der letzten Anmeldung wäre falsch.
+        $guard = Auth::guard('web');
+
+        if (! $guard->validate($this->only('email', 'password'))) {
             RateLimiter::hit($this->throttleKey());
+            $this->fehlversuch('Falsches Passwort oder unbekannte Adresse.');
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);
         }
 
+        /** @var User $user */
+        $user = $guard->getLastAttempted();
+
         // Konten, die über Microsoft laufen: Das Passwort stimmt zwar noch,
         // ist aber nicht mehr der vorgesehene Weg. Greift nur, solange die
         // Microsoft-Anmeldung überhaupt eingerichtet ist – sonst käme
         // niemand mehr herein, wenn sie einmal abgeschaltet wird.
-        if (Auth::user()?->nurUeberMicrosoft() && app(MicrosoftSso::class)->aktiv()) {
-            Auth::guard('web')->logout();
-            $this->session()->invalidate();
+        if ($user->nurUeberMicrosoft() && app(MicrosoftSso::class)->aktiv()) {
+            $this->fehlversuch('Passwort richtig, Konto meldet sich aber nur über Microsoft an.', $user);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.nur_microsoft'),
@@ -65,18 +75,32 @@ class LoginRequest extends FormRequest
         }
 
         // Gesperrte Konten: Das Passwort stimmt, trotzdem ist hier Schluss.
-        // Die Anmeldung wird sofort wieder zurückgenommen.
-        if (Auth::user()?->istGesperrt()) {
-            Auth::guard('web')->logout();
-            $this->session()->invalidate();
+        if ($user->istGesperrt()) {
             RateLimiter::hit($this->throttleKey());
+            $this->fehlversuch('Passwort richtig, Konto ist gesperrt.', $user);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.gesperrt'),
             ]);
         }
 
+        $guard->login($user, $this->boolean('remember'));
+
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /** Abgewiesenen Versuch ins Audit-Log schreiben (ohne das Passwort). */
+    private function fehlversuch(string $grund, ?User $user = null): void
+    {
+        $email = (string) $this->string('email');
+
+        Audit::schreiben(
+            'anmeldung.fehlgeschlagen',
+            $grund,
+            $user ?? User::query()->where('email', $email)->first(),
+            ['email' => $email],
+            akteur: false,
+        );
     }
 
     /**

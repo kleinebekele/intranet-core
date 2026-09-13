@@ -2,12 +2,18 @@
 
 namespace App\Providers;
 
+use App\Listeners\AnmeldungenProtokollieren;
 use App\Listeners\MailInDieOutbox;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\Setting;
 use App\Modules\Support\ModuleRegistry;
 use App\Support\Mailausloeser;
 use App\View\Composers\NavigationComposer;
+use Illuminate\Auth\Events\Lockout;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
@@ -50,6 +56,15 @@ class AppServiceProvider extends ServiceProvider
         // Protokoll). Bewusst hier und nicht per Auto-Discovery: der Listener
         // greift so tief in den Versand ein, dass man ihn sehen soll.
         Event::listen(MessageSending::class, MailInDieOutbox::class);
+
+        // Anmelde-Ereignisse ins Audit-Log (Verwaltung → Audit) und
+        // „zuletzt angemeldet" am Benutzer. Ebenfalls bewusst sichtbar
+        // verdrahtet.
+        Event::listen(Login::class, [AnmeldungenProtokollieren::class, 'angemeldet']);
+        Event::listen(Logout::class, [AnmeldungenProtokollieren::class, 'abgemeldet']);
+        Event::listen(Lockout::class, [AnmeldungenProtokollieren::class, 'ausgesperrt']);
+        Event::listen(Registered::class, [AnmeldungenProtokollieren::class, 'registriert']);
+        Event::listen(PasswordReset::class, [AnmeldungenProtokollieren::class, 'passwortZurueckgesetzt']);
 
         // Die Core-Vorlagen als Auslöser anmelden, damit man ihren Absender
         // einstellen kann, bevor die erste solche Mail rausgegangen ist. Lazy:

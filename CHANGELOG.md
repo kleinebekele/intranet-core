@@ -8,6 +8,25 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Audit-Log.** Neuer Tab Verwaltung → „Audit" (Tabelle `audit_log`): Anmeldungen mit Weg
+  (Passwort, Microsoft, Dauer-Cookie, Registrierung), fehlgeschlagene Anmeldungen mit Grund
+  (falsches Passwort, gesperrt, nur Microsoft), Aussperrungen, Abmeldungen, Passwort-Änderungen
+  und -Resets, 2FA-Änderungen, Profiländerungen sowie alle Verwaltungsaktionen an Benutzern
+  (anlegen, ändern mit Vorher/Nachher, löschen, sperren, Anmeldeweg, TOTP-Reset, Reset-Link),
+  Rollen, Modulen (an/aus, Sichtbarkeit, entfernen), Einstellungen und SMTP-Absendern. Filter
+  nach Benutzer (als Handelnder oder Betroffener), Aktion, Freitext und Zeitraum; Einträge
+  überleben das Löschen des Kontos (Name bleibt als Kopie). Module schreiben über
+  `Audit::schreiben()` und benennen ihre Schlüssel mit `Audit::benennen()` (MODULES.md 5d).
+  Aufräumen nachts nach `AUDIT_AUFBEWAHRUNG_TAGE` (Standard 365, 0 = nie).
+- **Benutzerliste: „Angelegt" und „Zuletzt angemeldet".** Neue Spalte `users.zuletzt_angemeldet_am`,
+  gesetzt bei jeder Anmeldung (auch per Dauer-Cookie); Sortierung nach Name, zuletzt angelegt
+  oder zuletzt angemeldet (nie angemeldete ganz unten); Knopf „Verlauf" je Benutzer springt ins
+  gefilterte Audit-Log.
+
+### Geändert
+- **Anmeldung prüft erst, dann meldet sie an.** Gesperrte und Nur-Microsoft-Konten wurden bisher
+  angemeldet und sofort wieder abgemeldet; jetzt werden sie vorher abgewiesen. Sichtbarer Effekt:
+  kein falsches „zuletzt angemeldet" und kein Anmeldung/Abmeldung-Paar im Audit-Log.
 - **SMTP-Absender.** Unter Maillog → „SMTP-Absender" lassen sich eigene Postfächer mit eigenem
   Server-Zugang anlegen (Absenderadresse, Anzeigename, Antwort-an, Host/Port/Verschlüsselung,
   Zugangsdaten verschlüsselt; Testmail an sich selbst). Ein Modul markiert eine Mail mit

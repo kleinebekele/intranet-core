@@ -7,6 +7,7 @@ use App\Models\Module;
 use App\Models\ModuleMenuItem;
 use App\Models\Role;
 use App\Modules\Support\ModuleUninstaller;
+use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,6 +78,8 @@ class ModuleController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
+        Audit::schreiben('modul.entfernt', "Modul „{$bericht['name']}\" entfernt".($mitDaten ? ' – samt Daten.' : '.'), ziel: 'Modul '.$key, daten: ['mit_daten' => $mitDaten]);
+
         $meldung = "Modul \"{$bericht['name']}\" entfernt: {$bericht['menuepunkte']} Menüpunkt(e)";
         $meldung .= $bericht['adressen'] ? ", {$bericht['adressen']} sprechende Adresse(n)" : '';
         if (! $bericht['migrationen']) {
@@ -124,6 +127,13 @@ class ModuleController extends Controller
             $item->roles()->sync($itemRoles[$item->id] ?? []);
         }
 
+        Audit::schreiben('modul.sichtbarkeit', null, ziel: 'Modul '.$module->key, daten: [
+            'nur_admins' => $module->admins_only,
+            'unterpunkte' => $module->menuItems->mapWithKeys(fn ($item) => [
+                $item->label ?? $item->id => $item->admins_only ? 'nur Admins' : array_values($itemRoles[$item->id] ?? []),
+            ])->all(),
+        ]);
+
         return back()->with('status', "Sichtbarkeit von \"{$module->name}\" gespeichert.");
     }
 
@@ -145,6 +155,7 @@ class ModuleController extends Controller
     public function toggle(Module $module): RedirectResponse
     {
         $module->update(['is_enabled' => ! $module->is_enabled]);
+        Audit::schreiben('modul.umgeschaltet', $module->is_enabled ? 'Aktiviert.' : 'Deaktiviert.', ziel: 'Modul '.$module->key);
 
         return back()->with('status', "Modul \"{$module->name}\" ".($module->is_enabled ? 'aktiviert' : 'deaktiviert').'.');
     }

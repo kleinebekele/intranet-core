@@ -44,11 +44,20 @@
                     @endforeach
                 </select>
             </div>
+            <div>
+                <label for="sort" class="block text-xs font-medium text-gray-500">Sortierung</label>
+                <select id="sort" name="sort"
+                        class="mt-1 block rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                    <option value="name" @selected($sort === 'name')>Name</option>
+                    <option value="angelegt" @selected($sort === 'angelegt')>Zuletzt angelegt</option>
+                    <option value="zuletzt" @selected($sort === 'zuletzt')>Zuletzt angemeldet</option>
+                </select>
+            </div>
             <button type="submit"
                     class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                 <i class='bx bx-search text-base'></i> Filtern
             </button>
-            @if ($search !== '' || $roleFilter !== '')
+            @if ($search !== '' || $roleFilter !== '' || $sort !== 'name')
                 <a href="{{ route('admin.users.index') }}"
                    class="px-2 py-2 text-sm text-gray-500 hover:text-gray-700">Zurücksetzen</a>
             @endif
@@ -71,6 +80,8 @@
                         <th class="px-4 py-3">Name</th>
                         <th class="px-4 py-3">E-Mail</th>
                         <th class="px-4 py-3">Rollen</th>
+                        <th class="px-4 py-3">Angelegt</th>
+                        <th class="px-4 py-3">Zuletzt angemeldet</th>
                         <th class="px-4 py-3 text-right">Aktionen</th>
                     </tr>
                 </thead>
@@ -122,11 +133,29 @@
                                     <span class="text-xs text-gray-400">—</span>
                                 @endforelse
                             </td>
+                            <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-500"
+                                title="{{ $user->created_at?->format('d.m.Y H:i') }}">
+                                {{ $user->created_at?->format('d.m.Y') ?? '—' }}
+                            </td>
+                            <td class="whitespace-nowrap px-4 py-3 text-xs"
+                                title="{{ $user->zuletzt_angemeldet_am?->format('d.m.Y H:i:s') }}">
+                                @if ($user->zuletzt_angemeldet_am)
+                                    <span class="text-gray-700">{{ $user->zuletzt_angemeldet_am->format('d.m.Y H:i') }}</span>
+                                    <span class="block text-gray-400">{{ $user->zuletzt_angemeldet_am->diffForHumans() }}</span>
+                                @else
+                                    <span class="text-gray-400">noch nie</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-1 whitespace-nowrap text-xl">
                                     <a href="{{ route('admin.users.edit', $user) }}" title="Bearbeiten"
                                        class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                                         <i class='bx bx-edit'></i>
+                                    </a>
+
+                                    <a href="{{ route('admin.audit.index', ['user' => $user->id]) }}" title="Verlauf im Audit-Log"
+                                       class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                                        <i class='bx bx-history'></i>
                                     </a>
 
                                     <form method="POST" action="{{ route('admin.users.reset', $user) }}">
@@ -185,7 +214,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-4 py-8 text-center text-sm text-gray-500">
+                            <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-500">
                                 Keine Benutzer gefunden. Passe Suche oder Rollenfilter an.
                             </td>
                         </tr>

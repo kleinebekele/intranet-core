@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\EinladungController;
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\MailAbsenderController;
@@ -51,6 +52,9 @@ Route::middleware('auth')->group(function () {
 
         // Systemlog im Browser (Fehlersuche ohne SSH ins Logfile).
         Route::get('logs', [LogController::class, 'index'])->name('logs.index');
+
+        // Audit-Log: wer hat wann was getan (Anmeldungen, Verwaltungsaktionen, Module).
+        Route::get('audit', [AuditController::class, 'index'])->name('audit.index');
 
         // Anmeldung mit dem Microsoft-Konto: Zustand, Einrichtungshilfe und
         // das Protokoll aller Anmeldeversuche.

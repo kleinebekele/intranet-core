@@ -34,6 +34,7 @@ class User extends Authenticatable
             'two_factor_enabled' => 'boolean',
             'gesperrt_am' => 'datetime',
             'microsoft_angemeldet_am' => 'datetime',
+            'zuletzt_angemeldet_am' => 'datetime',
         ];
     }
 

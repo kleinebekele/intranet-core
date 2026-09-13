@@ -33,4 +33,10 @@ return [
 
     'two_factor_remember_days' => max(0, (int) env('TWO_FACTOR_REMEMBER_DAYS', 30)),
 
+    /*
+     * Audit-Log (Verwaltung → Audit): Einträge älter als so viele Tage werden
+     * nachts gelöscht. 0 = nie aufräumen.
+     */
+    'audit_aufbewahrung_tage' => max(0, (int) env('AUDIT_AUFBEWAHRUNG_TAGE', 365)),
+
 ];

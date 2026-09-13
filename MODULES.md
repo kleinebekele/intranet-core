@@ -245,6 +245,39 @@ await window.hinweis('Gespeichert.');
 
 ---
 
+## 5d. Audit-Log: wer hat wann was getan
+
+Der Core führt unter Verwaltung → Audit ein Protokoll (Tabelle `audit_log`): Anmeldungen
+(auch fehlgeschlagene), Abmeldungen, Änderungen an Benutzern, Rollen, Modulen, Einstellungen.
+Module tragen ihre eigenen Vorgänge über `App\Support\Audit` ein:
+
+```php
+use App\Support\Audit;
+
+// im boot() des Modul-Providers: Klartext für die eigenen Aktionsschlüssel
+Audit::benennen([
+    'kantine.bestellung_storniert' => 'Kantine: Bestellung storniert',
+    'kantine.chip_zugeordnet' => 'Kantine: Chip zugeordnet',
+]);
+
+// im Controller / Task
+Audit::schreiben('kantine.bestellung_storniert', "Bestellung #{$id} für {$tag}", betroffener: $esser,
+    daten: ['bestellung' => $id], ziel: "Bestellung {$id}");
+```
+
+- **Aktionsschlüssel** mit Modul-Präfix (`modulname.vorgang`), damit sie im Filter nicht mit
+  Core-Aktionen kollidieren. Unbekannte Schlüssel werden roh angezeigt – `benennen()` ist
+  freiwillig, aber hübscher.
+- **Akteur** ist der angemeldete Benutzer; im Task/Cron keiner. `akteur: false` sagt ausdrücklich
+  „das System war's", `akteur: $user` setzt jemand anderen.
+- **Betroffener** ist ein Benutzer (Name wird kopiert, der Eintrag überlebt das Löschen des
+  Kontos); **Ziel** ist frei für alles andere („Bestellung 4711", „Modul kantine").
+- **Nie** Passwörter, Codes, Tokens oder Kundendaten in `daten` – es erscheint 1:1 im Admin.
+- Ältere Cores kennen die Klasse nicht: `class_exists(\App\Support\Audit::class)` prüfen.
+- Einträge werden nach `AUDIT_AUFBEWAHRUNG_TAGE` (Standard 365, 0 = nie) nachts gelöscht.
+
+---
+
 ## 6. Icons
 
 Das Icon im Manifest ist ein Name aus dem eingebauten Satz (Komponente

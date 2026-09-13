@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,7 +33,17 @@ class ProfileController extends Controller
             $request->user()->email_verified_at = null;
         }
 
+        $geaendert = array_intersect_key($request->user()->getDirty(), array_flip(['name', 'email']));
+        $vorher = array_intersect_key($request->user()->getOriginal(), $geaendert);
+
         $request->user()->save();
+
+        if ($geaendert !== []) {
+            Audit::schreiben('profil.geaendert', 'Geändert: '.implode(', ', array_keys($geaendert)).'.', $request->user(), [
+                'vorher' => $vorher,
+                'nachher' => $geaendert,
+            ]);
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
@@ -47,6 +58,8 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        Audit::schreiben('benutzer.geloescht', "Eigenes Konto {$user->email} gelöscht.", $user, ['email' => $user->email], akteur: $user);
 
         Auth::logout();
 

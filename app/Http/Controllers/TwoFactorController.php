@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Audit;
 use App\Support\Totp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class TwoFactorController extends Controller
     public function enable(Request $request): RedirectResponse
     {
         $request->user()->forceFill(['two_factor_enabled' => true])->save();
+        Audit::schreiben('zweifaktor.aktiviert', 'Im eigenen Profil (Code per E-Mail).', $request->user());
 
         return redirect()->route('profile.edit')->with('status', 'two-factor-enabled');
     }
@@ -35,6 +37,7 @@ class TwoFactorController extends Controller
             'totp_secret' => null,
             'totp_confirmed_at' => null,
         ])->save();
+        Audit::schreiben('zweifaktor.deaktiviert', 'Im eigenen Profil.', $request->user());
 
         return redirect()->route('profile.edit')->with('status', 'two-factor-disabled');
     }
@@ -69,6 +72,7 @@ class TwoFactorController extends Controller
         ])->save();
 
         $request->session()->forget('totp_pending_secret');
+        Audit::schreiben('zweifaktor.totp', 'Authenticator-App bestätigt.', $request->user());
 
         return redirect()->route('profile.edit')->with('status', 'totp-confirmed');
     }
@@ -90,6 +94,7 @@ class TwoFactorController extends Controller
             'totp_secret' => null,
             'totp_confirmed_at' => null,
         ])->save();
+        Audit::schreiben('zweifaktor.totp_entfernt', 'Im eigenen Profil, zurück zum Mail-Code.', $request->user());
 
         return redirect()->route('profile.edit')->with('status', 'totp-disabled');
     }

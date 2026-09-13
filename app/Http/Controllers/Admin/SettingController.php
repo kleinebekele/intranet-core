@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Setting;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -55,6 +56,13 @@ class SettingController
 
         $this->bildVerarbeiten($request, 'logo');
         $this->bildVerarbeiten($request, 'favicon');
+
+        Audit::schreiben('einstellungen.gespeichert', null, daten: [
+            'haupttitel' => $daten['haupttitel'] ?? '',
+            'mail_stundenlimit' => $daten['mail_stundenlimit'] ?? '',
+            'logo' => $request->hasFile('logo') ? 'neu' : ($request->boolean('logo_entfernen') ? 'entfernt' : 'unverändert'),
+            'favicon' => $request->hasFile('favicon') ? 'neu' : ($request->boolean('favicon_entfernen') ? 'entfernt' : 'unverändert'),
+        ]);
 
         return redirect()
             ->route('admin.settings.index')

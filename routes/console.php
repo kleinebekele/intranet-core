@@ -15,3 +15,11 @@ Schedule::command('mail:ausliefern')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Audit-Log aufräumen: Einträge älter als AUDIT_AUFBEWAHRUNG_TAGE (0 = nie).
+Schedule::call(function () {
+    $tage = (int) config('intranet.audit_aufbewahrung_tage');
+    if ($tage > 0) {
+        \App\Models\AuditEintrag::query()->where('created_at', '<', now()->subDays($tage))->delete();
+    }
+})->name('audit:aufraeumen')->dailyAt('03:30');

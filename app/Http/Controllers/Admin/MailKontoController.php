@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\MailKonto;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -37,6 +38,7 @@ class MailKontoController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $konto = MailKonto::create($this->daten($request));
+        Audit::schreiben('mailkonto.angelegt', "{$konto->absender_mail} über {$konto->host}.", ziel: 'SMTP-Absender '.$konto->bezeichnung);
 
         return redirect()->route('admin.mail.konten.index')
             ->with('status', "SMTP-Absender „{$konto->bezeichnung}\" angelegt.");
@@ -57,6 +59,8 @@ class MailKontoController extends Controller
         }
 
         $konto->update($daten);
+        $felder = array_keys(array_diff_key($konto->getChanges(), ['updated_at' => 1]));
+        Audit::schreiben('mailkonto.geaendert', $felder ? 'Geändert: '.implode(', ', $felder).'.' : 'Ohne Änderung gespeichert.', ziel: 'SMTP-Absender '.$konto->bezeichnung);
 
         return redirect()->route('admin.mail.konten.index')
             ->with('status', "SMTP-Absender „{$konto->bezeichnung}\" gespeichert.");
@@ -66,6 +70,7 @@ class MailKontoController extends Controller
     {
         $bezeichnung = $konto->bezeichnung;
         $konto->delete();
+        Audit::schreiben('mailkonto.geloescht', "{$konto->absender_mail} gelöscht.", ziel: 'SMTP-Absender '.$bezeichnung);
 
         return redirect()->route('admin.mail.konten.index')
             ->with('status', "SMTP-Absender „{$bezeichnung}\" gelöscht. Noch wartende Mails über dieses Konto bleiben im Ausgangskorb liegen.");

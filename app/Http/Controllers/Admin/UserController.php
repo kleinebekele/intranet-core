@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Notifications\PasswordResetLinkNotification;
 use App\Notifications\WelcomeNewUser;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -27,6 +28,14 @@ class UserController extends Controller
         $search = trim((string) $request->query('search', ''));
         $roleFilter = (string) $request->query('role', '');
 
+        // Sortierung: Name (Standard), zuletzt angelegt, zuletzt angemeldet.
+        // „noch nie angemeldet" steht bei `zuletzt` ganz unten – das sind die
+        // Konten, nach denen man bei der Sortierung meist sucht.
+        $sort = (string) $request->query('sort', 'name');
+        if (! in_array($sort, ['name', 'angelegt', 'zuletzt'], true)) {
+            $sort = 'name';
+        }
+
         $users = User::with('roles')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
@@ -37,13 +46,15 @@ class UserController extends Controller
             ->when($roleFilter !== '', function ($query) use ($roleFilter) {
                 $query->whereHas('roles', fn ($q) => $q->where('roles.role_id', $roleFilter));
             })
+            ->when($sort === 'angelegt', fn ($q) => $q->orderByDesc('created_at'))
+            ->when($sort === 'zuletzt', fn ($q) => $q->orderByRaw('zuletzt_angemeldet_am IS NULL')->orderByDesc('zuletzt_angemeldet_am'))
             ->orderBy('name')
             ->paginate(50)
             ->withQueryString();
 
         $roles = Role::orderByDesc('is_system')->orderBy('role_id')->get();
 
-        return view('admin.users.index', compact('users', 'roles', 'search', 'roleFilter'));
+        return view('admin.users.index', compact('users', 'roles', 'search', 'roleFilter', 'sort'));
     }
 
     public function create(): View
@@ -73,7 +84,14 @@ class UserController extends Controller
             'email_verified_at' => now(), // vom Admin angelegt = vertrauenswürdig
         ])->save();
 
-        $user->roles()->sync($this->rolesWithBaseline($data['roles'] ?? []));
+        $rollen = $this->rolesWithBaseline($data['roles'] ?? []);
+        $user->roles()->sync($rollen);
+
+        Audit::schreiben('benutzer.angelegt', 'In der Verwaltung angelegt, Willkommens-Mail verschickt.', $user, [
+            'email' => $user->email,
+            'admin' => $user->is_admin,
+            'rollen' => $rollen,
+        ]);
 
         // Willkommens-Mail mit Link zum Passwort-Setzen.
         $token = Password::broker()->createToken($user);
@@ -106,12 +124,29 @@ class UserController extends Controller
             return back()->withErrors(['is_admin' => 'Du kannst dir den Admin-Status nicht selbst entziehen.']);
         }
 
+        $vorher = [
+            'name' => $user->name,
+            'admin' => $user->is_admin,
+            'rollen' => $user->roles()->pluck('roles.role_id')->sort()->values()->all(),
+        ];
+
         // E-Mail wird bewusst NICHT übernommen (unveränderbar).
         $user->name = $data['name'];
         $user->is_admin = $isAdmin;
         $user->save();
 
-        $user->roles()->sync($this->rolesWithBaseline($data['roles'] ?? []));
+        $rollen = $this->rolesWithBaseline($data['roles'] ?? []);
+        $user->roles()->sync($rollen);
+
+        $nachher = ['name' => $user->name, 'admin' => $isAdmin, 'rollen' => collect($rollen)->sort()->values()->all()];
+        $geaendert = array_keys(array_filter($nachher, fn ($wert, $feld) => $wert !== $vorher[$feld], ARRAY_FILTER_USE_BOTH));
+
+        if ($geaendert !== []) {
+            Audit::schreiben('benutzer.geaendert', 'Geändert: '.implode(', ', $geaendert).'.', $user, [
+                'vorher' => array_intersect_key($vorher, array_flip($geaendert)),
+                'nachher' => array_intersect_key($nachher, array_flip($geaendert)),
+            ]);
+        }
 
         return redirect()->route('admin.users.index')
             ->with('status', "Benutzer \"{$user->name}\" wurde aktualisiert.");
@@ -124,6 +159,7 @@ class UserController extends Controller
         }
 
         $name = $user->name;
+        Audit::schreiben('benutzer.geloescht', "Konto {$user->email} in der Verwaltung gelöscht.", $user, ['email' => $user->email]);
         $user->roles()->detach();
         $user->delete();
 
@@ -149,6 +185,8 @@ class UserController extends Controller
         $token = Password::broker()->createToken($user);
         $user->notify(new PasswordResetLinkNotification($token));
 
+        Audit::schreiben('passwort.link', "Reset-Link an {$user->email} verschickt.", $user);
+
         return back()->with('status', "Passwort-Reset-Link an {$user->email} versendet.");
     }
 
@@ -169,11 +207,13 @@ class UserController extends Controller
 
         if ($user->istGesperrt()) {
             $user->entsperren();
+            Audit::schreiben('benutzer.entsperrt', null, $user);
 
             return back()->with('status', "Konto von {$user->name} ist wieder freigegeben.");
         }
 
         $user->sperren('Von '.$request->user()->name.' in der Verwaltung gesperrt.');
+        Audit::schreiben('benutzer.gesperrt', 'In der Verwaltung gesperrt.', $user);
 
         return back()->with('status', "Konto von {$user->name} gesperrt – eine laufende Sitzung endet sofort.");
     }
@@ -198,11 +238,13 @@ class UserController extends Controller
             $user->forceFill([
                 'anmeldeweg' => $user->microsoft_id === null ? null : 'passwort',
             ])->save();
+            Audit::schreiben('benutzer.anmeldeweg', 'Passwort wieder erlaubt.', $user, ['anmeldeweg' => $user->anmeldeweg]);
 
             return back()->with('status', "{$user->name} darf sich wieder mit Passwort anmelden.");
         }
 
         $user->forceFill(['anmeldeweg' => 'microsoft'])->save();
+        Audit::schreiben('benutzer.anmeldeweg', 'Nur noch über Microsoft.', $user, ['anmeldeweg' => 'microsoft']);
 
         $zusatz = $user->microsoft_id === null
             ? ' Achtung: Das Konto war noch nie über Microsoft angemeldet – es kommt erst herein, wenn die Adresse zu einem Microsoft-Konto gehört.'
@@ -221,6 +263,7 @@ class UserController extends Controller
             'totp_secret' => null,
             'totp_confirmed_at' => null,
         ])->save();
+        Audit::schreiben('benutzer.totp_zurueckgesetzt', null, $user);
 
         return back()->with('status', "TOTP für {$user->email} zurückgesetzt – es gilt wieder der Code per E-Mail.");
     }
