@@ -97,6 +97,13 @@ schritt "Module abgleichen"
 # loeschen - die waeren dann von Hand nachzutragen.
 artisan modules:sync
 
+# Anleitungen der Module (resources/hilfe/*.md) ins Wiki uebernehmen - nur,
+# wenn das Wiki-Modul installiert ist (MODULES.md 5a).
+if artisan list --raw 2>/dev/null | grep -q '^wiki:hilfe-sync'; then
+    schritt "Anleitungen ins Wiki uebernehmen"
+    artisan wiki:hilfe-sync
+fi
+
 schritt "Caches neu aufbauen"
 artisan optimize:clear
 artisan config:cache
