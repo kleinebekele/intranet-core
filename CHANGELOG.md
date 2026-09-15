@@ -11,6 +11,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **E-Mail im Admin änderbar.** Verwaltung → Benutzer → Bearbeiten: die Anmelde-Adresse lässt
   sich jetzt ändern (eindeutig, gilt danach als bestätigt, Vorher/Nachher im Audit-Log). Bislang
   konnte das nur der Benutzer selbst im Profil.
+- **`deploy.sh`** übernimmt die Anleitungen der Module ins Wiki (`wiki:hilfe-sync` nach
+  `modules:sync`), sofern das Wiki-Modul installiert ist.
 
 ### Hinzugefügt
 - **Zusatzbereiche auf „Benutzer bearbeiten".** Module hängen sich per
