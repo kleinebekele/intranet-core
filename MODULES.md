@@ -278,6 +278,32 @@ Audit::schreiben('kantine.bestellung_storniert', "Bestellung #{$id} für {$tag}"
 
 ---
 
+## 5e. Zusatzbereiche auf „Benutzer bearbeiten"
+
+Weiß ein Modul etwas über einen Benutzer oder kann etwas an ihm tun (verknüpftes Konto in
+einem Fremdsystem, Chip, Guthaben), hängt es sich unter das Bearbeiten-Formular der
+Benutzerverwaltung:
+
+```php
+use App\Support\Benutzerbereiche;
+
+// im boot() des Modul-Providers
+if (class_exists(Benutzerbereiche::class)) {
+    Benutzerbereiche::registrieren('nextcloud', fn (User $user) => $konto = Konto::fuer($user)
+        ? view('meinmodul::benutzer-bereich', ['user' => $user, 'konto' => $konto])
+        : null);
+}
+```
+
+- Rückgabe: View, HTML-String oder `null` (dann erscheint nichts).
+- Formulare im Bereich zeigen auf **eigene Routen des Moduls** (`module.{key}.*`) und leiten
+  zurück auf `admin.users.edit`. Die Seite ist nur für Admins erreichbar, die Modul-Routen
+  brauchen trotzdem ihre eigene `admin`-Middleware.
+- Wirft der Bereich eine Ausnahme (Fremdsystem weg), zeigt der Core einen Hinweiskasten und
+  loggt; die Benutzerseite bleibt benutzbar.
+
+---
+
 ## 6. Icons
 
 Das Icon im Manifest ist ein Name aus dem eingebauten Satz (Komponente

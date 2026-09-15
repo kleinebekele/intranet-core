@@ -100,5 +100,10 @@
                 </button>
             </form>
         @endif
+
+        {{-- Zusatzbereiche der Module (App\Support\Benutzerbereiche), z. B. verknüpfte Fremdkonten. --}}
+        @foreach (\App\Support\Benutzerbereiche::fuer($user) as $schluessel => $bereich)
+            <div class="mt-4" data-benutzerbereich="{{ $schluessel }}">{!! $bereich !!}</div>
+        @endforeach
     </div>
 </x-app-layout>

@@ -13,6 +13,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   konnte das nur der Benutzer selbst im Profil.
 
 ### Hinzugefügt
+- **Zusatzbereiche auf „Benutzer bearbeiten".** Module hängen sich per
+  `App\Support\Benutzerbereiche::registrieren()` unter das Formular (z. B. verknüpftes
+  Nextcloud-Konto mit Sperren/Entsperren); Fehler eines Bereichs werden als Hinweis gezeigt
+  statt die Seite zu brechen (MODULES.md 5e).
 - **Rollen als Gruppen.** Verwaltung → Rollen → „Mitglieder": Mitglieder einer Rolle von der
   Rolle aus zusammenstellen (Suche über alle Benutzer, Mehrfachauswahl, einzeln entfernen) –
   für Arbeitskreise und andere frei gepflegte Gruppen. Neue Spalte `roles.quelle`: Rollen, die
