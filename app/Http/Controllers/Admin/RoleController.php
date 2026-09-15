@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Role;
+use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -86,11 +87,95 @@ class RoleController extends Controller
             ->with('status', "Rolle \"{$roleId}\" wurde gelöscht.");
     }
 
+    /**
+     * Mitglieder einer Rolle: Liste + Auswahl aus allen Benutzern zum Hinzufügen.
+     *
+     * Rollen sind zugleich Gruppen (Arbeitskreise, Klassen). Bisher ließ sich
+     * eine Rolle nur am einzelnen Benutzer setzen – für einen Arbeitskreis aus
+     * zwanzig Leuten unbrauchbar. Hier geht es andersherum: von der Rolle aus
+     * die Menschen zusammensuchen.
+     */
+    public function mitglieder(Request $request, Role $role): View
+    {
+        $suche = trim((string) $request->query('q', ''));
+
+        $mitglieder = $role->users()
+            ->orderBy('name')
+            ->get();
+
+        // Kandidaten: alle, die die Rolle noch nicht haben – optional gefiltert.
+        // Die Liste ist bei einer Schule vierstellig; ohne Suchwort nur eine
+        // überschaubare erste Seite, damit die Seite nicht erschlägt.
+        $kandidaten = collect();
+        if (! $role->istVerwaltet()) {
+            $kandidaten = User::query()
+                ->whereNotIn('id', $mitglieder->pluck('id'))
+                ->when($suche !== '', fn ($q) => $q->where(function ($q) use ($suche) {
+                    $q->where('name', 'like', "%{$suche}%")
+                        ->orWhere('email', 'like', "%{$suche}%");
+                }))
+                ->orderBy('name')
+                ->limit(200)
+                ->get();
+        }
+
+        return view('admin.roles.mitglieder', compact('role', 'mitglieder', 'kandidaten', 'suche'));
+    }
+
+    public function mitgliederHinzufuegen(Request $request, Role $role): RedirectResponse
+    {
+        if ($role->istVerwaltet()) {
+            return back()->withErrors(['role' => "Die Rolle \"{$role->name}\" wird vom Abgleich „{$role->quelle}\" gepflegt – Mitglieder lassen sich dort nicht von Hand setzen."]);
+        }
+
+        $data = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $vorher = $role->users()->pluck('users.id')->all();
+        $role->users()->syncWithoutDetaching($data['user_ids']);
+        $neu = User::whereIn('id', array_diff($data['user_ids'], $vorher))->pluck('name')->all();
+
+        if ($neu) {
+            Audit::schreiben(
+                'rolle.mitglieder_hinzugefuegt',
+                count($neu).' Mitglied(er) hinzugefügt: '.implode(', ', $neu),
+                ziel: 'Rolle '.$role->role_id,
+                daten: ['hinzugefuegt' => $neu],
+            );
+        }
+
+        return redirect()->route('admin.roles.mitglieder', $role)
+            ->with('status', count($neu).' Mitglied(er) zu "'.$role->name.'" hinzugefügt.');
+    }
+
+    public function mitgliedEntfernen(Role $role, User $user): RedirectResponse
+    {
+        if ($role->istVerwaltet()) {
+            return back()->withErrors(['role' => "Die Rolle \"{$role->name}\" wird vom Abgleich „{$role->quelle}\" gepflegt – Mitglieder lassen sich dort nicht von Hand entfernen."]);
+        }
+
+        if ($role->role_id === 'user') {
+            return back()->withErrors(['role' => 'Die Rolle "user" hat jeder Benutzer automatisch.']);
+        }
+
+        $role->users()->detach($user->id);
+        Audit::schreiben('rolle.mitglied_entfernt', "{$user->name} aus „{$role->name}\" entfernt.", $user, ziel: 'Rolle '.$role->role_id);
+
+        return redirect()->route('admin.roles.mitglieder', $role)
+            ->with('status', "{$user->name} wurde aus \"{$role->name}\" entfernt.");
+    }
+
     /** Alle Benutzer-Zuweisungen einer (Nicht-System-)Rolle aufheben. */
     public function detachAll(Role $role): RedirectResponse
     {
         if ($role->isSystem()) {
             return back()->withErrors(['role' => "Bei der System-Rolle \"{$role->role_id}\" können Zuweisungen nicht aufgehoben werden."]);
+        }
+
+        if ($role->istVerwaltet()) {
+            return back()->withErrors(['role' => "Die Rolle \"{$role->name}\" wird vom Abgleich „{$role->quelle}\" gepflegt – der nächste Lauf würde die Zuweisungen wiederherstellen."]);
         }
 
         $count = $role->users()->count();

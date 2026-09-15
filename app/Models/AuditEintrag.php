@@ -58,6 +58,8 @@ class AuditEintrag extends Model
         'rolle.geaendert' => 'Rolle geändert',
         'rolle.geloescht' => 'Rolle gelöscht',
         'rolle.zuweisungen_aufgehoben' => 'Rollen-Zuweisungen aufgehoben',
+        'rolle.mitglieder_hinzugefuegt' => 'Rollen-Mitglieder hinzugefügt',
+        'rolle.mitglied_entfernt' => 'Rollen-Mitglied entfernt',
         'modul.umgeschaltet' => 'Modul an/aus',
         'modul.sichtbarkeit' => 'Modul-Sichtbarkeit geändert',
         'modul.entfernt' => 'Modul entfernt',

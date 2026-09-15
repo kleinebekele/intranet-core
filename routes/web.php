@@ -70,6 +70,9 @@ Route::middleware('auth')->group(function () {
         // Rollen-Verwaltung (CRUD). {role} bindet automatisch über role_id.
         Route::resource('roles', RoleController::class)->except(['show']);
         Route::post('roles/{role}/detach-all', [RoleController::class, 'detachAll'])->name('roles.detach-all');
+        Route::get('roles/{role}/mitglieder', [RoleController::class, 'mitglieder'])->name('roles.mitglieder');
+        Route::post('roles/{role}/mitglieder', [RoleController::class, 'mitgliederHinzufuegen'])->name('roles.mitglieder.store');
+        Route::delete('roles/{role}/mitglieder/{user}', [RoleController::class, 'mitgliedEntfernen'])->name('roles.mitglieder.destroy');
 
         // Benutzer-Verwaltung (CRUD) + Passwort-Reset-Link.
         Route::resource('users', UserController::class)->except(['show']);

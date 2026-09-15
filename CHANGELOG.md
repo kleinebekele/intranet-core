@@ -8,6 +8,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Rollen als Gruppen.** Verwaltung → Rollen → „Mitglieder": Mitglieder einer Rolle von der
+  Rolle aus zusammenstellen (Suche über alle Benutzer, Mehrfachauswahl, einzeln entfernen) –
+  für Arbeitskreise und andere frei gepflegte Gruppen. Neue Spalte `roles.quelle`: Rollen, die
+  ein Abgleich pflegt (z. B. Klassen aus Linear), tragen dort seinen Schlüssel; solche Rollen
+  sind im Panel schreibgeschützt (Badge in der Liste), damit der nächste Lauf nichts zurückdreht.
+  Module legen sie mit `Role::firstOrCreate([...], ['quelle' => 'linear'])` an.
 - **Audit-Log.** Neuer Tab Verwaltung → „Audit" (Tabelle `audit_log`): Anmeldungen mit Weg
   (Passwort, Microsoft, Dauer-Cookie, Registrierung), fehlgeschlagene Anmeldungen mit Grund
   (falsches Passwort, gesperrt, nur Microsoft), Aussperrungen, Abmeldungen, Passwort-Änderungen

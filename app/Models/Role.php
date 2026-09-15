@@ -17,7 +17,11 @@ class Role extends Model
 
     public $incrementing = false;
 
-    protected $fillable = ['role_id', 'name'];
+    /**
+     * `quelle` ist mass-assignable, weil Abgleiche (Module) ihre Rollen per
+     * firstOrCreate/updateOrCreate anlegen; im Panel wird sie nie gesetzt.
+     */
+    protected $fillable = ['role_id', 'name', 'quelle'];
 
     /**
      * `is_system` ist bewusst NICHT mass-assignable – System-Rollen werden
@@ -32,6 +36,15 @@ class Role extends Model
     public function isSystem(): bool
     {
         return (bool) $this->is_system;
+    }
+
+    /**
+     * Wird die Rolle von einem Abgleich (Modul) gepflegt? Dann ist die
+     * Mitgliederpflege im Panel gesperrt – der nächste Lauf würde sie zurückdrehen.
+     */
+    public function istVerwaltet(): bool
+    {
+        return $this->quelle !== null && $this->quelle !== '';
     }
 
     /**

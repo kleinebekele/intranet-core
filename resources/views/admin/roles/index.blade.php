@@ -48,15 +48,24 @@
                                     <span class="ml-1 inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 align-middle">
                                         <i class='bx bx-lock-alt'></i> System
                                     </span>
+                                @elseif ($role->istVerwaltet())
+                                    <span class="ml-1 inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700 align-middle"
+                                          title="Mitglieder pflegt der Abgleich „{{ $role->quelle }}“ automatisch">
+                                        <i class='bx bx-refresh'></i> {{ $role->quelle }}
+                                    </span>
                                 @endif
                             </div>
                             <div class="text-xs text-gray-400">
                                 <code class="rounded bg-gray-100 px-1.5 py-0.5">{{ $role->role_id }}</code>
-                                &middot; {{ $role->users_count }} Benutzer
+                                &middot; <a href="{{ route('admin.roles.mitglieder', $role) }}" class="hover:text-indigo-600 hover:underline">{{ $role->users_count }} Mitglieder</a>
                             </div>
                         </div>
 
                         <div class="flex items-center gap-1 text-xl">
+                            <a href="{{ route('admin.roles.mitglieder', $role) }}" title="Mitglieder"
+                               class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                                <i class='bx bx-group'></i>
+                            </a>
                             <a href="{{ route('admin.roles.edit', $role) }}" title="Bearbeiten"
                                class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                                 <i class='bx bx-edit'></i>
