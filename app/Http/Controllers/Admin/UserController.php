@@ -16,7 +16,7 @@ use Illuminate\View\View;
 /**
  * CRUD-Verwaltung der Benutzer (nur für Administratoren).
  *
- *  - E-Mail ist unveränderbar (nur beim Anlegen setzbar).
+ *  - E-Mail darf der Admin ändern (Eindeutigkeit, gilt danach als bestätigt, Audit).
  *  - Rollen können zugewiesen/entzogen werden (n:n über user_roles).
  *  - Neue Benutzer erhalten eine Willkommens-Mail zum Passwort-Setzen.
  *  - Für bestehende Benutzer kann ein Passwort-Reset-Link versendet werden.
@@ -113,6 +113,7 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
             'roles' => ['array'],
             'roles.*' => ['string', 'exists:roles,role_id'],
             'is_admin' => ['sometimes', 'boolean'],
@@ -126,19 +127,25 @@ class UserController extends Controller
 
         $vorher = [
             'name' => $user->name,
+            'email' => $user->email,
             'admin' => $user->is_admin,
             'rollen' => $user->roles()->pluck('roles.role_id')->sort()->values()->all(),
         ];
 
-        // E-Mail wird bewusst NICHT übernommen (unveränderbar).
+        // E-Mail: vom Admin gesetzt = vertrauenswürdig, gilt als bestätigt. Ein Import
+        // (z. B. Linear) erkennt die Abweichung von seiner import_email und lässt sie stehen.
         $user->name = $data['name'];
+        $user->email = mb_strtolower(trim($data['email']));
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = now();
+        }
         $user->is_admin = $isAdmin;
         $user->save();
 
         $rollen = $this->rolesWithBaseline($data['roles'] ?? []);
         $user->roles()->sync($rollen);
 
-        $nachher = ['name' => $user->name, 'admin' => $isAdmin, 'rollen' => collect($rollen)->sort()->values()->all()];
+        $nachher = ['name' => $user->name, 'email' => $user->email, 'admin' => $isAdmin, 'rollen' => collect($rollen)->sort()->values()->all()];
         $geaendert = array_keys(array_filter($nachher, fn ($wert, $feld) => $wert !== $vorher[$feld], ARRAY_FILTER_USE_BOTH));
 
         if ($geaendert !== []) {

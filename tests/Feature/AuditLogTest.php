@@ -98,12 +98,41 @@ class AuditLogTest extends TestCase
 
         $this->actingAs($admin)->put(route('admin.users.update', $user), [
             'name' => 'Neu',
+            'email' => $user->email,
             'roles' => [],
         ]);
 
         $eintrag = AuditEintrag::where('aktion', 'benutzer.geaendert')->sole();
         $this->assertSame('Alt', $eintrag->daten['vorher']['name']);
         $this->assertSame('Neu', $eintrag->daten['nachher']['name']);
+        $this->assertArrayNotHasKey('email', $eintrag->daten['nachher']);
+    }
+
+    public function test_admin_kann_email_aendern_und_es_wird_protokolliert(): void
+    {
+        $admin = $this->admin();
+        $user = User::factory()->create(['email' => 'alt@example.com']);
+        $andere = User::factory()->create(['email' => 'belegt@example.com']);
+
+        // Belegte Adresse wird abgelehnt.
+        $this->actingAs($admin)->from(route('admin.users.edit', $user))
+            ->put(route('admin.users.update', $user), ['name' => $user->name, 'email' => 'belegt@example.com', 'roles' => []])
+            ->assertSessionHasErrors('email');
+        $this->assertSame('alt@example.com', $user->fresh()->email);
+
+        $this->actingAs($admin)->put(route('admin.users.update', $user), [
+            'name' => $user->name,
+            'email' => ' Neu@Example.com ',
+            'roles' => [],
+        ]);
+
+        $user->refresh();
+        $this->assertSame('neu@example.com', $user->email);
+        $this->assertNotNull($user->email_verified_at);
+
+        $eintrag = AuditEintrag::where('aktion', 'benutzer.geaendert')->sole();
+        $this->assertSame('alt@example.com', $eintrag->daten['vorher']['email']);
+        $this->assertSame('neu@example.com', $eintrag->daten['nachher']['email']);
     }
 
     public function test_eintrag_ueberlebt_das_loeschen_des_kontos(): void

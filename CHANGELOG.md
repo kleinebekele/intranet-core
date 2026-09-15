@@ -7,6 +7,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Geändert
+- **E-Mail im Admin änderbar.** Verwaltung → Benutzer → Bearbeiten: die Anmelde-Adresse lässt
+  sich jetzt ändern (eindeutig, gilt danach als bestätigt, Vorher/Nachher im Audit-Log). Bislang
+  konnte das nur der Benutzer selbst im Profil.
+
 ### Hinzugefügt
 - **Rollen als Gruppen.** Verwaltung → Rollen → „Mitglieder": Mitglieder einer Rolle von der
   Rolle aus zusammenstellen (Suche über alle Benutzer, Mehrfachauswahl, einzeln entfernen) –

@@ -16,11 +16,11 @@
             @method('PUT')
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">E-Mail</label>
-                <div class="mt-1 flex items-center rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
-                    <span class="text-sm text-gray-600">{{ $user->email }}</span>
-                    <span class="ml-auto text-xs text-gray-400">unveränderbar</span>
-                </div>
+                <label for="email" class="block text-sm font-medium text-gray-700">E-Mail</label>
+                <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}"
+                       class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <p class="mt-1 text-xs text-gray-500">Anmelde-Adresse. Eine Änderung gilt sofort und wird im Audit-Log festgehalten; eine aus einem Import stammende Adresse wird dadurch nicht mehr überschrieben.</p>
+                @error('email') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
             <div>
