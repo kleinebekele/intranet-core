@@ -43,6 +43,14 @@ return [
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
+            // Verzeichnisse mit 0775 statt 0755 anlegen: Auf dem Server liegt eine
+            // Default-ACL auf storage/, die www-data Schreibrecht vererbt. Die
+            // ACL-Maske wird aber aus den Gruppen-Bits des Anlege-Modus gebildet;
+            // mit 0755 waere sie r-x und wuerde das Schreibrecht wieder deckeln.
+            'permissions' => [
+                'file' => ['public' => 0664, 'private' => 0600],
+                'dir' => ['public' => 0775, 'private' => 0700],
+            ],
             'throw' => false,
             'report' => false,
         ],

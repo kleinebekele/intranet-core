@@ -7,6 +7,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Behoben
+- **Uploads auf dem Server scheiterten still** (Kantine: Gerichtfoto). Die Disk `public` legt
+  Verzeichnisse jetzt mit `0775` statt `0755` an. Mit `0755` wurde die ACL-Maske auf `r-x`
+  gesetzt und deckelte das per Default-ACL vererbte Schreibrecht von `www-data`.
+
 ### Geändert
 - **E-Mail im Admin änderbar.** Verwaltung → Benutzer → Bearbeiten: die Anmelde-Adresse lässt
   sich jetzt ändern (eindeutig, gilt danach als bestätigt, Vorher/Nachher im Audit-Log). Bislang
