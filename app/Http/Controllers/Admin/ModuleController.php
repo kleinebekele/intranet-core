@@ -37,10 +37,17 @@ class ModuleController extends Controller
 
         // "admin" wird bewusst NICHT als Sichtbarkeits-Rolle angeboten – Admins
         // sehen ohnehin alles; "nur für Admins" regelt der separate Schalter.
+        // Reihenfolge in der Auswahl: Core-Rollen („Benutzer") zuerst, dann die
+        // Rollen der Module, plattformweite zuletzt – jeweils nach Name.
         $roles = Role::where('role_id', '!=', 'admin')
-            ->orderByDesc('is_system')
-            ->orderBy('role_id')
-            ->get();
+            ->get()
+            ->sortBy(fn (Role $role) => match (true) {
+                ! $role->gehoertZuModul() && $role->is_system => '0',
+                $role->gehoertZuModul() && ! $role->plattformweit => '1',
+                $role->plattformweit => '2',
+                default => '3',
+            }.mb_strtolower($role->name))
+            ->values();
 
         // Je Modul nur die eigenen, die Core- und die plattformweiten Rollen
         // anbieten; von Hand angelegte klappbar dahinter. Rollen fremder Module
