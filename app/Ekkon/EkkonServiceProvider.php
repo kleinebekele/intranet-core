@@ -31,6 +31,7 @@ class EkkonServiceProvider extends ModuleServiceProvider
         // Zeile nähme die Basisklasse das Core-Wurzelverzeichnis an und schriebe
         // ALLE Core-Migrationen dem Modul „ekkon" zu.
         $manifest->basePath = app_path('Ekkon');
+        $manifest->fest = true;
 
         return $manifest
             ->item('index', 'Aufgaben', 'module.ekkon.index')

@@ -66,6 +66,10 @@ allerdings nicht: dort weicht CLI vom Webserver ab.
 - **`modules:sync`** übernimmt installierte Module in `modules` / `module_menu_items` und
   **behält** dabei die im Admin gesetzte Reihenfolge und den An/Aus-Status bestehender Einträge.
 
+- **Ekkon** (Tasks, Benachrichtigungen, Webhook-Eingang) liegt seit 2026-09 fest im Core unter
+  `app/Ekkon/` – Details und Stolpersteine in `app/Ekkon/CLAUDE.md`, Anleitung für Modul-Autoren
+  in `EKKON.md`. Es tritt weiter als Modul `ekkon` auf (Manifest mit `fest = true`).
+
 ## Module lokal entwickeln
 
 Während der Entwicklung wird ein Modul als **Path-Repository** eingebunden (Modul-Ordner liegt

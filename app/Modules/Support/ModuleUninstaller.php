@@ -45,6 +45,7 @@ class ModuleUninstaller
             'key' => $key,
             'name' => $module?->name ?? $manifest?->name ?? $key,
             'modul' => $module,
+            'fest' => (bool) $manifest?->fest,
             'paket_installiert' => (bool) $manifest,
             'paket_name' => $manifest ? $this->paketName($manifest) : null,
             'menuepunkte' => $module?->menuItems ?? collect(),
@@ -68,6 +69,10 @@ class ModuleUninstaller
 
         if (! $vorschau) {
             throw new RuntimeException("Kein Modul mit dem Schlüssel „{$key}\" gefunden.");
+        }
+
+        if ($vorschau['fest']) {
+            throw new RuntimeException("„{$vorschau['name']}\" ist fester Bestandteil der Plattform und lässt sich nicht entfernen – nur deaktivieren.");
         }
 
         // Erst die Migrationen: Schlägt das fehl, steht die Registrierung noch

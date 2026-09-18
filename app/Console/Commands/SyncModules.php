@@ -49,7 +49,11 @@ class SyncModules extends Command
 
             // Solange das Paket da ist, merken, welche Migration zu diesem
             // Modul gehört – beim Deinstallieren ist es dafür zu spät.
-            $migrationen->aufzeichnen($manifest);
+            // Ein fester Bestandteil (Ekkon) besitzt keine eigenen Migrationen
+            // mehr – was aus seiner Paket-Zeit vermerkt ist, gehört jetzt dem Core.
+            $manifest->fest
+                ? $migrationen->vergessen($manifest->key)
+                : $migrationen->aufzeichnen($manifest);
 
             $seen = [];
 

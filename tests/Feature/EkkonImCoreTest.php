@@ -70,6 +70,20 @@ class EkkonImCoreTest extends TestCase
         $this->assertSame('ok', $lauf->status);
     }
 
+    public function test_ekkon_laesst_sich_nicht_deinstallieren(): void
+    {
+        $this->artisan('modules:sync');
+        // Vermerk aus der Paket-Zeit: darf nach dem Sync niemandem mehr gehören.
+        $this->assertDatabaseMissing('module_migrations', ['module_key' => 'ekkon']);
+
+        $this->artisan('modules:uninstall ekkon --mit-daten')
+            ->expectsConfirmation('Modul „ekkon" entfernen UND seine Tabellen samt Inhalt löschen?', 'yes')
+            ->assertFailed();
+
+        $this->assertDatabaseHas('modules', ['key' => 'ekkon']);
+        $this->assertTrue(Schema::hasTable('ekkon_task_runs'));
+    }
+
     public function test_aufgaben_seite_oeffnet_fuer_admins(): void
     {
         $admin = User::factory()->create(); // erster Benutzer wird Admin

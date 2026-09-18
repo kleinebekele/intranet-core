@@ -191,7 +191,12 @@
                             @php($vorschau = $vorschauen[$module->id] ?? null)
                             @php($umfang = 'Modul-Eintrag, '.$module->menuItems->count().' Menüpunkt(e) samt Rollen-Zuordnung'
                                 .(($vorschau && $vorschau['adressen']) ? ' und '.$vorschau['adressen'].' sprechende Adresse(n)' : ''))
-                            <div class="mt-6 border-t border-gray-100 pt-4" x-data="{ zeigen: false, mitDaten: false }">
+                            @if ($vorschau['fest'] ?? false)
+                                <p class="mt-6 border-t border-gray-100 pt-4 text-sm text-gray-400">
+                                    <i class='bx bx-lock-alt'></i> Fester Bestandteil der Plattform – lässt sich deaktivieren, aber nicht entfernen.
+                                </p>
+                            @endif
+                            <div class="mt-6 border-t border-gray-100 pt-4" x-data="{ zeigen: false, mitDaten: false }" @if ($vorschau['fest'] ?? false) hidden @endif>
                                 <button type="button" @click="zeigen = ! zeigen"
                                         class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600">
                                     <i class='bx bx-trash text-base'></i>

@@ -23,6 +23,12 @@ class ModuleManifest
     public ?string $basePath = null;
 
     /**
+     * Fester Bestandteil des Cores (z. B. Ekkon): tritt als Modul auf, lässt
+     * sich aber nicht deinstallieren – seine Tabellen gehören dem Core.
+     */
+    public bool $fest = false;
+
+    /**
      * Rollen, die dieses Modul mitbringt (siehe {@see rolle()}).
      *
      * @var ModuleRole[]

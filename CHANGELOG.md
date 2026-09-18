@@ -8,6 +8,14 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Neu
+- **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
+  liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
+  Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die
+  Routen `module.ekkon.*` und die Webhook-Adresse `/webhooks/ekkon/{schluessel}` bleiben gleich,
+  die Migrationen tragen dieselben Dateinamen und gelten als gelaufen. Fachmodule mit den alten
+  Klassennamen (`Intranet\Modules\Ekkon\…`) laufen unverändert weiter. Das Paket wird ab v1.24
+  zum leeren Übergangspaket; solange noch eine ältere Version mit Code installiert ist, hält
+  sich der Core zurück. Ekkon lässt sich deaktivieren, aber nicht mehr deinstallieren.
 - **Module liefern ihre Rollen.** Das Manifest kennt `->rolle('schluessel', 'Name')`;
   `modules:sync` legt die Rolle an und trägt in der neuen Spalte `roles.modul` den Besitzer
   ein (`plattformweit: true` für Rollen, die überall gebraucht werden). Vorhandene Rollen
