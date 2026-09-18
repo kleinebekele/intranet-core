@@ -5,6 +5,10 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 
+// Alte Ekkon-Klassennamen (`Intranet\Modules\Ekkon\…`) auf `App\Ekkon\…` abbilden.
+// Muss vor allen Providern stehen: Fachmodule greifen schon im register() darauf zu.
+\App\Ekkon\Altnamen::anmelden();
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
