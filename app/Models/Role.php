@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Modules\Support\ModuleRegistry;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
@@ -54,6 +56,57 @@ class Role extends Model
     public function gehoertZuModul(): bool
     {
         return $this->modul !== null && $this->modul !== '';
+    }
+
+    /**
+     * Gilt die Rolle gerade? Handangelegte und System-Rollen immer; eine
+     * Modulrolle nur, solange ihr Modul aktiv UND installiert ist. Plattformweite
+     * Rollen (Lehrer, Schüler …) gelten immer – an ihnen hängen auch fremde Module.
+     */
+    public function istAktiv(): bool
+    {
+        return ! in_array($this->role_id, static::inaktiveSchluessel(), true);
+    }
+
+    /** Nur Rollen, die gerade gelten (siehe {@see istAktiv()}). */
+    public function scopeAktiv(Builder $query): void
+    {
+        $query->whereNotIn($query->qualifyColumn('role_id'), static::inaktiveSchluessel() ?: ['__none__']);
+    }
+
+    /**
+     * Schlüssel aller Rollen, deren Modul aus oder deinstalliert ist. Je
+     * Anfrage einmal ermittelt (liegt im Container, damit Tests sauber bleiben).
+     *
+     * @return string[]
+     */
+    public static function inaktiveSchluessel(): array
+    {
+        if (app()->bound('rollen.inaktiv')) {
+            return app('rollen.inaktiv');
+        }
+
+        $aktiveModule = Module::where('is_enabled', true)
+            ->whereIn('key', app(ModuleRegistry::class)->keys())
+            ->pluck('key')
+            ->all();
+
+        $inaktiv = static::query()
+            ->whereNotNull('modul')
+            ->where('plattformweit', false)
+            ->whereNotIn('modul', $aktiveModule ?: ['__none__'])
+            ->pluck('role_id')
+            ->all();
+
+        app()->instance('rollen.inaktiv', $inaktiv);
+
+        return $inaktiv;
+    }
+
+    /** Nach dem Umschalten eines Moduls oder einem Sync neu ermitteln. */
+    public static function aktivStandVergessen(): void
+    {
+        app()->forgetInstance('rollen.inaktiv');
     }
 
     /**

@@ -11,7 +11,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Module liefern ihre Rollen.** Das Manifest kennt `->rolle('schluessel', 'Name')`;
   `modules:sync` legt die Rolle an und trägt in der neuen Spalte `roles.modul` den Besitzer
   ein (`plattformweit: true` für Rollen, die überall gebraucht werden). Vorhandene Rollen
-  gleichen Schlüssels werden samt Mitgliedern übernommen. Neue Migration – vor `modules:sync`
+  gleichen Schlüssels werden samt Mitgliedern übernommen.
+- **Modulrollen gelten nur bei aktivem Modul.** Ist das Modul deaktiviert oder deinstalliert,
+  öffnet seine Rolle keinen Menüpunkt mehr (Zuweisungen bleiben erhalten). Für Module:
+  `$user->hatRolle(...)`, `Role::aktiv()`, `$rolle->istAktiv()`. Plattformweite und von Hand
+  angelegte Rollen sind nicht betroffen. Neue Migration – vor `modules:sync`
   ausführen (macht `deploy.sh` bereits so).
 
 ### Behoben

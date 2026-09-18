@@ -150,6 +150,19 @@ class User extends Authenticatable
     }
 
     /**
+     * Hat der Benutzer eine dieser Rollen – und gilt sie gerade? Module prüfen
+     * ihre Rechte hierüber statt direkt in `user_roles`, damit die Rolle eines
+     * deaktivierten Moduls nirgends mehr wirkt.
+     */
+    public function hatRolle(string ...$roleIds): bool
+    {
+        return $this->roles->pluck('role_id')
+            ->intersect($roleIds)
+            ->diff(Role::inaktiveSchluessel())
+            ->isNotEmpty();
+    }
+
+    /**
      * Die Eltern / Vormunde dieses Benutzers (n:m über users_parents).
      * Dieser Benutzer ist das Kind (user_id), die Beziehung zeigt auf parent_id.
      */

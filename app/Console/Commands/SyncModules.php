@@ -86,6 +86,8 @@ class SyncModules extends Command
             $this->line("  <info>✓</info> {$manifest->key} — {$manifest->name} (".count($manifest->items).' Unterseiten, '.count($manifest->rollen).' Rollen)');
         }
 
+        Role::aktivStandVergessen();
+
         $this->info('Module-Synchronisierung abgeschlossen.');
 
         return self::SUCCESS;

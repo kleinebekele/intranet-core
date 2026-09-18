@@ -155,6 +155,7 @@ class ModuleController extends Controller
     public function toggle(Module $module): RedirectResponse
     {
         $module->update(['is_enabled' => ! $module->is_enabled]);
+        Role::aktivStandVergessen();
         Audit::schreiben('modul.umgeschaltet', $module->is_enabled ? 'Aktiviert.' : 'Deaktiviert.', ziel: 'Modul '.$module->key);
 
         return back()->with('status', "Modul \"{$module->name}\" ".($module->is_enabled ? 'aktiviert' : 'deaktiviert').'.');

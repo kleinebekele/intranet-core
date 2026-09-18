@@ -55,6 +55,16 @@ Rolle schon (gleiche `role_id`), wird sie **übernommen**: Mitglieder und Menüp
 bleiben, sie bekommt nur den Besitzer. Meldet das Modul eine Rolle nicht mehr an, wird sie
 freigegeben (gilt dann als von Hand angelegt), nie gelöscht.
 
+**Eine Modulrolle gilt nur, solange ihr Modul aktiv und installiert ist.** Ist es aus, öffnet
+die Rolle keinen Menüpunkt mehr – auch keinen fremden; die Zuweisungen bleiben liegen und
+gelten nach dem Einschalten wieder. Plattformweite Rollen gelten immer. Wer im Modul selbst
+Rechte prüft, fragt deshalb den Core statt `user_roles`:
+
+```php
+$user->hatRolle('kantine_koch', 'kantine_kellner')   // eine davon, und sie gilt gerade
+Role::aktiv()->get()                                 // Rollenlisten (Auswahlfelder, Zielgruppen)
+```
+
 `roles.modul` (wem gehört die Rolle) ist nicht `roles.quelle` (wer pflegt die Mitglieder –
 ein Abgleich). Beides kann zugleich gesetzt sein.
 

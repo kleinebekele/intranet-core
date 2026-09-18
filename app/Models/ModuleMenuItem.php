@@ -47,8 +47,11 @@ class ModuleMenuItem extends Model
             return false;
         }
 
+        // Rollen eines deaktivierten Moduls zählen nicht – auch nicht hier,
+        // falls sie einem fremden Menüpunkt zugeordnet sind.
         return $user->roles->pluck('role_id')
             ->intersect($this->roles->pluck('role_id'))
+            ->diff(Role::inaktiveSchluessel())
             ->isNotEmpty();
     }
 
