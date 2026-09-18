@@ -35,19 +35,34 @@
                 @if ($roles->isEmpty())
                     <p class="mt-1 text-sm text-gray-400">Noch keine Rollen vorhanden – lege welche im Tab „Rollen" an.</p>
                 @else
-                    <div class="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
-                        @foreach ($roles as $role)
-                            @php($isBaseline = $role->role_id === 'user')
-                            <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 {{ $isBaseline ? 'bg-gray-50' : '' }}">
-                                <input type="checkbox" name="roles[]" value="{{ $role->role_id }}"
-                                       @checked($isBaseline || in_array($role->role_id, $selectedRoles))
-                                       @disabled($isBaseline)
-                                       class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                <span class="text-sm text-gray-700">
-                                    {{ $role->name }}@if ($isBaseline) <span class="text-xs text-gray-400">(automatisch)</span>@endif
-                                </span>
-                            </label>
-                        @endforeach
+                    @include('admin.users._rollenauswahl', ['gruppen' => $gruppen, 'selectedRoles' => $selectedRoles])
+                @endif
+
+                {{-- Gruppen, die ein Abgleich pflegt (Klassen, Arbeitskreise aus einem
+                     Fremdsystem): nur zur Ansicht. Ein Häkchen hier würde der nächste
+                     Lauf zurückdrehen – gepflegt wird dort, wo die Daten herkommen. --}}
+                @if ($verwaltet->isNotEmpty())
+                    <div class="mt-4" x-data="{ offen: false }">
+                        <button type="button" @click="offen = ! offen"
+                                class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 hover:text-gray-700">
+                            <i class='bx bx-refresh'></i>
+                            Vom Abgleich gepflegte Gruppen ({{ $verwaltet->count() }})
+                            <i class='bx' :class="offen ? 'bx-chevron-up' : 'bx-chevron-down'"></i>
+                        </button>
+                        <div x-show="offen" x-cloak class="mt-2">
+                            <div class="flex flex-wrap gap-1.5">
+                                @foreach ($verwaltet as $role)
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-sm text-sky-800"
+                                          title="Pflegt der Abgleich „{{ $role->quelle }}“">
+                                        {{ $role->name }}
+                                    </span>
+                                @endforeach
+                            </div>
+                            <p class="mt-2 text-xs text-gray-400">
+                                Diese Zugehörigkeiten kommen aus einem Abgleich und lassen sich hier nicht ändern –
+                                der nächste Lauf würde es zurückdrehen. Beim Speichern bleiben sie unverändert.
+                            </p>
+                        </div>
                     </div>
                 @endif
             </div>

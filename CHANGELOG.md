@@ -35,6 +35,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   öffnet seine Rolle keinen Menüpunkt mehr (Zuweisungen bleiben erhalten). Für Module:
   `$user->hatRolle(...)`, `Role::aktiv()`, `$rolle->istAktiv()`. Plattformweite und von Hand
   angelegte Rollen sind nicht betroffen.
+- **Benutzer anlegen/bearbeiten: Rollen nach Herkunft gruppiert** (System, je Modul, von Hand
+  angelegt – dieselbe Ordnung wie im Rollen-Panel). Gruppen, deren Mitglieder ein Abgleich pflegt
+  (z. B. „Eltern Klasse 4A" aus Linear), sind dort nicht mehr wählbar: Die eigenen Gruppen des
+  Benutzers stehen eingeklappt zur Ansicht und bleiben beim Speichern erhalten.
 - **Verwaltung → Module aufgeräumt.** „Unterseiten sichtbar für" zeigt je Modul nur noch dessen
   eigene Rollen, die Core-Rollen und plattformweite Rollen; von Hand angelegte stehen unter
   „Weitere Rollen". Rollen anderer Module erscheinen nur noch dort, wo sie schon zugeordnet

@@ -6,6 +6,7 @@ use App\Modules\Support\ModuleRegistry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Collection;
 
 class Role extends Model
 {
@@ -117,6 +118,34 @@ class Role extends Model
         }
 
         return $this->is_system ? 'haupt' : 'weitere';
+    }
+
+    /**
+     * Rollen nach Herkunft gruppieren – die feste Ordnung überall, wo Rollen
+     * aufgelistet werden: System zuerst, darunter je Modul ein Block (nach
+     * Modulname), dann die von Hand angelegten, zuletzt die abgeglichenen Gruppen.
+     *
+     * @param  Collection<int, Role>  $rollen
+     * @return Collection<string, Collection<int, Role>> Überschrift => Rollen (nach Name)
+     */
+    public static function nachHerkunft(Collection $rollen): Collection
+    {
+        $modulNamen = Module::pluck('name', 'key');
+
+        return $rollen
+            ->sortBy(fn (Role $rolle) => mb_strtolower($rolle->name))
+            ->groupBy(function (Role $rolle) use ($modulNamen): string {
+                $modul = $modulNamen[$rolle->modul] ?? $rolle->modul;
+
+                return match (true) {
+                    $rolle->gehoertZuModul() => '1'.mb_strtolower($modul).'|'.$modul,
+                    $rolle->isSystem() => '0|System',
+                    $rolle->istVerwaltet() => '3|Vom Abgleich gepflegte Gruppen',
+                    default => '2|Von Hand angelegt',
+                };
+            })
+            ->sortKeys()
+            ->mapWithKeys(fn (Collection $gruppe, string $schluessel) => [explode('|', $schluessel, 2)[1] => $gruppe]);
     }
 
     /** Nach dem Umschalten eines Moduls oder einem Sync neu ermitteln. */

@@ -59,9 +59,12 @@ class UserController extends Controller
 
     public function create(): View
     {
-        $roles = Role::orderByDesc('is_system')->orderBy('role_id')->get();
+        // Nach Herkunft gruppiert; abgeglichene Gruppen (Klassen …) pflegt ihr
+        // Abgleich und stehen deshalb gar nicht erst zur Wahl.
+        $roles = Role::all()->reject->istVerwaltet();
+        $gruppen = Role::nachHerkunft($roles);
 
-        return view('admin.users.create', compact('roles'));
+        return view('admin.users.create', compact('roles', 'gruppen'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -84,7 +87,7 @@ class UserController extends Controller
             'email_verified_at' => now(), // vom Admin angelegt = vertrauenswürdig
         ])->save();
 
-        $rollen = $this->rolesWithBaseline($data['roles'] ?? []);
+        $rollen = $this->rolesWithBaseline($this->ohneVerwaltete($data['roles'] ?? []));
         $user->roles()->sync($rollen);
 
         Audit::schreiben('benutzer.angelegt', 'In der Verwaltung angelegt, Willkommens-Mail verschickt.', $user, [
@@ -103,10 +106,16 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        $roles = Role::orderByDesc('is_system')->orderBy('role_id')->get();
         $user->load('roles');
 
-        return view('admin.users.edit', compact('user', 'roles'));
+        // Wählbar: alles außer den abgeglichenen Gruppen – nach Herkunft gruppiert.
+        $roles = Role::all()->reject->istVerwaltet();
+        $gruppen = Role::nachHerkunft($roles);
+        // Abgeglichene Gruppen (z. B. Eltern Klasse 4A): nur anzeigen, was der
+        // Benutzer hat. Ein Häkchen hier würde der nächste Abgleich zurückdrehen.
+        $verwaltet = $user->roles->filter->istVerwaltet()->sortBy('name')->values();
+
+        return view('admin.users.edit', compact('user', 'roles', 'gruppen', 'verwaltet'));
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -142,7 +151,12 @@ class UserController extends Controller
         $user->is_admin = $isAdmin;
         $user->save();
 
-        $rollen = $this->rolesWithBaseline($data['roles'] ?? []);
+        // Abgeglichene Gruppen stehen nicht im Formular – sie dürfen beim Abgleich
+        // der Häkchen weder entzogen noch (per handgebautem Request) vergeben werden.
+        $rollen = $this->rolesWithBaseline([
+            ...$this->ohneVerwaltete($data['roles'] ?? []),
+            ...$user->roles()->get()->filter->istVerwaltet()->pluck('role_id')->all(),
+        ]);
         $user->roles()->sync($rollen);
 
         $nachher = ['name' => $user->name, 'email' => $user->email, 'admin' => $isAdmin, 'rollen' => collect($rollen)->sort()->values()->all()];
@@ -172,6 +186,21 @@ class UserController extends Controller
 
         return redirect()->route('admin.users.index')
             ->with('status', "Benutzer \"{$name}\" wurde gelöscht.");
+    }
+
+    /**
+     * Rollen, deren Mitglieder ein Abgleich pflegt (`roles.quelle`), aus einer
+     * Eingabe streichen.
+     *
+     * @param  array<int, string>  $roles
+     * @return array<int, string>
+     */
+    private function ohneVerwaltete(array $roles): array
+    {
+        $verwaltet = Role::whereIn('role_id', $roles ?: ['__keine__'])->get()
+            ->filter->istVerwaltet()->pluck('role_id')->all();
+
+        return array_values(array_diff($roles, $verwaltet));
     }
 
     /**
