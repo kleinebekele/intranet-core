@@ -431,6 +431,31 @@ gelaufen ist.
 letzten *Stapel* zurück, und darin stecken typischerweise Migrationen ganz
 anderer Pakete.
 
+**Rollen und Ekkon-Aufgaben des Moduls** folgen derselben Zweiteilung:
+
+| | ohne `--mit-daten` | mit `--mit-daten` |
+|---|---|---|
+| Rollen aus dem Manifest | freigegeben (gelten als von Hand angelegt), **Mitglieder bleiben**; ein erneut installiertes Modul übernimmt sie wieder | samt Zuweisungen gelöscht – außer plattformweiten, die bleiben immer |
+| Pausen, Einstellungen, Historie und Benachrichtigungs-Routen seiner Aufgaben | bleiben | gelöscht (nur solange das Paket noch installiert ist – sonst kennt niemand mehr seine Task-Keys) |
+
+## 8b. Ein Modul geht in einem anderen auf
+
+Zieht Code von Modul A nach Modul B (Beispiel: `ekkon-linear` → `verwaltung`), wandert der
+Besitz von allein mit – **vorausgesetzt, die Namen bleiben gleich**:
+
+- **Migrationen:** mit *identischem Dateinamen* nach B kopieren. Laravel hält sie für gelaufen,
+  und beim nächsten `modules:sync` schreibt der Core den Besitz auf B um. Ein späteres
+  `modules:uninstall A --mit-daten` fasst diese Tabellen nicht mehr an – auch nicht in der
+  Zwischenzeit, in der beide Pakete installiert sind.
+- **Rollen:** B meldet sie im Manifest an, A nicht mehr. Beim Sync gehen sie samt Mitgliedern
+  auf B über. Solange A installiert ist **und** die Rolle selbst noch anmeldet, bleibt sie bei A.
+- **Ekkon-Aufgaben:** *Ordner- und Klassennamen* unter `src/Tasks/` behalten – der Task-Key
+  (`Gruppe/Name`) bleibt dann gleich, und Pausen, Einstellungen, Historie und Routen hängen
+  weiter dran. Nie beide Pakete dieselben Task-Keys anmelden lassen (Kollision: einer läuft nicht).
+
+Reihenfolge auf dem Server: B deployen → `modules:sync` → `modules:uninstall A` (ohne
+`--mit-daten`) → `composer remove <paket-a>`.
+
 ---
 
 ## 9. Checkliste für ein neues Modul

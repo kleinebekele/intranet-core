@@ -21,6 +21,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   deaktiviertes Modul hält **alle seine Aufgaben an** – bisher liefen sie unbemerkt weiter.
   Übersicht, `ekkon:task` und die Meldungsart-Auswahl sind durchgehend nach Modul gruppiert
   (System zuerst, deaktivierte Module eingeklappt am Ende).
+- **Module entfernen und zusammenlegen.** `modules:uninstall` kennt jetzt auch die Rollen und die
+  Ekkon-Spuren (Pausen, Einstellungen, Historie, Routen) eines Moduls: ohne `--mit-daten`
+  werden Rollen freigegeben und alles andere bleibt, mit `--mit-daten` wird es gelöscht
+  (plattformweite Rollen bleiben immer). Geht ein Modul in einem anderen auf, wandern
+  Migrationen (gleicher Dateiname) und Rollen beim `modules:sync` von allein zum neuen Besitzer;
+  das Entfernen des alten Moduls fasst sie nicht mehr an. Siehe `MODULES.md` §8a/§8b.
 - **Module liefern ihre Rollen.** Das Manifest kennt `->rolle('schluessel', 'Name')`;
   `modules:sync` legt die Rolle an und trägt in der neuen Spalte `roles.modul` den Besitzer
   ein (`plattformweit: true` für Rollen, die überall gebraucht werden). Vorhandene Rollen

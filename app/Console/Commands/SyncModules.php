@@ -26,8 +26,12 @@ class SyncModules extends Command
 
     protected $description = 'Sync installed modules and their menu items into the database.';
 
+    private ModuleRegistry $registry;
+
     public function handle(ModuleRegistry $registry, ModuleMigrations $migrationen): int
     {
+        $this->registry = $registry;
+
         if ($registry->manifests()->isEmpty()) {
             $this->warn('No modules are currently installed.');
 
@@ -118,7 +122,14 @@ class SyncModules extends Command
                 continue;
             }
 
-            if ($eintrag && $eintrag->gehoertZuModul() && $eintrag->modul !== $manifest->key) {
+            // Eine Rolle gehört dem, der sie anmeldet. Nur wenn ein ANDERES
+            // installiertes Modul sie ebenfalls anmeldet, bleibt sie dort – zieht
+            // eine Rolle um (A meldet sie nicht mehr an oder ist weg), geht sie über.
+            $besitzer = $eintrag?->gehoertZuModul() && $eintrag->modul !== $manifest->key
+                ? $this->registry->manifest($eintrag->modul)
+                : null;
+
+            if ($besitzer && collect($besitzer->rollen)->contains('roleId', $rolle->roleId)) {
                 $this->warn("    Rolle {$rolle->roleId} gehört schon zum Modul {$eintrag->modul} – übersprungen.");
 
                 continue;

@@ -209,6 +209,27 @@
                                         {{ $umfang }}.
                                     </p>
 
+                                    @if ($vorschau && $vorschau['rollen']->isNotEmpty())
+                                        <p class="mt-2 text-sm text-gray-700">
+                                            <span class="font-medium">Rollen des Moduls:</span>
+                                            @foreach ($vorschau['rollen'] as $rolle)
+                                                {{ $rolle->name }} ({{ $rolle->users_count }})@if ($rolle->plattformweit) <span class="text-gray-500">plattformweit</span>@endif{{ $loop->last ? '' : ',' }}
+                                            @endforeach
+                                            <span x-show="! mitDaten">– werden freigegeben, die Mitglieder bleiben.</span>
+                                            <span x-show="mitDaten" x-cloak class="font-medium text-red-700">– werden samt Zuweisungen gelöscht (plattformweite bleiben).</span>
+                                        </p>
+                                    @endif
+
+                                    @if ($vorschau && $vorschau['ekkon']['tasks'])
+                                        <p class="mt-2 text-sm text-gray-700">
+                                            <span class="font-medium">Ekkon-Aufgaben:</span>
+                                            {{ implode(', ', $vorschau['ekkon']['tasks']) }} –
+                                            {{ $vorschau['ekkon']['zeilen'] }} Zeile(n) Pausen, Einstellungen, Historie und Benachrichtigungs-Routen
+                                            <span x-show="! mitDaten">bleiben erhalten.</span>
+                                            <span x-show="mitDaten" x-cloak class="font-medium text-red-700">werden gelöscht.</span>
+                                        </p>
+                                    @endif
+
                                     @if ($vorschau && ! $vorschau['paket_installiert'] && count($vorschau['migrationen']))
                                         <p class="mt-2 text-sm text-gray-600">
                                             Das Paket ist bereits deinstalliert. Die Tabellen unten kennt der Core

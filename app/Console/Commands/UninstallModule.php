@@ -80,6 +80,15 @@ class UninstallModule extends Command
             $this->line("  <info>✓</info> {$bericht['adressen']} sprechende Adresse(n) entfernt");
         }
         $this->line("  <info>✓</info> Modul-Eintrag und {$bericht['menuepunkte']} Menüpunkt(e) entfernt");
+        if ($bericht['rollen_geloescht']) {
+            $this->line("  <info>✕</info> {$bericht['rollen_geloescht']} Rolle(n) samt Zuweisungen gelöscht");
+        }
+        if ($bericht['rollen_freigegeben']) {
+            $this->line("  <info>✓</info> {$bericht['rollen_freigegeben']} Rolle(n) freigegeben – Mitglieder bleiben, im Rollen-Panel jetzt von Hand pflegbar");
+        }
+        if ($bericht['ekkon_zeilen']) {
+            $this->line("  <info>✕</info> {$bericht['ekkon_zeilen']} Ekkon-Zeile(n) der Tasks gelöscht (Pausen, Einstellungen, Historie, Routen)");
+        }
 
         $this->newLine();
         $this->info("Modul „{$key}\" ist aus dieser Instanz entfernt.");
@@ -123,6 +132,21 @@ class UninstallModule extends Command
                 $migration['tabellen'],
             );
             $this->line("    – {$migration['name']}".($zusatz ? ' → '.implode(', ', $zusatz) : ''));
+        }
+
+        if ($vorschau['rollen']->isNotEmpty()) {
+            $this->line('  Rollen des Moduls: '.$vorschau['rollen']
+                ->map(fn ($r) => "{$r->role_id} ({$r->users_count} Mitgl.".($r->plattformweit ? ', plattformweit' : '').')')
+                ->implode(', '));
+            $this->line($mitDaten
+                ? '    → werden samt Zuweisungen GELÖSCHT (plattformweite bleiben und werden freigegeben)'
+                : '    → werden freigegeben, Mitglieder bleiben');
+        }
+
+        if ($vorschau['ekkon']['tasks']) {
+            $this->line('  Ekkon-Tasks: '.implode(', ', $vorschau['ekkon']['tasks'])
+                ." – {$vorschau['ekkon']['zeilen']} Zeile(n) Pausen/Einstellungen/Historie/Routen"
+                .($mitDaten ? ' → werden gelöscht' : ' → bleiben'));
         }
 
         $this->newLine();

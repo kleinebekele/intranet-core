@@ -35,6 +35,45 @@ class ModuleMigrations
             ->where('module_key', $manifest->key)
             ->whereNotIn('migration', $bekannt ?: ['__keine__'])
             ->delete();
+
+        // Umzug zwischen Modulen: Wer die Datei mitbringt, dem gehört sie. Zieht
+        // eine Migration (gleicher Dateiname) von Modul A nach B, verliert A hier
+        // seinen Vermerk – sonst würde ein späteres Entfernen von A die Tabellen
+        // löschen, die längst B gehören.
+        if ($bekannt !== []) {
+            DB::table('module_migrations')
+                ->where('module_key', '!=', $manifest->key)
+                ->whereIn('migration', $bekannt)
+                ->delete();
+        }
+    }
+
+    /**
+     * Beansprucht ein ANDERES installiertes Modul diese Migration (bringt eine
+     * Datei gleichen Namens mit)? Dann darf ein Entfernen von `$key` sie nicht
+     * zurückrollen – auch nicht, solange beide Pakete noch nebeneinander
+     * installiert sind und der Vermerk noch nicht umgeschrieben wurde.
+     */
+    private function vonAnderemBeansprucht(string $key, string $migration): bool
+    {
+        // Der Core selbst zählt auch: Ekkon zog 2026-09 samt Migrationen hierher.
+        if (is_file(database_path("migrations/{$migration}.php"))) {
+            return true;
+        }
+
+        foreach (app(ModuleRegistry::class)->manifests() as $anderes) {
+            if ($anderes->key === $key) {
+                continue;
+            }
+
+            foreach ($anderes->migrationFiles() as $datei) {
+                if (basename($datei, '.php') === $migration) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -56,7 +95,7 @@ class ModuleMigrations
             foreach ($manifest->migrationFiles() as $datei) {
                 $name = basename($datei, '.php');
 
-                if (in_array($name, $gelaufen, true)) {
+                if (in_array($name, $gelaufen, true) && ! $this->vonAnderemBeansprucht($key, $name)) {
                     $treffer[] = ['name' => $name, 'datei' => $datei, 'tabellen' => $this->tabellenAus($datei)];
                 }
             }
@@ -69,6 +108,8 @@ class ModuleMigrations
             ->whereIn('migration', $gelaufen)
             ->orderBy('migration')
             ->get()
+            ->reject(fn ($zeile) => $this->vonAnderemBeansprucht($key, $zeile->migration))
+            ->values()
             ->map(fn ($zeile) => [
                 'name' => $zeile->migration,
                 'datei' => null,

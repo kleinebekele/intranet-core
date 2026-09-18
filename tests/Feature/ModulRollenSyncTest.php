@@ -74,8 +74,11 @@ class ModulRollenSyncTest extends TestCase
 
     public function test_rolle_eines_anderen_moduls_und_basisrollen_bleiben_unangetastet(): void
     {
-        Role::create(['role_id' => 'fremd', 'name' => 'Fremd'])->forceFill(['modul' => 'anderes'])->save();
-
+        // „anderes" ist installiert und meldet die Rolle selbst an – dann bleibt sie dort.
+        // (Wäre es weg oder meldete sie nicht mehr an, ginge sie über: siehe ModulUmzugTest.)
+        $this->anmelden(ModuleManifest::make('anderes', 'Anderes')
+            ->item('index', 'Start', 'module.anderes.index')
+            ->rolle('fremd', 'Fremd'));
         $this->anmelden($this->testmodul()->rolle('fremd', 'Gekapert')->rolle('admin', 'Gekapert'));
         $this->artisan('modules:sync')->assertSuccessful();
 

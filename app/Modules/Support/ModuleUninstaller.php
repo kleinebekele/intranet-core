@@ -2,7 +2,9 @@
 
 namespace App\Modules\Support;
 
+use App\Ekkon\Support\ModulSpuren;
 use App\Models\Module;
+use App\Models\Role;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -51,6 +53,10 @@ class ModuleUninstaller
             'menuepunkte' => $module?->menuItems ?? collect(),
             'adressen' => $this->routenEinstellungen($key)->count(),
             'migrationen' => $this->migrationenMitTabellen($key, $manifest),
+            // Rollen, die das Modul mitgebracht hat, samt Mitgliederzahl.
+            'rollen' => Role::where('modul', $key)->withCount('users')->orderBy('role_id')->get(),
+            // Pausen, Einstellungen, Historie und Routen seiner Ekkon-Tasks.
+            'ekkon' => app(ModulSpuren::class)->vorschau($key),
         ];
     }
 
@@ -93,7 +99,25 @@ class ModuleUninstaller
 
         $this->migrationen->vergessen($key);
 
+        // Rollen folgen derselben Zweiteilung wie die Tabellen. Schonend: Die
+        // Rollen werden freigegeben (gelten dann als von Hand angelegt) und
+        // behalten ihre Mitglieder – ein erneut installiertes Modul übernimmt
+        // sie beim Sync wieder. Mit Daten: weg damit, Zuweisungen inklusive.
+        // Plattformweite Rollen (Lehrer, Schüler …) bleiben immer: an ihnen
+        // hängen auch andere Module.
+        $rollen = $vorschau['rollen'];
+        $geloescht = $mitDaten ? $rollen->where('plattformweit', false) : collect();
+
+        Role::whereIn('role_id', $geloescht->pluck('role_id'))->delete();
+        Role::where('modul', $key)->update(['modul' => null, 'plattformweit' => false]);
+        Role::aktivStandVergessen();
+
+        $ekkonZeilen = $mitDaten ? app(ModulSpuren::class)->entfernen($key) : 0;
+
         return [
+            'rollen_geloescht' => $geloescht->count(),
+            'rollen_freigegeben' => $rollen->count() - $geloescht->count(),
+            'ekkon_zeilen' => $ekkonZeilen,
             'name' => $vorschau['name'],
             'paket_name' => $vorschau['paket_name'],
             'menuepunkte' => $punkte,
