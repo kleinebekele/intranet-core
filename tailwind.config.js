@@ -11,6 +11,9 @@ export default {
         // Module dürfen Tailwind-Klassen auch aus PHP-Code liefern
         // (z. B. Farbcodierung der Ekkon-Laufzeiten in EkkonTask).
         './vendor/do1emu/module-*/src/**/*.php',
+        // Ekkon liegt seit 2026-09 im Core: die Farbcodierung der Laufzeiten
+        // steht als Klassennamen in app/Ekkon/Tasks/EkkonTask.php.
+        './app/Ekkon/**/*.php',
     ],
 
     theme: {

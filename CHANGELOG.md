@@ -43,6 +43,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   ausführen (macht `deploy.sh` bereits so).
 
 ### Behoben
+- **Ekkon: Laufzeit-Farben fehlten im CSS.** Seit Ekkon im Core liegt, suchte Tailwind die
+  Klassennamen aus `EkkonTask::durationClasses()` am falschen Ort; langsame Läufe erschienen
+  weiß statt orange. Suchpfad `app/Ekkon` ergänzt (wirkt nach dem nächsten Asset-Build).
 - **Uploads auf dem Server scheiterten still** (Kantine: Gerichtfoto). Die Disk `public` legt
   Verzeichnisse jetzt mit `0775` statt `0755` an. Mit `0755` wurde die ACL-Maske auf `r-x`
   gesetzt und deckelte das per Default-ACL vererbte Schreibrecht von `www-data`.
