@@ -59,8 +59,13 @@ class ModulSpuren
         $tasks = [];
         $arten = [];
 
+        // Meldet ein zweites Paket denselben Task-Key an (Umzug zwischen Modulen,
+        // beide noch installiert), gehören die Spuren nicht mehr diesem Modul allein –
+        // Finger weg, sonst verlöre der Nachfolger Pause, Einstellungen und Historie.
+        $geteilt = array_column($this->registry->kollisionen(), 'key');
+
         foreach ($this->registry->all() as $key => $task) {
-            if ($this->registry->modulFuer($key) === $modulKey) {
+            if ($this->registry->modulFuer($key) === $modulKey && ! in_array($key, $geteilt, true)) {
                 $tasks[] = $key;
                 $arten = [...$arten, ...array_keys($task->meldungsarten)];
             }
