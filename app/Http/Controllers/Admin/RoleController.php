@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Module;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Audit;
@@ -26,7 +27,21 @@ class RoleController extends Controller
             ->orderBy('role_id')
             ->get();
 
-        return view('admin.roles.index', compact('roles'));
+        // Feste Ordnung: System-Rollen zuerst, darunter je Modul ein Block (nach
+        // Modulname), zuletzt die von Hand angelegten und abgeglichenen Gruppen.
+        $modulNamen = Module::pluck('name', 'key');
+
+        $gruppen = $roles
+            ->sortBy(fn (Role $role) => mb_strtolower($role->name))
+            ->groupBy(fn (Role $role) => match (true) {
+                $role->gehoertZuModul() => '1'.mb_strtolower($modulNamen[$role->modul] ?? $role->modul).'|'.($modulNamen[$role->modul] ?? $role->modul),
+                $role->isSystem() => '0|System',
+                default => '2|Von Hand angelegt und abgeglichene Gruppen',
+            })
+            ->sortKeys()
+            ->mapWithKeys(fn ($rollen, string $schluessel) => [explode('|', $schluessel, 2)[1] => $rollen]);
+
+        return view('admin.roles.index', compact('roles', 'gruppen'));
     }
 
     public function create(): View

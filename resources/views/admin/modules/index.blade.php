@@ -131,15 +131,24 @@
                                                         @endphp
                                                         <div class="space-y-1.5" :class="itemAdminsOnly && 'opacity-40 pointer-events-none'"
                                                              x-data="{ weitere: {{ $weitereOffen ? 'true' : 'false' }} }">
+                                                            {{-- Zuerst die System-Rollen, darunter die Modulrollen
+                                                                 (eigene des Moduls + plattformweite). --}}
+                                                            @foreach (['System' => $haupt->reject->gehoertZuModul(), 'Modulrollen' => $haupt->filter->gehoertZuModul()] as $zeilenName => $zeile)
+                                                                @continue($zeile->isEmpty())
+                                                                <div class="flex flex-wrap items-center gap-1.5">
+                                                                    <span class="w-24 shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ $zeilenName }}</span>
+                                                                    @foreach ($zeile as $role)
+                                                                        <label class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-sm text-gray-700 {{ $role->modul === $module->key ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white' }}"
+                                                                               @if ($role->plattformweit) title="Plattformweite Rolle aus dem Modul „{{ $role->modul }}“" @endif>
+                                                                            <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
+                                                                                   @checked($item->roles->contains('role_id', $role->role_id))
+                                                                                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                                            {{ $role->name }}
+                                                                        </label>
+                                                                    @endforeach
+                                                                </div>
+                                                            @endforeach
                                                             <div class="flex flex-wrap items-center gap-1.5">
-                                                                @foreach ($haupt as $role)
-                                                                    <label class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-sm text-gray-700 {{ $role->modul === $module->key ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white' }}">
-                                                                        <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
-                                                                               @checked($item->roles->contains('role_id', $role->role_id))
-                                                                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                                                        {{ $role->name }}
-                                                                    </label>
-                                                                @endforeach
                                                                 @foreach ($alt as $role)
                                                                     <label class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-sm text-amber-800"
                                                                            title="Rolle des Moduls „{{ $role->modul }}“ – besteht von früher, lässt sich hier nur noch entfernen">

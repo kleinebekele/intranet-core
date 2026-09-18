@@ -34,8 +34,14 @@
                 </div>
             </div>
         @else
+            @foreach ($gruppen as $gruppenName => $rollenDerGruppe)
+            <h2 class="mb-2 {{ $loop->first ? '' : 'mt-8' }} flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                <i class='bx {{ $gruppenName === 'System' ? 'bx-lock-alt' : ($rollenDerGruppe->first()->gehoertZuModul() ? 'bx-cube' : 'bx-group') }}'></i>
+                {{ $gruppenName }}
+                <span class="font-normal text-gray-400">({{ $rollenDerGruppe->count() }})</span>
+            </h2>
             <ul class="space-y-3">
-                @foreach ($roles as $role)
+                @foreach ($rollenDerGruppe as $role)
                     <li class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4">
                         <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 text-xl">
                             <i class='bx bx-id-card leading-none'></i>
@@ -103,6 +109,7 @@
                     </li>
                 @endforeach
             </ul>
+            @endforeach
         @endif
 
         {{-- Hinweisfenster: Alle Zuweisungen aufheben --}}
