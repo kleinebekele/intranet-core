@@ -200,7 +200,8 @@
                                 <button type="button" @click="zeigen = ! zeigen"
                                         class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600">
                                     <i class='bx bx-trash text-base'></i>
-                                    Modul entfernen
+                                    <span x-text="zeigen ? 'Vorschau schließen' : 'Modul entfernen … (zeigt erst, was daran hängt)'">Modul entfernen … (zeigt erst, was daran hängt)</span>
+                                    <i class='bx text-base' :class="zeigen ? 'bx-chevron-up' : 'bx-chevron-down'"></i>
                                 </button>
 
                                 <div x-show="zeigen" x-cloak class="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
