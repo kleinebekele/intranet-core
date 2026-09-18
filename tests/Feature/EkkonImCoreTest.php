@@ -52,6 +52,18 @@ class EkkonImCoreTest extends TestCase
         );
     }
 
+    public function test_singleton_if_unter_beiden_namen_ersetzt_die_registry_nicht(): void
+    {
+        $registry = $this->app->make(TaskRegistry::class);
+
+        // So melden sich Module an – das eine neu, das andere noch alt.
+        $this->app->singletonIf(TaskRegistry::class);
+        $this->app->singletonIf(self::REGISTRY_ALT);
+
+        $this->assertSame($registry, $this->app->make(TaskRegistry::class));
+        $this->assertSame($registry, $this->app->make(self::REGISTRY_ALT));
+    }
+
     public function test_task_mit_altem_elternnamen_wird_gefunden_und_laeuft(): void
     {
         config(['ekkon.tasks_enabled' => true]);

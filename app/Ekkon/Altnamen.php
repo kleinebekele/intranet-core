@@ -39,6 +39,25 @@ class Altnamen
     }
 
     /**
+     * Eine Registry für alle – unter dem neuen UND dem alten Namen.
+     *
+     * Paket-Provider registrieren vor dem Core und binden die Registry selbst per
+     * `singletonIf`. Täte das ein Modul unter dem neuen und ein anderes unter dem
+     * alten Namen, gäbe es zwei Registries – und die Tasks des einen wären LAUTLOS
+     * weg. Deshalb steht die Bindung schon, bevor der erste Provider läuft; alle
+     * späteren `singletonIf` sind dann wirkungslos.
+     */
+    public static function registryBinden(\Illuminate\Contracts\Foundation\Application $app): void
+    {
+        if (self::altesPaketAktiv()) {
+            return;
+        }
+
+        $app->singleton(Support\TaskRegistry::class);
+        $app->alias(Support\TaskRegistry::class, self::ALT.'Support\\TaskRegistry');
+    }
+
+    /**
      * Liegt das alte Paket noch MIT Code in `vendor/`? Dann führt es – der Core
      * hält sich zurück, sonst liefen zwei Task-Systeme nebeneinander. Ab der
      * leeren Übergangsversion des Pakets (ohne `src/`) übernimmt der Core.

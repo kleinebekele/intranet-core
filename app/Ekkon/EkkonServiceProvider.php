@@ -42,9 +42,6 @@ class EkkonServiceProvider extends ModuleServiceProvider
             ->item('webhooks', 'Webhook-Eingang', 'module.ekkon.webhooks.index');
     }
 
-    /** Unter diesem Namen binden ältere Fachmodule die Registry. */
-    private const REGISTRY_ALT = 'Intranet\\Modules\\Ekkon\\Support\\TaskRegistry';
-
     /**
      * Steht in einem veralteten Paket-Cache (`bootstrap/cache/packages.php`) noch
      * der Provider des alten Pakets, landet Laravel über den Altnamen ein zweites
@@ -65,18 +62,10 @@ class EkkonServiceProvider extends ModuleServiceProvider
 
         parent::register();
 
-        // Paket-Provider registrieren VOR dem Core und haben ihre Tasks oft schon
-        // angemeldet – unter dem alten ODER dem neuen Namen. Beide Namen müssen
-        // auf DIESELBE Instanz zeigen, sonst wären die Tasks der Module LAUTLOS
-        // weg (kein Fehler, sie würden nur nie eingeplant).
-        if ($this->app->bound(self::REGISTRY_ALT) && ! $this->app->bound(TaskRegistry::class)) {
-            $this->app->instance(TaskRegistry::class, $this->app->make(self::REGISTRY_ALT));
-        } else {
-            $this->app->singletonIf(TaskRegistry::class);
-            if (! $this->app->bound(self::REGISTRY_ALT)) {
-                $this->app->alias(TaskRegistry::class, self::REGISTRY_ALT);
-            }
-        }
+        // Die Registry ist schon gebunden – unter dem neuen und dem alten Namen,
+        // noch vor dem ersten Provider (Altnamen::registryBinden in bootstrap/app.php).
+        // Paket-Provider haben ihre Tasks hier oft längst angemeldet.
+        $this->app->singletonIf(TaskRegistry::class);
 
         $this->app->make(TaskRegistry::class)->addSource(
             app_path('Ekkon/Tasks'),
