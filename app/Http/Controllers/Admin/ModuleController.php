@@ -42,7 +42,14 @@ class ModuleController extends Controller
             ->orderBy('role_id')
             ->get();
 
-        return view('admin.modules.index', compact('modules', 'roles', 'vorschauen'));
+        // Je Modul nur die eigenen, die Core- und die plattformweiten Rollen
+        // anbieten; von Hand angelegte klappbar dahinter. Rollen fremder Module
+        // tauchen nur noch auf, wo sie schon zugeordnet sind (zum Entfernen).
+        $rollenJeModul = $modules->mapWithKeys(fn (Module $module) => [
+            $module->id => $roles->groupBy(fn (Role $role) => $role->auswahlgruppeFuer($module->key)),
+        ]);
+
+        return view('admin.modules.index', compact('modules', 'rollenJeModul', 'vorschauen'));
     }
 
     /**
@@ -121,10 +128,22 @@ class ModuleController extends Controller
         // Nur die Unterpunkte dieses Moduls anfassen.
         $itemRoles = $data['item_roles'] ?? [];
         $itemAdminsOnly = $data['item_admins_only'] ?? [];
-        foreach ($module->menuItems as $item) {
+
+        // Rollen fremder Module lassen sich nicht neu zuordnen – auch nicht per
+        // handgebautem Request. Eine bestehende Altzuordnung darf bleiben.
+        $fremd = Role::all()
+            ->filter(fn (Role $role) => $role->auswahlgruppeFuer($module->key) === 'fremd')
+            ->pluck('role_id');
+
+        foreach ($module->menuItems()->with('roles')->get() as $item) {
             $item->admins_only = (bool) ($itemAdminsOnly[$item->id] ?? false);
             $item->save();
-            $item->roles()->sync($itemRoles[$item->id] ?? []);
+
+            $gewaehlt = collect($itemRoles[$item->id] ?? []);
+            $neuFremd = $gewaehlt->intersect($fremd)->diff($item->roles->pluck('role_id'));
+            $itemRoles[$item->id] = $gewaehlt->diff($neuFremd)->values()->all();
+
+            $item->roles()->sync($itemRoles[$item->id]);
         }
 
         Audit::schreiben('modul.sichtbarkeit', null, ziel: 'Modul '.$module->key, daten: [

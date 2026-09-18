@@ -55,6 +55,10 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role): RedirectResponse
     {
+        if ($role->gehoertZuModul()) {
+            return back()->withErrors(['role' => "Die Rolle \"{$role->name}\" bringt das Modul „{$role->modul}\" mit – der Name kommt von dort und würde beim nächsten Abgleich zurückgesetzt."]);
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
         ]);
@@ -73,6 +77,10 @@ class RoleController extends Controller
     {
         if ($role->isSystem()) {
             return back()->withErrors(['role' => "Die System-Rolle \"{$role->role_id}\" kann nicht gelöscht werden."]);
+        }
+
+        if ($role->gehoertZuModul()) {
+            return back()->withErrors(['role' => "Die Rolle \"{$role->name}\" bringt das Modul „{$role->modul}\" mit – sie verschwindet, wenn das Modul entfernt wird."]);
         }
 
         if ($role->users()->exists()) {

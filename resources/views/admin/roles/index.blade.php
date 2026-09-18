@@ -44,7 +44,14 @@
                         <div class="min-w-0 flex-1">
                             <div class="font-medium text-gray-800">
                                 {{ $role->name }}
-                                @if ($role->isSystem())
+                                @if ($role->gehoertZuModul())
+                                    <span class="ml-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium align-middle {{ $role->istAktiv() ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700' }}"
+                                          title="{{ $role->istAktiv() ? 'Diese Rolle bringt das Modul mit' : 'Das Modul ist deaktiviert oder nicht installiert – die Rolle gilt gerade nicht' }}">
+                                        <i class='bx bx-cube'></i> {{ $role->modul }}@if ($role->plattformweit) · plattformweit @endif
+                                        @unless ($role->istAktiv()) · inaktiv @endunless
+                                    </span>
+                                @endif
+                                @if ($role->isSystem() && ! $role->gehoertZuModul())
                                     <span class="ml-1 inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 align-middle">
                                         <i class='bx bx-lock-alt'></i> System
                                     </span>

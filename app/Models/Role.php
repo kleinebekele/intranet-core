@@ -103,6 +103,22 @@ class Role extends Model
         return $inaktiv;
     }
 
+    /**
+     * In welche Gruppe fällt die Rolle, wenn man die Sichtbarkeit von Modul
+     * `$modulKey` einstellt?
+     *  - 'haupt'   → eigene Rollen des Moduls, Core-Rollen, plattformweite Rollen
+     *  - 'weitere' → von Hand angelegte Rollen und abgeglichene Gruppen
+     *  - 'fremd'   → gehört einem anderen Modul; wird dort nicht angeboten
+     */
+    public function auswahlgruppeFuer(string $modulKey): string
+    {
+        if ($this->gehoertZuModul()) {
+            return $this->modul === $modulKey || $this->plattformweit ? 'haupt' : 'fremd';
+        }
+
+        return $this->is_system ? 'haupt' : 'weitere';
+    }
+
     /** Nach dem Umschalten eines Moduls oder einem Sync neu ermitteln. */
     public static function aktivStandVergessen(): void
     {

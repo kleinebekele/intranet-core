@@ -120,15 +120,55 @@
                                                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                                                             <span class="inline-flex items-center gap-1"><i class='bx bx-lock-alt'></i> Nur für Admins</span>
                                                         </label>
-                                                        <div class="flex flex-wrap gap-1.5" :class="itemAdminsOnly && 'opacity-40 pointer-events-none'">
-                                                            @foreach ($roles as $role)
-                                                                <label class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-700">
-                                                                    <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
-                                                                           @checked($item->roles->contains('role_id', $role->role_id))
-                                                                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                                                    {{ $role->name }}
-                                                                </label>
-                                                            @endforeach
+                                                        @php
+                                                            $gruppen = $rollenJeModul[$module->id];
+                                                            $haupt = $gruppen->get('haupt', collect());
+                                                            $weitere = $gruppen->get('weitere', collect());
+                                                            // Rollen fremder Module nur zeigen, wo sie schon hängen.
+                                                            $alt = $gruppen->get('fremd', collect())
+                                                                ->filter(fn ($role) => $item->roles->contains('role_id', $role->role_id));
+                                                            $weitereOffen = $weitere->contains(fn ($role) => $item->roles->contains('role_id', $role->role_id));
+                                                        @endphp
+                                                        <div class="space-y-1.5" :class="itemAdminsOnly && 'opacity-40 pointer-events-none'"
+                                                             x-data="{ weitere: {{ $weitereOffen ? 'true' : 'false' }} }">
+                                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                                @foreach ($haupt as $role)
+                                                                    <label class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-sm text-gray-700 {{ $role->modul === $module->key ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white' }}">
+                                                                        <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
+                                                                               @checked($item->roles->contains('role_id', $role->role_id))
+                                                                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                                        {{ $role->name }}
+                                                                    </label>
+                                                                @endforeach
+                                                                @foreach ($alt as $role)
+                                                                    <label class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-sm text-amber-800"
+                                                                           title="Rolle des Moduls „{{ $role->modul }}“ – besteht von früher, lässt sich hier nur noch entfernen">
+                                                                        <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}" checked
+                                                                               class="rounded border-amber-300 text-amber-600 focus:ring-amber-500">
+                                                                        {{ $role->name }}
+                                                                        <span class="text-xs text-amber-600">({{ $role->modul }})</span>
+                                                                    </label>
+                                                                @endforeach
+                                                                @if ($weitere->isNotEmpty())
+                                                                    <button type="button" @click="weitere = ! weitere"
+                                                                            class="inline-flex items-center gap-1 px-1 py-1 text-xs text-gray-500 hover:text-gray-700">
+                                                                        <i class='bx' :class="weitere ? 'bx-chevron-up' : 'bx-chevron-down'"></i>
+                                                                        Weitere Rollen ({{ $weitere->count() }})
+                                                                    </button>
+                                                                @endif
+                                                            </div>
+                                                            @if ($weitere->isNotEmpty())
+                                                                <div class="flex flex-wrap gap-1.5" x-show="weitere" x-cloak>
+                                                                    @foreach ($weitere as $role)
+                                                                        <label class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-700">
+                                                                            <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
+                                                                                   @checked($item->roles->contains('role_id', $role->role_id))
+                                                                                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                                            {{ $role->name }}
+                                                                        </label>
+                                                                    @endforeach
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                     </div>
                                                 </li>

@@ -15,7 +15,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Modulrollen gelten nur bei aktivem Modul.** Ist das Modul deaktiviert oder deinstalliert,
   öffnet seine Rolle keinen Menüpunkt mehr (Zuweisungen bleiben erhalten). Für Module:
   `$user->hatRolle(...)`, `Role::aktiv()`, `$rolle->istAktiv()`. Plattformweite und von Hand
-  angelegte Rollen sind nicht betroffen. Neue Migration – vor `modules:sync`
+  angelegte Rollen sind nicht betroffen.
+- **Verwaltung → Module aufgeräumt.** „Unterseiten sichtbar für" zeigt je Modul nur noch dessen
+  eigene Rollen, die Core-Rollen und plattformweite Rollen; von Hand angelegte stehen unter
+  „Weitere Rollen". Rollen anderer Module erscheinen nur noch dort, wo sie schon zugeordnet
+  sind (gelb, zum Entfernen). Im Rollen-Panel sind Modulrollen gekennzeichnet und gegen
+  Umbenennen/Löschen geschützt. Neue Migration – vor `modules:sync`
   ausführen (macht `deploy.sh` bereits so).
 
 ### Behoben
