@@ -10,7 +10,8 @@ namespace App\Modules\Support;
  *
  *   return ModuleManifest::make('news', 'Neuigkeiten', icon: 'newspaper')
  *       ->item('index', 'Übersicht', 'module.news')
- *       ->item('create', 'Beitrag anlegen', 'module.news.create');
+ *       ->item('create', 'Beitrag anlegen', 'module.news.create')
+ *       ->rolle('news-redaktion', 'News-Redaktion');
  */
 class ModuleManifest
 {
@@ -20,6 +21,13 @@ class ModuleManifest
      * Migrationen zu diesem Modul gehören (siehe `modules:uninstall`).
      */
     public ?string $basePath = null;
+
+    /**
+     * Rollen, die dieses Modul mitbringt (siehe {@see rolle()}).
+     *
+     * @var ModuleRole[]
+     */
+    public array $rollen = [];
 
     /** @param  MenuItem[]  $items */
     public function __construct(
@@ -82,6 +90,21 @@ class ModuleManifest
             group: $group,
             visibleWhen: $visibleWhen,
         );
+
+        return $this;
+    }
+
+    /**
+     * Eine Rolle anmelden, die dieses Modul mitbringt. `modules:sync` legt sie
+     * an und ordnet sie dem Modul zu; sie gilt nur, solange das Modul aktiv ist.
+     *
+     * @param  string  $roleId  Stabiler Schlüssel (`roles.role_id`), z. B. 'kantine_koch'.
+     * @param  string  $name  Anzeigename im Rollen-Panel.
+     * @param  bool  $plattformweit  Auch bei anderen Modulen wählbar (z. B. „Lehrer").
+     */
+    public function rolle(string $roleId, string $name, bool $plattformweit = false): static
+    {
+        $this->rollen[] = new ModuleRole($roleId, $name, $plattformweit);
 
         return $this;
     }

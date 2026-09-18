@@ -29,7 +29,7 @@ class Role extends Model
      */
     protected function casts(): array
     {
-        return ['is_system' => 'boolean'];
+        return ['is_system' => 'boolean', 'plattformweit' => 'boolean'];
     }
 
     /** System-Rollen (z. B. admin, user) sind fest und dürfen nicht gelöscht werden. */
@@ -45,6 +45,15 @@ class Role extends Model
     public function istVerwaltet(): bool
     {
         return $this->quelle !== null && $this->quelle !== '';
+    }
+
+    /**
+     * Bringt ein Modul diese Rolle mit (Manifest → `modules:sync`)? `modul` wird
+     * wie `is_system` nur vom Core gesetzt, nie per Mass-Assignment.
+     */
+    public function gehoertZuModul(): bool
+    {
+        return $this->modul !== null && $this->modul !== '';
     }
 
     /**

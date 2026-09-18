@@ -7,6 +7,13 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Module liefern ihre Rollen.** Das Manifest kennt `->rolle('schluessel', 'Name')`;
+  `modules:sync` legt die Rolle an und trägt in der neuen Spalte `roles.modul` den Besitzer
+  ein (`plattformweit: true` für Rollen, die überall gebraucht werden). Vorhandene Rollen
+  gleichen Schlüssels werden samt Mitgliedern übernommen. Neue Migration – vor `modules:sync`
+  ausführen (macht `deploy.sh` bereits so).
+
 ### Behoben
 - **Uploads auf dem Server scheiterten still** (Kantine: Gerichtfoto). Die Disk `public` legt
   Verzeichnisse jetzt mit `0775` statt `0755` an. Mit `0755` wurde die ACL-Maske auf `r-x`

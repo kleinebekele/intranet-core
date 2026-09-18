@@ -40,6 +40,24 @@ class NewsServiceProvider extends ModuleServiceProvider
 Mehr ist für die Integration **nicht** nötig. Routen, Views und Migrationen lädt die
 Basisklasse automatisch anhand der Ordnerstruktur (siehe Abschnitt 3).
 
+### Rollen mitliefern
+
+Braucht ein Modul eigene Rollen, meldet es sie im Manifest an – **nicht** per Migration oder
+`firstOrCreate`:
+
+```php
+->rolle('kantine_koch', 'Kantine: Koch')
+->rolle('teacher', 'Lehrer', plattformweit: true)   // auch bei anderen Modulen wählbar
+```
+
+`modules:sync` legt die Rolle an und trägt in `roles.modul` den Modul-Key ein. Gibt es die
+Rolle schon (gleiche `role_id`), wird sie **übernommen**: Mitglieder und Menüpunkt-Rechte
+bleiben, sie bekommt nur den Besitzer. Meldet das Modul eine Rolle nicht mehr an, wird sie
+freigegeben (gilt dann als von Hand angelegt), nie gelöscht.
+
+`roles.modul` (wem gehört die Rolle) ist nicht `roles.quelle` (wer pflegt die Mitglieder –
+ein Abgleich). Beides kann zugleich gesetzt sein.
+
 ---
 
 ## 2. Pflicht-Ordnerstruktur
@@ -352,7 +370,8 @@ VCS-Repository:
   `modules` bzw. `module_menu_items`,
 - **behält** dabei die im Admin-Panel eingestellte Reihenfolge und den An/Aus-Status
   bestehender Module bei,
-- fügt neu hinzugekommene Unterseiten hinten an und entfernt gelöschte.
+- fügt neu hinzugekommene Unterseiten hinten an und entfernt gelöschte,
+- legt die im Manifest angemeldeten **Rollen** an bzw. übernimmt vorhandene (Abschnitt 1).
 
 Führe den Befehl nach **jeder** Installation oder Aktualisierung eines Moduls aus.
 

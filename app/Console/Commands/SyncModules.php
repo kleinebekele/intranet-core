@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\Module;
 use App\Models\ModuleMenuItem;
+use App\Models\Role;
+use App\Modules\Support\ModuleManifest;
 use App\Modules\Support\ModuleMigrations;
 use App\Modules\Support\ModuleRegistry;
 use Illuminate\Console\Command;
@@ -79,11 +81,55 @@ class SyncModules extends Command
                 ->whereNotIn('key', $seen ?: ['__none__'])
                 ->delete();
 
-            $this->line("  <info>✓</info> {$manifest->key} — {$manifest->name} (".count($manifest->items).' Unterseiten)');
+            $this->rollenAbgleichen($manifest);
+
+            $this->line("  <info>✓</info> {$manifest->key} — {$manifest->name} (".count($manifest->items).' Unterseiten, '.count($manifest->rollen).' Rollen)');
         }
 
         $this->info('Module-Synchronisierung abgeschlossen.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Legt die Rollen aus dem Manifest an und ordnet sie dem Modul zu.
+     *
+     * Eine schon vorhandene Rolle gleichen Schlüssels wird übernommen – ihre
+     * Zuweisungen und Menüpunkt-Rechte bleiben, sie bekommt nur den Besitzer.
+     * Rollen, die das Modul nicht mehr anmeldet, werden freigegeben statt
+     * gelöscht: sie gelten danach als von Hand angelegt.
+     */
+    private function rollenAbgleichen(ModuleManifest $manifest): void
+    {
+        $gesehen = [];
+
+        foreach ($manifest->rollen as $rolle) {
+            $eintrag = Role::find($rolle->roleId);
+
+            if (in_array($rolle->roleId, ['admin', 'user'], true)) {
+                $this->warn("    Rolle {$rolle->roleId} ist eine Basisrolle des Cores – übersprungen.");
+
+                continue;
+            }
+
+            if ($eintrag && $eintrag->gehoertZuModul() && $eintrag->modul !== $manifest->key) {
+                $this->warn("    Rolle {$rolle->roleId} gehört schon zum Modul {$eintrag->modul} – übersprungen.");
+
+                continue;
+            }
+
+            $gesehen[] = $rolle->roleId;
+
+            $eintrag ??= new Role(['role_id' => $rolle->roleId]);
+            $eintrag->name = $rolle->name;
+            $eintrag->forceFill([
+                'modul' => $manifest->key,
+                'plattformweit' => $rolle->plattformweit,
+            ])->save();
+        }
+
+        Role::where('modul', $manifest->key)
+            ->whereNotIn('role_id', $gesehen ?: ['__none__'])
+            ->update(['modul' => null, 'plattformweit' => false]);
     }
 }
