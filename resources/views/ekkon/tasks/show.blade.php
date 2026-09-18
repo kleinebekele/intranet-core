@@ -18,6 +18,16 @@
     <div class="py-6">
         <div class="w-full mx-auto sm:px-6 lg:px-8 space-y-6">
 
+            @unless ($modulAktiv)
+                <div class="rounded-lg border border-amber-400 bg-amber-100 text-amber-900 px-4 py-3">
+                    <p class="font-semibold">Das Modul „{{ $modulName }}" ist deaktiviert.</p>
+                    <p class="text-sm mt-1">
+                        Diese Aufgabe läuft deshalb gar nicht – weder nach Zeitplan noch über „Jetzt ausführen".
+                        Eingeschaltet wird das Modul unter Verwaltung → Module.
+                    </p>
+                </div>
+            @endunless
+
             @if ($paused)
                 {{-- Muss ins Auge springen: Wer hier landet, will meist wissen,
                      warum nichts passiert. Und der Unterschied ist wichtig –

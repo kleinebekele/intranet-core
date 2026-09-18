@@ -31,12 +31,39 @@
                     </p>
                 </div>
             @endif
-            @forelse ($categories as $category => $tasks)
-                <div class="bg-white shadow-sm sm:rounded-lg p-4 sm:p-6">
-                    <h3 class="font-semibold text-gray-700 mb-4">
+            @forelse ($module as $modul)
+                @php
+                    $anzahl = array_sum(array_map('count', $modul['kategorien']));
+                @endphp
+                {{-- Eine Karte je Modul. Ein deaktiviertes Modul steht eingeklappt am
+                     Ende: seine Tasks laufen nicht, und das soll man am Kopf sehen,
+                     nicht an jeder Kachel einzeln. --}}
+                <section class="bg-white shadow-sm sm:rounded-lg p-4 sm:p-6 {{ $modul['aktiv'] ? '' : 'border border-amber-300' }}"
+                         x-data="{ offen: {{ $modul['aktiv'] ? 'true' : 'false' }} }">
+                    <button type="button" @click="offen = ! offen" class="flex w-full items-center gap-2 text-left">
+                        @if ($modul['icon'])
+                            <x-module-icon :name="$modul['icon']" class="text-xl text-gray-500" />
+                        @endif
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            {{ $modul['name'] }}
+                            <span class="text-gray-400 font-normal">({{ $anzahl }})</span>
+                        </h3>
+                        @if ($modul['key'] === null)
+                            <span class="text-xs font-semibold text-gray-600 bg-gray-100 rounded px-2 py-0.5"
+                                  title="Das Paket nennt beim Anmelden seiner Tasks kein Modul (addSource ohne Modul-Key) – die Tasks laufen, lassen sich aber keinem Modul zuordnen.">kein Modul angegeben</span>
+                        @elseif (! $modul['aktiv'])
+                            <span class="text-xs font-semibold text-amber-900 bg-amber-200 border border-amber-400 rounded px-2 py-0.5">Modul deaktiviert – Tasks laufen nicht</span>
+                        @endif
+                        <i class='bx ml-auto text-xl text-gray-400' :class="offen ? 'bx-chevron-up' : 'bx-chevron-down'"></i>
+                    </button>
+
+                    <div x-show="offen" @if (! $modul['aktiv']) x-cloak @endif class="mt-4 space-y-6">
+                    @foreach ($modul['kategorien'] as $category => $tasks)
+                    <div>
+                    <h4 class="font-semibold text-gray-600 mb-3">
                         {{ $category }}
                         <span class="text-gray-400 font-normal">({{ count($tasks) }})</span>
-                    </h3>
+                    </h4>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         @foreach ($tasks as $key => $task)
@@ -135,7 +162,10 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
+                    </div>
+                    @endforeach
+                    </div>
+                </section>
             @empty
                 <div class="bg-white shadow-sm sm:rounded-lg p-6 text-gray-500">
                     Keine Tasks vorhanden. Neue Tasks entstehen als Klasse unter

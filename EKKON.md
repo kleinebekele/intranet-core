@@ -83,9 +83,20 @@ public function register(): void
         $this->moduleBasePath().'/src/Tasks',
         __NAMESPACE__.'\\Tasks',
         'meinvendor/mein-modul',
+        'mein-modul',              // Modul-Key aus dem Manifest
     );
 }
 ```
+
+Der **Modul-Key** (viertes Argument) bindet die Aufgaben an ihr Modul:
+
+- Ist das Modul unter Verwaltung → Module **deaktiviert, läuft keine seiner Aufgaben** – weder
+  nach Zeitplan noch über „jetzt ausführen" (der Versuch steht als „übersprungen" mit
+  Begründung in der Historie). Pausen, Einstellungen und Historie bleiben erhalten.
+- Aufgaben stehen **überall nach Modul gruppiert**: Übersicht, `artisan ekkon:task`, Auswahl
+  der Meldungsart. Deaktivierte Module stehen eingeklappt am Ende.
+- Fehlt der Key (ältere Module), wird er aus dem Paketnamen erraten (`vendor/module-<key>`).
+  Gelingt das nicht, landen die Aufgaben unter „Ohne Modul" und laufen immer.
 
 `singletonIf` statt `singleton` ist hier nicht Geschmack: Bände ein Modul die
 Registry hart, würde es die bereits befüllte Instanz eines anderen ersetzen – und

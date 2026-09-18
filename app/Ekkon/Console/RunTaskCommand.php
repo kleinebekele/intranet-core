@@ -18,10 +18,14 @@ class RunTaskCommand extends Command
 
         if ($key === null) {
             $this->table(
-                ['Key', 'Kategorie', 'Cron', 'Beschreibung'],
-                collect($registry->all())->map(fn ($t) => [
-                    $t->key(), $t->category, $t->schedule(), $t->description,
-                ]),
+                ['Modul', 'Key', 'Kategorie', 'Cron', 'Beschreibung'],
+                // Wie im Dashboard: nach Modul gruppiert, deaktivierte Module markiert.
+                collect($registry->byModule())->flatMap(fn (array $modul) => collect($modul['kategorien'])
+                    ->flatMap(fn (array $tasks) => array_values($tasks))
+                    ->map(fn ($t) => [
+                        $modul['name'].($modul['aktiv'] ? '' : ' (deaktiviert)'),
+                        $t->key(), $t->category, $t->schedule(), $t->description,
+                    ])),
             );
 
             // Doppelte Keys: hier – im Deploy – soll es auffallen, nicht später

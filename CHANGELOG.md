@@ -16,6 +16,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Klassennamen (`Intranet\Modules\Ekkon\…`) laufen unverändert weiter. Das Paket wird ab v1.24
   zum leeren Übergangspaket; solange noch eine ältere Version mit Code installiert ist, hält
   sich der Core zurück. Ekkon lässt sich deaktivieren, aber nicht mehr deinstallieren.
+- **Aufgaben gehören zu ihrem Modul.** `TaskRegistry::addSource()` nimmt als viertes Argument den
+  Modul-Key (ältere Module: aus dem Paketnamen erraten). Ein unter Verwaltung → Module
+  deaktiviertes Modul hält **alle seine Aufgaben an** – bisher liefen sie unbemerkt weiter.
+  Übersicht, `ekkon:task` und die Meldungsart-Auswahl sind durchgehend nach Modul gruppiert
+  (System zuerst, deaktivierte Module eingeklappt am Ende).
 - **Module liefern ihre Rollen.** Das Manifest kennt `->rolle('schluessel', 'Name')`;
   `modules:sync` legt die Rolle an und trägt in der neuen Spalte `roles.modul` den Besitzer
   ein (`plattformweit: true` für Rollen, die überall gebraucht werden). Vorhandene Rollen

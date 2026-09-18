@@ -82,6 +82,7 @@ class EkkonServiceProvider extends ModuleServiceProvider
             app_path('Ekkon/Tasks'),
             __NAMESPACE__.'\\Tasks',
             'core',
+            TaskRegistry::SYSTEM,
         );
 
         // Die MSSQL-Quelle als Laravel-Connection. Der Name kommt aus der Config,
@@ -123,7 +124,16 @@ class EkkonServiceProvider extends ModuleServiceProvider
                 return;
             }
 
-            foreach ($this->app->make(TaskRegistry::class)->all() as $task) {
+            $registry = $this->app->make(TaskRegistry::class);
+
+            foreach ($registry->all() as $task) {
+                // Modul in der Modulverwaltung deaktiviert → seine Tasks ruhen.
+                // `schedule:run` startet jede Minute frisch, ein Umschalten wirkt
+                // also binnen einer Minute (zweite Sperre sitzt im TaskRunner).
+                if (! $registry->modulAktiv($task->key())) {
+                    continue;
+                }
+
                 $schedule->command('ekkon:task', [$task->key()])
                     ->cron($task->schedule())
                     ->withoutOverlapping($task->lockSeconds() / 60)

@@ -14,6 +14,7 @@ use App\Ekkon\Models\TaskState;
 use App\Ekkon\Support\TaskRegistry;
 use App\Ekkon\Support\TaskRunner;
 use App\Ekkon\Tasks\EkkonTask;
+use App\Modules\Support\ModuleRegistry;
 
 class TaskController extends Controller
 {
@@ -60,7 +61,11 @@ class TaskController extends Controller
         $states = TaskState::query()->get()->keyBy('task_key');
 
         return view('ekkon::tasks.index', [
-            'categories' => $this->pausierteAnsEnde($this->registry->byCategory(), $states),
+            // Immer nach Modul gruppiert, darunter nach Kategorie.
+            'module' => array_map(
+                fn (array $gruppe) => ['kategorien' => $this->pausierteAnsEnde($gruppe['kategorien'], $states)] + $gruppe,
+                $this->registry->byModule(),
+            ),
             'stats' => $stats,
             'speicher' => $speicher,
             'lastRuns' => $lastRuns,
@@ -131,8 +136,12 @@ class TaskController extends Controller
 
         $gesamt = TaskRun::query()->where('task_key', $task->key())->count();
 
+        $modul = $this->registry->modulFuer($task->key());
+
         return view('ekkon::tasks.show', [
             'task' => $task,
+            'modulAktiv' => $this->registry->modulAktiv($task->key()),
+            'modulName' => $modul ? (app(ModuleRegistry::class)->manifest($modul)?->name ?? $modul) : null,
             'state' => TaskState::firstWhere('task_key', $task->key()),
             'runs' => $runs,
             'alle' => $alle,

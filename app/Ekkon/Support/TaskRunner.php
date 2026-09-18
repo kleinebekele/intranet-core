@@ -38,6 +38,27 @@ class TaskRunner
             ]);
         }
 
+        // Modul in der Modulverwaltung deaktiviert: Dann läuft NICHTS davon – auch
+        // nicht „jetzt ausführen". Anders als die Pause ist das keine Entscheidung
+        // über den Zeitplan, sondern über das ganze Modul; ein Task, der trotzdem
+        // in ein Fremdsystem schreibt, wäre genau die Überraschung, die das
+        // Abschalten verhindern soll. Geplant lautlos, von Hand mit Begründung.
+        if (! app(TaskRegistry::class)->modulAktiv($task->key())) {
+            if ($trigger === 'scheduled') {
+                return null;
+            }
+
+            return TaskRun::create([
+                'task_key' => $task->key(),
+                'trigger' => $trigger,
+                'status' => 'skipped',
+                'started_at' => now(),
+                'finished_at' => now(),
+                'duration_ms' => 0,
+                'output' => ['skipped' => 'Das Modul dieses Tasks ist in der Modulverwaltung deaktiviert.'],
+            ]);
+        }
+
         // Pausiert (Dashboard) oder schlummernd (setInterval)? Geplante Läufe
         // werden lautlos übersprungen; nur manuelle Läufe dürfen durch.
         $state = TaskState::firstWhere('task_key', $task->key());

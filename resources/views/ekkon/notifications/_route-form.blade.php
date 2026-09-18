@@ -16,8 +16,13 @@
         <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Meldungsart</label>
             <select name="meldungsart" class="w-full rounded-md border-gray-300 text-sm">
-                @foreach ($auswahl as $art => $klartext)
-                    <option value="{{ $art }}" @selected(old('meldungsart') === $art)>{{ $klartext }}</option>
+                {{-- Wie die Aufgaben: immer nach Modul gruppiert. --}}
+                @foreach (collect($auswahl)->groupBy(fn ($klartext, $art) => $meldungsartModule[$art] ?? 'Ohne Modul', preserveKeys: true)->sortKeys() as $modulName => $arten)
+                    <optgroup label="{{ $modulName }}">
+                        @foreach ($arten as $art => $klartext)
+                            <option value="{{ $art }}" @selected(old('meldungsart') === $art)>{{ $klartext }}</option>
+                        @endforeach
+                    </optgroup>
                 @endforeach
             </select>
         </div>
