@@ -79,12 +79,29 @@
                                class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                                 <i class='bx bx-group'></i>
                             </a>
+                            {{-- Rollen, die ein Abgleich pflegt oder ein Modul mitbringt, gehören
+                                 nicht dem Panel: nur ansehen, nichts ändern. --}}
+                            @if ($role->istVerwaltet() || $role->gehoertZuModul())
+                                <span class="p-1.5 text-gray-300"
+                                      title="{{ $role->istVerwaltet()
+                                          ? 'Pflegt der Abgleich „'.$role->quelle.'“ – Name, Mitglieder und Bestand kommen von dort'
+                                          : 'Bringt das Modul „'.$role->modul.'“ mit – Name und Bestand kommen von dort' }}">
+                                    <i class='bx bx-lock-alt'></i>
+                                </span>
+                            @else
                             <a href="{{ route('admin.roles.edit', $role) }}" title="Bearbeiten"
                                class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                                 <i class='bx bx-edit'></i>
                             </a>
+                            @endif
 
-                            @if ($role->isSystem())
+                            @if (($role->istVerwaltet() && $role->users_count > 0) || ($role->gehoertZuModul() && $role->users_count === 0))
+                                {{-- Schloss steht schon oben. Modulrollen behalten „Alle
+                                     Zuweisungen aufheben" – ihre Mitglieder pflegt man von Hand.
+                                     Abgeglichene Rollen OHNE Mitglieder darf man löschen: der
+                                     Abgleich leert verwaiste Gruppen (alte Klassen), löscht sie
+                                     aber nicht. --}}
+                            @elseif ($role->isSystem() && ! $role->gehoertZuModul())
                                 <span title="System-Rolle – geschützt" class="p-1.5 text-gray-300">
                                     <i class='bx bx-lock-alt'></i>
                                 </span>

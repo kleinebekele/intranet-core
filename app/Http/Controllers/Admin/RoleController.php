@@ -51,15 +51,34 @@ class RoleController extends Controller
             ->with('status', "Rolle \"{$data['role_id']}\" wurde angelegt.");
     }
 
-    public function edit(Role $role): View
+    public function edit(Role $role): View|RedirectResponse
     {
+        if ($sperre = $this->namenssperre($role)) {
+            return redirect()->route('admin.roles.index')->withErrors(['role' => $sperre]);
+        }
+
         return view('admin.roles.edit', compact('role'));
+    }
+
+    /**
+     * Warum sich diese Rolle im Panel nicht umbenennen lässt – null, wenn sie
+     * dem Panel gehört. Abgeglichene Rollen (roles.quelle, z. B. Klassen aus
+     * Linear) sind wie auf „Benutzer bearbeiten" nur zur Ansicht: Name und
+     * Mitglieder kommen aus dem Abgleich.
+     */
+    private function namenssperre(Role $role): ?string
+    {
+        return match (true) {
+            $role->istVerwaltet() => "Die Rolle \"{$role->name}\" pflegt der Abgleich „{$role->quelle}\" – sie lässt sich hier nicht bearbeiten.",
+            $role->gehoertZuModul() => "Die Rolle \"{$role->name}\" bringt das Modul „{$role->modul}\" mit – der Name kommt von dort und würde beim nächsten Abgleich zurückgesetzt.",
+            default => null,
+        };
     }
 
     public function update(Request $request, Role $role): RedirectResponse
     {
-        if ($role->gehoertZuModul()) {
-            return back()->withErrors(['role' => "Die Rolle \"{$role->name}\" bringt das Modul „{$role->modul}\" mit – der Name kommt von dort und würde beim nächsten Abgleich zurückgesetzt."]);
+        if ($sperre = $this->namenssperre($role)) {
+            return back()->withErrors(['role' => $sperre]);
         }
 
         $data = $request->validate([

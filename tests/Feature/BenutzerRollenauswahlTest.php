@@ -78,6 +78,30 @@ class BenutzerRollenauswahlTest extends TestCase
         $this->assertSame(['ak-garten', 'linear-klasse-4a-eltern', 'user'], $rollen);
     }
 
+    public function test_abgeglichene_rolle_ist_im_rollen_panel_nicht_bearbeitbar(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Kein Bearbeiten-Link in der Liste, die Bearbeiten-Seite weist ab.
+        $html = $this->get(route('admin.roles.index'))->assertOk()->getContent();
+        $this->assertStringNotContainsString(route('admin.roles.edit', 'linear-klasse-4a-eltern'), $html);
+        $this->assertStringContainsString(route('admin.roles.edit', 'ak-garten'), $html);
+        $this->get(route('admin.roles.edit', 'linear-klasse-4a-eltern'))
+            ->assertRedirect(route('admin.roles.index'))
+            ->assertSessionHasErrors('role');
+
+        // Umbenennen und Mitglieder setzen: abgelehnt.
+        $this->put(route('admin.roles.update', 'linear-klasse-4a-eltern'), ['name' => 'Anders'])
+            ->assertSessionHasErrors('role');
+        $this->assertSame('Eltern Klasse 4A', Role::find('linear-klasse-4a-eltern')->name);
+
+        // Löschen: mit Mitgliedern nie – eine verwaiste, leere Gruppe aber schon.
+        $this->delete(route('admin.roles.destroy', 'linear-klasse-4a-eltern'))->assertSessionHasErrors('role');
+        $this->assertNotNull(Role::find('linear-klasse-4a-eltern'));
+        $this->delete(route('admin.roles.destroy', 'linear-klasse-5b-eltern'))->assertSessionHasNoErrors();
+        $this->assertNull(Role::find('linear-klasse-5b-eltern'));
+    }
+
     public function test_abgeglichene_gruppe_laesst_sich_nicht_per_request_vergeben(): void
     {
         $this->actingAs($this->admin)->put(route('admin.users.update', $this->person), [

@@ -39,6 +39,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   angelegt – dieselbe Ordnung wie im Rollen-Panel). Gruppen, deren Mitglieder ein Abgleich pflegt
   (z. B. „Eltern Klasse 4A" aus Linear), sind dort nicht mehr wählbar: Die eigenen Gruppen des
   Benutzers stehen eingeklappt zur Ansicht und bleiben beim Speichern erhalten.
+- **Rollen-Panel: abgeglichene Rollen nur zur Ansicht.** Rollen, die ein Abgleich pflegt
+  (Klassen aus Linear, LCN-Gruppen …), lassen sich nicht mehr umbenennen; statt „Bearbeiten"
+  steht ein Schloss. Löschen geht nur, wenn die Rolle keine Mitglieder mehr hat (verwaiste
+  Gruppen leert der Abgleich, löscht sie aber nicht). Modulrollen zeigen ebenfalls ein Schloss.
 - **Verwaltung → Module aufgeräumt.** „Unterseiten sichtbar für" zeigt je Modul nur noch dessen
   eigene Rollen, die Core-Rollen und plattformweite Rollen; von Hand angelegte stehen unter
   „Weitere Rollen". Rollen anderer Module erscheinen nur noch dort, wo sie schon zugeordnet
