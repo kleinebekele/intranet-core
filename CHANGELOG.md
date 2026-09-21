@@ -51,6 +51,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   ausführen (macht `deploy.sh` bereits so).
 
 ### Behoben
+- **Scheduler wertete manchmal die falsche Minute aus.** Cron weckt `schedule:run` genau auf der
+  Minutengrenze; las PHP die Uhr dabei noch als Sekunde 59 der Vorminute, liefen deren Aufgaben
+  ein zweites Mal und die der neuen Minute fielen aus (Doppelläufe um `:59`, ganze Schlitze ohne
+  Lauf). Startet `schedule:run` in den letzten fünf Sekunden einer Minute, wartet der Core jetzt
+  kurz, bis die neue begonnen hat – die Crontab bleibt unverändert.
 - **Ekkon: Laufzeit-Farben fehlten im CSS.** Seit Ekkon im Core liegt, suchte Tailwind die
   Klassennamen aus `EkkonTask::durationClasses()` am falschen Ort; langsame Läufe erschienen
   weiß statt orange. Suchpfad `app/Ekkon` ergänzt (wirkt nach dem nächsten Asset-Build).

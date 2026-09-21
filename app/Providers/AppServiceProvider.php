@@ -38,10 +38,42 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * `schedule:run` darf nie die FALSCHE Minute auswerten.
+     *
+     * Cron weckt den Scheduler genau auf der Minutengrenze. Liest PHP die Uhr
+     * dabei noch als Sekunde 59 der Vorminute (gesehen 2026-09-21 auf einem
+     * Server: Läufe um hh:mm:59, ein 10-Minuten-Task mit Startzeit :01:00,
+     * ganze Schlitze ohne Lauf), wertet Laravel die Vorminute aus: deren Tasks laufen
+     * ein zweites Mal, die der neuen Minute fallen aus.
+     *
+     * Deshalb: Startet `schedule:run` in den letzten Sekunden einer Minute,
+     * kurz warten, bis die neue wirklich begonnen hat. Kostet nur im
+     * betroffenen Fall etwas (unter einer Sekunde) und braucht keine Änderung
+     * an der Crontab. Muss HIER passieren und nicht im Befehl: Laravel merkt
+     * sich die Startzeit schon im Konstruktor von ScheduleRunCommand – der
+     * läuft erst nach den Providern.
+     */
+    private function minutengrenzeAbwarten(): void
+    {
+        if (! $this->app->runningInConsole() || (($_SERVER['argv'][1] ?? '') !== 'schedule:run')) {
+            return;
+        }
+
+        $jetzt = microtime(true);
+        $sekunde = $jetzt - floor($jetzt / 60) * 60; // Zeitzonen-Versatz ist immer ganze Minuten
+
+        if ($sekunde >= 55.0) {
+            usleep((int) ((60.0 - $sekunde + 0.05) * 1_000_000));
+        }
+    }
+
+    /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
+        $this->minutengrenzeAbwarten();
+
         // Hinter TLS-Terminierung (nginx/Proxy) erkennt Laravel https nicht
         // immer selbst. Im Produktivbetrieb Links/Assets zwingend als https
         // erzeugen, sonst blockiert der Browser CSS/JS als „Mixed Content".
