@@ -4,6 +4,8 @@ namespace App\Ekkon\Services;
 
 use App\Ekkon\Models\Notification;
 use App\Ekkon\Models\NotificationRoute;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Legt Benachrichtigungen an – und löst dabei die ZIELE auf.
@@ -31,6 +33,11 @@ class Benachrichtiger
      *                      nie zweimal angelegt. Für Tasks, die im Minutentakt
      *                      laufen, praktisch Pflicht – sonst postet ein
      *                      15-Minuten-Task dieselbe Meldung 96x am Tag.
+     * @param  array{name: string, inhalt?: string, pfad?: string}|null  $anhang
+     *                      Datei zur Meldung: `inhalt` = rohe Bytes (werden hier
+     *                      einmal abgelegt) oder `pfad` = liegt schon auf der Disk
+     *                      `local`. Mail hängt sie an, Teams bekommt sie im
+     *                      Webhook-Umschlag; alle Zielzeilen teilen sich die Datei.
      * @return array{angelegt: int, ohne_ziel: bool, uebersprungen: int}
      */
     public function benachrichtige(
@@ -41,7 +48,10 @@ class Benachrichtiger
         ?string $idempotenzSchluessel = null,
         ?string $quelle = null,
         ?string $html = null,
+        ?array $anhang = null,
     ): array {
+        $anhang = $this->anhangAblegen($anhang);
+
         $routen = NotificationRoute::query()
             ->where('meldungsart', $meldungsart)
             ->where('aktiv', true)
@@ -57,6 +67,8 @@ class Benachrichtiger
                 'titel' => $titel,
                 'text' => $text,
                 'html' => $html,
+                'anhang_pfad' => $anhang['pfad'] ?? null,
+                'anhang_name' => $anhang['name'] ?? null,
                 'daten' => $daten,
                 'quelle' => $quelle,
                 'meldungsart' => $meldungsart,
@@ -88,7 +100,9 @@ class Benachrichtiger
                     'ziel' => $ziel,
                     'titel' => $titel,
                     'text' => $text,
-                'html' => $html,
+                    'html' => $html,
+                    'anhang_pfad' => $anhang['pfad'] ?? null,
+                    'anhang_name' => $anhang['name'] ?? null,
                     'daten' => $daten,
                     'quelle' => $quelle,
                     'meldungsart' => $meldungsart,
@@ -100,6 +114,41 @@ class Benachrichtiger
         }
 
         return ['angelegt' => $angelegt, 'ohne_ziel' => false, 'uebersprungen' => $uebersprungen];
+    }
+
+    /** Ordner auf der Disk `local`, unter dem Anhänge liegen. */
+    public const ANHANG_ORDNER = 'ekkon/anhaenge';
+
+    /**
+     * Rohe Bytes einmal auf die Disk legen; ein schon abgelegter Pfad wird
+     * durchgereicht. Der Dateiname wird auf Buchstaben/Ziffern/Punkt/Strich
+     * eingedampft – er wird später zum Dateinamen im Teams-Kanal.
+     *
+     * @param  array{name: string, inhalt?: string, pfad?: string}|null  $anhang
+     * @return array{name: string, pfad: string}|null
+     */
+    private function anhangAblegen(?array $anhang): ?array
+    {
+        if ($anhang === null) {
+            return null;
+        }
+
+        $name = trim((string) ($anhang['name'] ?? ''));
+        $name = preg_replace('/[^\w.\-]+/u', '-', $name) ?: 'anhang';
+        $name = mb_substr(trim($name, '-'), 0, 120);
+
+        if (filled($anhang['pfad'] ?? null)) {
+            return ['name' => $name, 'pfad' => (string) $anhang['pfad']];
+        }
+
+        if (! isset($anhang['inhalt']) || $anhang['inhalt'] === '') {
+            return null;
+        }
+
+        $pfad = self::ANHANG_ORDNER.'/'.now()->format('Y-m').'/'.Str::lower(Str::random(12)).'-'.$name;
+        Storage::disk('local')->put($pfad, $anhang['inhalt']);
+
+        return ['name' => $name, 'pfad' => $pfad];
     }
 
     /**

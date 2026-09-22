@@ -127,14 +127,23 @@ class VorlagenMailer
      *                                 später im Ausgangskorb wiederfindet.
      * @param  string|null  $modul  Auslösendes Modul fürs Maillog. `null` =
      *                              der Auslöser steht ohne Modulzuordnung da.
+     * @param  array<int, array{pfad: string, name?: string}>  $anhaenge  Dateien
+     *                              (absolute Pfade), die an die Mail gehängt werden.
+     *                              Der Ausgangskorb speichert die fertige Nachricht
+     *                              samt Anhang – die Datei muss nur bis zum Anlegen
+     *                              existieren.
      */
-    public function senden(string $schluessel, string $an, array $werte, array $textWerte = [], ?string $quelle = null, ?string $referenz = null, ?string $modul = null): void
+    public function senden(string $schluessel, string $an, array $werte, array $textWerte = [], ?string $quelle = null, ?string $referenz = null, ?string $modul = null, array $anhaenge = []): void
     {
         $fertig = $this->rendern($schluessel, $werte, $textWerte);
 
-        Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig, $quelle, $referenz, $modul) {
+        Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig, $quelle, $referenz, $modul, $anhaenge) {
             $nachricht->to($an)->subject($fertig['betreff'])->text($fertig['text']);
             self::quelleMarkieren($nachricht, $quelle, $referenz, $modul);
+
+            foreach ($anhaenge as $anhang) {
+                $nachricht->attach($anhang['pfad'], array_filter(['as' => $anhang['name'] ?? null]));
+            }
         });
     }
 

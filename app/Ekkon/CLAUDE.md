@@ -89,6 +89,33 @@ firmenneutral): `Webhooks/SallyZusammenfassung` (alle 5 Min): erkennt Sally-Eing
 `ohne_ziel`, danach Route anlegen). Benachrichtigungen tragen seitdem optional `html`: Mail = HTML +
 Klartext (`VorlagenMailer` mit `$textWerte`), Teams = Markdown (`SupportHtmlText`).
 
+## Anhang an einer Benachrichtigung (Datei nach Teams/Mail)
+
+`benachrichtige(…, anhang: ['name' => 'x.docx', 'inhalt' => $bytes])` legt die Datei einmal unter
+`storage/app/ekkon/anhaenge/<JJJJ-MM>/` ab; alle Zielzeilen zeigen darauf (`anhang_pfad`/`anhang_name`).
+Mail hängt sie an (`VorlagenMailer::senden(…, anhaenge: …)`, der Ausgangskorb speichert sie mit).
+Teams: Eine Adaptive Card kann keine Datei tragen – `TeamsWebhookClient` schickt sie **Base64 im Feld
+`datei`** neben `type`/`attachments` mit. Der Workflow muss sie selbst ablegen, sonst ignoriert er das
+Feld stillschweigend. Prune nach 14 Tagen löscht die Datei, sobald keine Zeile mehr darauf zeigt.
+
+**Workflow in Power Automate erweitern** (Teams-Kanal → ⋯ → Workflows → den vorhandenen „Post to a
+channel when a webhook request is received" bearbeiten):
+1. Trigger „When a Teams webhook request is received" behalten. Beim JSON-Schema nichts ändern
+   (Zusatzfelder kommen über `triggerBody()` trotzdem durch).
+2. Vor „Post card in a chat or channel" einen Schritt **Bedingung**: `empty(triggerBody()?['datei'])`
+   ist gleich `false`.
+3. Im Ja-Zweig **SharePoint → „Datei erstellen"**: Websiteadresse = SharePoint-Site des Teams,
+   Ordnerpfad = `/Freigegebene Dokumente/<Kanalname>` (Kanalordner), Dateiname =
+   `triggerBody()?['datei']?['name']`, Dateiinhalt = `base64ToBinary(triggerBody()?['datei']?['inhalt'])`.
+4. Danach der bisherige Post-Schritt; optional im Kartentext den Link aus „Datei erstellen"
+   (`outputs('Datei_erstellen')?['body/{Link}']`) ergänzen. Die Datei ist im Reiter **Dateien** des
+   Kanals sichtbar.
+5. Grüner HTTP-Status beweist nichts (s. `TeamsWebhookClient`): Nach dem Umbau eine echte Meldung
+   auslösen und im Kanal nachsehen.
+
+Erster Nutzer: `SallyZusammenfassung` (RAV, `module-ekkon-jtl`) baut die Zusammenfassung per PhpWord
+als `.docx` (`Support/SallyWordDokument`).
+
 ## Sicherheitsschalter
 
 Ohne **`EKKON_TASKS_ENABLED=true`** läuft **kein** Task — auch nicht „jetzt ausführen" in der

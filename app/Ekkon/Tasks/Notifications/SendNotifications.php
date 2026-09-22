@@ -4,6 +4,7 @@ namespace App\Ekkon\Tasks\Notifications;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use App\Ekkon\Models\Notification;
 use App\Ekkon\Models\NotificationRoute;
 use App\Ekkon\Models\TeamsChannel;
@@ -226,12 +227,33 @@ class SendNotifications extends EkkonTask
             ? (string) $n->text
             : HtmlText::zuMarkdown((string) $n->html);
 
+        $datei = null;
+        if ($n->anhang_pfad && Storage::disk('local')->exists($n->anhang_pfad)) {
+            $datei = ['name' => (string) $n->anhang_name, 'inhalt' => (string) Storage::disk('local')->get($n->anhang_pfad)];
+        }
+
         return (new TeamsWebhookClient())->sende(
             (string) $channel->webhook_url,
             (string) $n->titel,
             $text,
             (array) ($n->daten ?? []),
+            $datei,
         );
+    }
+
+    /**
+     * Anhang als absoluter Pfad fürs Anhängen an eine Mail – leer, wenn keiner
+     * (mehr) da ist. Eine verschwundene Datei blockiert die Meldung nicht.
+     *
+     * @return array<int, array{pfad: string, name: string}>
+     */
+    private function mailAnhaenge(Notification $n): array
+    {
+        if (! $n->anhang_pfad || ! Storage::disk('local')->exists($n->anhang_pfad)) {
+            return [];
+        }
+
+        return [['pfad' => Storage::disk('local')->path($n->anhang_pfad), 'name' => (string) $n->anhang_name]];
     }
 
     private function mail(Notification $n): ?string
@@ -258,6 +280,7 @@ class SendNotifications extends EkkonTask
                     (string) $n->ziel,
                     $werte,
                     $textWerte,
+                    anhaenge: $this->mailAnhaenge($n),
                 );
 
                 return null;
@@ -277,6 +300,9 @@ class SendNotifications extends EkkonTask
 
             Mail::raw($text, function ($m) use ($n): void {
                 $m->to((string) $n->ziel)->subject((string) $n->titel);
+                foreach ($this->mailAnhaenge($n) as $anhang) {
+                    $m->attach($anhang['pfad'], ['as' => $anhang['name']]);
+                }
             });
 
             return null;
@@ -309,10 +335,20 @@ class SendNotifications extends EkkonTask
      */
     private function pruneAlte(): array
     {
-        $zugestellt = Notification::query()
+        $alt = Notification::query()
             ->where('status', 'sent')
-            ->where('gesendet_am', '<', now()->subDays(self::PRUNE_TAGE))
-            ->delete();
+            ->where('gesendet_am', '<', now()->subDays(self::PRUNE_TAGE));
+
+        $anhaenge = (clone $alt)->whereNotNull('anhang_pfad')->distinct()->pluck('anhang_pfad')->all();
+        $zugestellt = $alt->delete();
+
+        // Anhangdateien mitnehmen – aber nur, wenn keine andere Zeile (z. B.
+        // ein noch wartendes Mail-Ziel derselben Meldung) sie noch braucht.
+        foreach ($anhaenge as $pfad) {
+            if (! Notification::query()->where('anhang_pfad', $pfad)->exists()) {
+                Storage::disk('local')->delete($pfad);
+            }
+        }
 
         $altbestand = Notification::query()
             ->where('status', 'ohne_ziel')
@@ -344,6 +380,7 @@ class SendNotifications extends EkkonTask
                 $this->basisSchluessel($n),
                 $n->quelle,
                 $n->html,
+                $n->anhang_pfad ? ['name' => (string) $n->anhang_name, 'pfad' => $n->anhang_pfad] : null,
             );
             if (! $res['ohne_ziel']) {
                 $n->delete();

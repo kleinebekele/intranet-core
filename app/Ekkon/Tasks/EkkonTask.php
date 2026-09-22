@@ -263,6 +263,9 @@ abstract class EkkonTask
      *                      nie zweimal angelegt. Für häufig laufende Tasks
      *                      praktisch Pflicht: Ein 15-Minuten-Task würde sonst
      *                      dieselbe Meldung 96x am Tag posten.
+     * @param  array{name: string, inhalt: string}|null  $anhang  Datei zur Meldung
+     *                      (rohe Bytes): Mail hängt sie an, Teams bekommt sie im
+     *                      Webhook-Umschlag – der Workflow legt sie im Kanal ab.
      * @return array{angelegt: int, ohne_ziel: bool, uebersprungen: int}
      */
     protected function benachrichtige(
@@ -272,6 +275,7 @@ abstract class EkkonTask
         array $daten = [],
         ?string $idempotenzSchluessel = null,
         ?string $html = null,
+        ?array $anhang = null,
     ): array {
         return (new Benachrichtiger())->benachrichtige(
             $meldungsart,
@@ -281,6 +285,7 @@ abstract class EkkonTask
             $idempotenzSchluessel,
             $this->key(),
             $html,
+            $anhang,
         );
     }
 

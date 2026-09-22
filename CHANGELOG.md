@@ -8,6 +8,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Neu
+- **Benachrichtigungen können eine Datei mitführen.** `benachrichtige(…, anhang: ['name', 'inhalt'])`
+  legt sie einmal unter `storage/app/ekkon/anhaenge/` ab (Spalten `anhang_pfad`/`anhang_name`, neue
+  Migration). Mail bekommt sie als Anhang (`VorlagenMailer::senden(…, anhaenge:)`), Teams Base64 im
+  Feld `datei` des Webhook-Umschlags – der Workflow legt sie per „Datei erstellen" im Kanal ab
+  (Anleitung in `app/Ekkon/CLAUDE.md`). Prune räumt die Datei mit weg. Erster Nutzer: Sally-Zusammen-
+  fassung als Word-Dokument (`module-ekkon-jtl`).
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die

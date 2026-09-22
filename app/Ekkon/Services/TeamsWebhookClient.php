@@ -34,18 +34,34 @@ class TeamsWebhookClient
     private const TIMEOUT = 15;
 
     /**
+     * @param  array{name: string, inhalt: string}|null  $datei  Rohe Bytes einer
+     *                      Datei, die im Kanal landen soll. Eine Adaptive Card
+     *                      kann keine Datei tragen – sie geht Base64-kodiert als
+     *                      eigenes Feld `datei` im Umschlag mit; der Workflow
+     *                      legt sie per „Datei erstellen" im SharePoint-Ordner
+     *                      des Kanals ab (Anleitung in app/Ekkon/CLAUDE.md).
+     *                      Ein Workflow ohne diesen Schritt ignoriert das Feld.
      * @return string|null null = erfolgreich, sonst der Fehlertext
      */
-    public function sende(string $webhookUrl, string $titel, string $text, array $daten = []): ?string
+    public function sende(string $webhookUrl, string $titel, string $text, array $daten = [], ?array $datei = null): ?string
     {
         if (trim($webhookUrl) === '') {
             return 'Keine Webhook-URL hinterlegt.';
         }
 
         try {
+            $umschlag = $this->umschlag($titel, $text, $daten);
+
+            if ($datei !== null && ($datei['inhalt'] ?? '') !== '') {
+                $umschlag['datei'] = [
+                    'name' => (string) $datei['name'],
+                    'inhalt' => base64_encode((string) $datei['inhalt']),
+                ];
+            }
+
             $res = Http::timeout(self::TIMEOUT)
                 ->asJson()
-                ->post($webhookUrl, $this->umschlag($titel, $text, $daten));
+                ->post($webhookUrl, $umschlag);
 
             if (! $res->successful()) {
                 $fehler = 'HTTP '.$res->status().': '.mb_substr($res->body(), 0, 300);
