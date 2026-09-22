@@ -258,6 +258,34 @@ class GraphAuskunft
     }
 
     /**
+     * Dateiordner eines Teamskanals (`filesFolder`): Drive + Ordner-Item + Adresse.
+     * Damit braucht ein Kanal-Ziel keine eigene Ablage-URL – Graph kennt den Ordner.
+     *
+     * @param  string  $kanal  „Team-GUID/19:…@thread.tacv2"
+     * @return array{driveId: string, itemId: string, url: string}
+     */
+    public function kanalOrdner(string $kanal): array
+    {
+        if (! str_contains($kanal, '/')) {
+            throw new \RuntimeException('Kein Teamskanal (Form Team-GUID/Kanal-ID erwartet).');
+        }
+        [$team, $kanalId] = explode('/', trim($kanal), 2);
+
+        $token = $this->verbindung->accessToken();
+        $res = Http::withToken($token)->timeout(self::TIMEOUT)
+            ->get(self::GRAPH.'/teams/'.rawurlencode(trim($team)).'/channels/'.rawurlencode(trim($kanalId)).'/filesFolder');
+        if ($res->failed()) {
+            throw new \RuntimeException('Kanalordner nicht lesbar: '.($res->json('error.message') ?: 'HTTP '.$res->status()));
+        }
+
+        return [
+            'driveId' => (string) $res->json('parentReference.driveId'),
+            'itemId' => (string) $res->json('id'),
+            'url' => rawurldecode((string) $res->json('webUrl')),
+        ];
+    }
+
+    /**
      * Bibliotheken (Drives) einer Site – beim Aufklappen im Dialog.
      *
      * @return array<int, array{id: string, name: string, url: string}>

@@ -95,7 +95,7 @@ class NotificationController extends Controller
             // scheitern. Lieber hier hart ablehnen als später rätseln.
             'webhook_url' => ['nullable', 'required_without:chat_id', 'url', 'starts_with:https://', 'max:2000'],
             'chat_id' => ['nullable', 'required_without:webhook_url', 'string', 'max:255', 'regex:/19:|@/'],
-            'ablage_url' => ['nullable', 'required_with:chat_id', 'string', 'regex:~^https://[^/]+.sharepoint.com/~i', 'max:1000'],
+            'ablage_url' => ['nullable', 'string', 'regex:~^https://[^/]+.sharepoint.com/~i', 'max:1000'],
             'notiz' => ['nullable', 'string', 'max:255'],
         ], [
             'webhook_url.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
@@ -107,6 +107,10 @@ class NotificationController extends Controller
 
         if (filled($daten['webhook_url'] ?? null) && $this->istConnectorUrl($daten['webhook_url'])) {
             return back()->withInput()->withErrors(['webhook_url' => self::CONNECTOR_HINWEIS]);
+        }
+
+        if ($fehler = $this->ablageFehlt((string) ($daten['chat_id'] ?? ''), (string) ($daten['ablage_url'] ?? ''))) {
+            return back()->withInput()->withErrors(['ablage_url' => $fehler]);
         }
 
         TeamsChannel::create($daten + ['aktiv' => true]);
@@ -122,6 +126,20 @@ class NotificationController extends Controller
     }
 
     /**
+     * Ein Graph-Ziel braucht einen Ablageort für Anhänge – außer ein Teamskanal:
+     * dessen Dateiordner kennt Graph selbst (filesFolder).
+     */
+    private function ablageFehlt(string $chatId, string $ablage): ?string
+    {
+        $chatId = trim($chatId);
+        if ($chatId === '' || trim($ablage) !== '' || str_contains($chatId, '/')) {
+            return null;
+        }
+
+        return 'Für Chats und Personen wird ein SharePoint-Ordner (Ablage-URL) gebraucht, in den Anhänge gelegt werden – nur Teamskanäle bringen ihren Ordner selbst mit.';
+    }
+
+    /**
      * Name/Notiz ändern und – der eigentliche Anlass – die Webhook-URL
      * tauschen, wenn der Workflow neu angelegt werden musste. Die gespeicherte
      * URL wird nie angezeigt (sie ist ein Passwort); leer gelassen bleibt sie.
@@ -132,7 +150,7 @@ class NotificationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'webhook_url' => ['nullable', 'url', 'starts_with:https://', 'max:2000'],
             'chat_id' => ['nullable', 'string', 'max:255', 'regex:/19:|@/'],
-            'ablage_url' => ['nullable', 'required_with:chat_id', 'string', 'regex:~^https://[^/]+.sharepoint.com/~i', 'max:1000'],
+            'ablage_url' => ['nullable', 'string', 'regex:~^https://[^/]+.sharepoint.com/~i', 'max:1000'],
             'notiz' => ['nullable', 'string', 'max:255'],
         ], [
             'chat_id.regex' => 'Ziel: 19:…@thread.v2 (Chat), <Team-GUID>/19:…@thread.tacv2 (Kanal) oder die E-Mail-Adresse einer Person.',
@@ -148,6 +166,9 @@ class NotificationController extends Controller
         $chatId = trim((string) ($daten['chat_id'] ?? ''));
         if ($chatId === '' && $neueUrl === '' && blank($channel->webhook_url)) {
             return back()->withInput()->withErrors(['chat_id' => 'Ohne Chat-ID braucht der Channel eine Webhook-URL – eins von beiden muss bleiben.']);
+        }
+        if ($fehler = $this->ablageFehlt($chatId, (string) ($daten['ablage_url'] ?? ''))) {
+            return back()->withInput()->withErrors(['ablage_url' => $fehler]);
         }
 
         $channel->name = $daten['name'];
@@ -244,6 +265,18 @@ class NotificationController extends Controller
 
         try {
             return response()->json(['sites' => $auskunft->sitesSuchen($daten['q'])]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['fehler' => $e->getMessage()], 502);
+        }
+    }
+
+    /** Dateiordner eines Teamskanals (filesFolder) – der Dialog füllt damit die Ablage-URL. */
+    public function graphKanalordner(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
+    {
+        $daten = $request->validate(['kanal' => ['required', 'string', 'max:255']]);
+
+        try {
+            return response()->json(['ordner' => $auskunft->kanalOrdner($daten['kanal'])]);
         } catch (\RuntimeException $e) {
             return response()->json(['fehler' => $e->getMessage()], 502);
         }

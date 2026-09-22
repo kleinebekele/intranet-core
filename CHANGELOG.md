@@ -28,7 +28,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Als Ziel geht auch eine **Person** (E-Mail-Adresse): 1:1-Chat mit dem verbundenen Konto, die Datei
   wird ihr freigegeben. Die Maske bietet den Weg zur Auswahl (Workflow / Graph → Chat/Kanal / Graph → Person).
   Neben den Feldern Chat-ID und Ablage-Ordner öffnet „auswählen" einen Dialog mit den Chats, Teams/Kanälen
-  und SharePoint-Ordnern des Kontos; die Wahl landet direkt im Feld.
+  und SharePoint-Ordnern des Kontos; die Wahl landet direkt im Feld. Bei einem Teamskanal als Ziel ist die
+  Ablage-URL optional: Der Kanalordner (`filesFolder`) wird automatisch genommen und beim Auswählen eingetragen.
 - **Teams-Chat-Eingang.** Der Dauerdienst `php artisan teams:lauschen` (systemd, alle 5 s) holt
   Nachrichten ab, die andere dem verbundenen Konto in Teams schreiben (`ekkon_teams_nachrichten`),
   und feuert je Nachricht `App\Ekkon\Events\TeamsNachrichtEmpfangen` für die Verarbeitung dahinter.

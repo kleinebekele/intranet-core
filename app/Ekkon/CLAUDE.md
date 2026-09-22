@@ -140,7 +140,9 @@ Ziel-ID: Chat `19:…@thread.v2` (Link auf eine Nachricht kopieren), Team-Kanal 
 (`POST /chats`, oneOnOne, ID einen Tag gecacht) und gibt ihr die hochgeladene Datei per `/invite`
 (write, ohne Mail) frei – auf den Ordner selbst hat sie ja keinen Zugriff. Das verbundene Konto darf
 ein neutraler M365-Benutzer sein; er braucht eine Teams-Lizenz, Mitgliedschaft in den Ziel-Chats und
-Zugriff auf die Ablage-Ordner.
+Zugriff auf die Ablage-Ordner. **Teamskanal als Ziel:** Ablage-URL darf leer bleiben – der Client nimmt
+`/teams/{t}/channels/{k}/filesFolder` (Drive + Ordner-Item, 1 Tag gecacht) und lädt per
+`/drives/{d}/items/{id}:/{name}:/content` hoch; der Dialog trägt den Ordner beim Auswählen des Kanals ein.
 Einmalig in der Entra-App der Anmeldung: Umleitungs-URI `…/modules/ekkon/benachrichtigungen/microsoft/callback`
 und delegierte Berechtigungen `offline_access`, `Chat.ReadWrite`, `ChannelMessage.Send`, `Sites.ReadWrite.All`,
 `Team.ReadBasic.All`, `Channel.ReadBasic.All` (letztere für „Zugriffe anzeigen": `GraphAuskunft` listet Chats,

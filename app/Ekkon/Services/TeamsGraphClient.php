@@ -170,16 +170,24 @@ class TeamsGraphClient
     private function hochladen(string $token, TeamsChannel $channel, string $name, string $inhalt): array
     {
         $ablage = trim((string) $channel->ablage_url);
-        if ($ablage === '') {
+        $ziel = trim((string) $channel->chat_id);
+
+        if ($ablage === '' && str_contains($ziel, '/')) {
+            // Teamskanal ohne eigene Ablage: Graph kennt den Kanalordner (filesFolder).
+            $k = Cache::remember('ekkon-graph-kanalordner-'.md5($ziel), now()->addDay(), fn () => (new GraphAuskunft($this->verbindung))->kanalOrdner($ziel));
+            $driveId = $k['driveId'];
+            $adresse = self::GRAPH.'/drives/'.$driveId.'/items/'.$k['itemId'].':/'.rawurlencode($name).':/content';
+        } elseif ($ablage === '') {
             throw new \RuntimeException('Channel "'.$channel->name.'" hat keinen SharePoint-Ordner (Ablage-URL) – die Datei kann nicht abgelegt werden.');
+        } else {
+            [$driveId, $ordner] = $this->ordnerAufloesen($token, $ablage);
+            $pfad = $ordner === '' ? rawurlencode($name) : $ordner.'/'.rawurlencode($name);
+            $adresse = self::GRAPH.'/drives/'.$driveId.'/root:/'.$pfad.':/content';
         }
 
-        [$driveId, $ordner] = $this->ordnerAufloesen($token, $ablage);
-
-        $pfad = $ordner === '' ? rawurlencode($name) : $ordner.'/'.rawurlencode($name);
         $res = Http::withToken($token)->timeout(60)
             ->withBody($inhalt, 'application/octet-stream')
-            ->put(self::GRAPH.'/drives/'.$driveId.'/root:/'.$pfad.':/content?@microsoft.graph.conflictBehavior=rename');
+            ->put($adresse.'?@microsoft.graph.conflictBehavior=rename');
 
         if ($res->failed()) {
             throw new \RuntimeException($this->fehler('Upload nach SharePoint abgelehnt', $res));

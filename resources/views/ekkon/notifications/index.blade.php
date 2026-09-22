@@ -30,9 +30,20 @@
                     } catch (e) { this.auswahl.fehler = e.message; }
                     this.auswahl.laedt = false;
                 },
-                auswahlUebernehmen(wert) {
+                async auswahlUebernehmen(wert) {
                     if (this.auswahl.feld) { this.auswahl.feld.value = wert; this.auswahl.feld.dispatchEvent(new Event('input', { bubbles: true })); }
                     this.auswahl.offen = false;
+                    // Teamskanal gewählt: Graph kennt dessen Dateiordner – gleich in die Ablage-URL desselben Formulars.
+                    if (this.auswahl.art === 'ziel' && wert.includes('/') && this.auswahl.feld) {
+                        const ablage = this.auswahl.feld.closest('form')?.querySelector('[name=ablage_url]');
+                        if (! ablage) { return; }
+                        try {
+                            const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.kanalordner')) }} + '?kanal=' + encodeURIComponent(wert);
+                            const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                            const j = await r.json().catch(() => ({}));
+                            if (r.ok && j.ordner?.url) { ablage.value = j.ordner.url; ablage.dispatchEvent(new Event('input', { bubbles: true })); }
+                        } catch (e) { /* Ablage bleibt leer – der Kanalordner wird beim Senden ohnehin automatisch genommen */ }
+                    }
                 },
                 passt(text) { const s = this.auswahl.suche.trim().toLowerCase(); return s === '' || (text || '').toLowerCase().includes(s); },
                 async sitesSuchen() {
