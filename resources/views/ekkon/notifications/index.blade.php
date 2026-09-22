@@ -388,16 +388,22 @@
                                         <td class="py-2 pr-4">
                                             <button type="button" @click="meldung = {{ \Illuminate\Support\Js::from($details) }}"
                                                     class="text-left text-indigo-700 hover:underline" title="Ganze Meldung anzeigen">{{ $n->titel }}</button>
+                                            @if ($n->anhang_name)
+                                                <span class="block text-xs text-gray-500" title="Anhang – Mail: angehängt, Teams: über den Workflow im Kanalordner">&#128206; {{ $n->anhang_name }}</span>
+                                            @endif
                                         </td>
                                         <td class="py-2 pr-4 font-mono text-xs text-gray-500">{{ $n->quelle }}</td>
                                         <td class="py-2 pr-4">{{ $n->versuche }}</td>
                                         <td class="py-2 pr-4 text-red-700 text-xs max-w-md truncate" title="{{ $n->letzter_fehler }}">{{ $n->letzter_fehler }}</td>
                                         <td class="py-2 pr-4">
                                             <div class="flex flex-wrap gap-2 whitespace-nowrap">
-                                                @if ($n->status === 'failed')
+                                                @if (in_array($n->status, ['failed', 'sent'], true))
                                                     <form method="POST" action="{{ route('module.ekkon.notifications.retry', $n) }}">
                                                         @csrf
-                                                        <button class="text-indigo-700 hover:underline">erneut</button>
+                                                        <button class="text-indigo-700 hover:underline"
+                                                                title="{{ $n->status === 'sent' ? 'Noch einmal zustellen (z. B. nach Umbau des Teams-Workflows)' : 'Zustellung erneut versuchen' }}">
+                                                            {{ $n->status === 'sent' ? 'nochmal senden' : 'erneut' }}
+                                                        </button>
                                                     </form>
                                                 @endif
                                                 <button type="button" class="text-red-700 hover:underline"
