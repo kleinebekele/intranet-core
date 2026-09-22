@@ -48,6 +48,11 @@ class KiClient
     /** Intranet-Wissensquellen (Wiki …, s. App\Ekkon\Support\Wissensquellen) mitgeben. */
     public const WISSENSQUELLEN = 'ekkon.ki.wissensquellen';
 
+    /** Wie viele frühere Nachrichten desselben Chats (je mit Antwort) als Gedächtnis mitgehen. */
+    public const VERLAUF = 'ekkon.ki.verlauf';
+
+    public const STANDARD_VERLAUF = 12;
+
     private const TREFFER = 6;
 
     private const WISSEN_ZEICHEN = 12000;
@@ -81,6 +86,12 @@ class KiClient
     public function systemPrompt(): string
     {
         return (string) Setting::get(self::SYSTEM, self::STANDARD_SYSTEM);
+    }
+
+    /** Länge des Gedächtnisses (0 = nur die aktuelle Nachricht). */
+    public function verlauf(): int
+    {
+        return max(0, min(50, (int) Setting::get(self::VERLAUF, self::STANDARD_VERLAUF)));
     }
 
     public function gruppenNurBeiErwaehnung(): bool

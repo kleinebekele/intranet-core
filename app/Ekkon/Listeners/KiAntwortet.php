@@ -24,8 +24,6 @@ use Throwable;
  */
 class KiAntwortet
 {
-    private const VERLAUF = 12;
-
     public function __construct(
         private readonly KiClient $ki = new KiClient,
         private readonly TeamsGraphClient $teams = new TeamsGraphClient,
@@ -117,7 +115,7 @@ class KiAntwortet
             ->where('chat_id', $aktuell->chat_id)
             ->where('id', '<', $aktuell->id)
             ->latest('id')
-            ->limit(self::VERLAUF)
+            ->limit($this->ki->verlauf())
             ->get()
             ->reverse();
 

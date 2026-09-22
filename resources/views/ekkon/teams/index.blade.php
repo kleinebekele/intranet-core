@@ -200,6 +200,10 @@
                         </label>
                     </div>
                     <div class="md:col-span-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">
+                            Gedächtnis <span class="text-gray-400">(frühere Nachrichten desselben Chats, je mit Antwort, die bei jeder Anfrage mitgehen; 0 = nur die aktuelle Frage)</span>
+                        </label>
+                        <input type="number" name="verlauf" min="0" max="50" value="{{ old('verlauf', $ki['verlauf']) }}" class="w-32 rounded-md border-gray-300 text-sm mb-3">
                         <label class="block text-xs font-medium text-gray-600 mb-1">Systemprompt <span class="text-gray-400">(Rolle und Regeln für die KI)</span></label>
                         <textarea name="system" rows="4" class="w-full rounded-md border-gray-300 text-sm">{{ old('system', $ki['system']) }}</textarea>
                     </div>
