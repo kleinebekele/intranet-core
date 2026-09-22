@@ -87,6 +87,19 @@ class WebhookController extends Controller
         return back()->with('status', 'Quelle angelegt – die URL steht in der Liste, bitte beim Absender eintragen.');
     }
 
+    /** Name und Notiz ändern – der Schlüssel (die URL) bleibt, sonst müsste der Absender umziehen. */
+    public function quelleUpdate(Request $request, WebhookQuelle $quelle): RedirectResponse
+    {
+        $daten = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'notiz' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $quelle->update($daten);
+
+        return back()->with('status', 'Quelle gespeichert.');
+    }
+
     public function quelleToggle(WebhookQuelle $quelle): RedirectResponse
     {
         $quelle->update(['aktiv' => ! $quelle->aktiv]);

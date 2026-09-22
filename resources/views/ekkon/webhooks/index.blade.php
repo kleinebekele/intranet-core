@@ -58,12 +58,27 @@
                             </thead>
                             <tbody>
                                 @foreach ($quellen as $quelle)
-                                    <tr class="border-b last:border-0">
+                                    <tr class="border-b last:border-0" x-data="{ bearbeiten: {{ $errors->any() && old('_quelle') == $quelle->id ? 'true' : 'false' }} }">
                                         <td class="py-2 pr-4 font-medium">
-                                            {{ $quelle->name }}
-                                            @if ($quelle->notiz)
-                                                <span class="block text-xs text-gray-500">{{ $quelle->notiz }}</span>
-                                            @endif
+                                            <div x-show="! bearbeiten">
+                                                {{ $quelle->name }}
+                                                @if ($quelle->notiz)
+                                                    <span class="block text-xs text-gray-500">{{ $quelle->notiz }}</span>
+                                                @endif
+                                            </div>
+                                            <form x-show="bearbeiten" x-cloak method="POST" action="{{ route('module.ekkon.webhooks.quelle.update', $quelle) }}"
+                                                  class="space-y-1 min-w-56">
+                                                @csrf @method('PUT')
+                                                <input type="hidden" name="_quelle" value="{{ $quelle->id }}">
+                                                <input name="name" value="{{ old('_quelle') == $quelle->id ? old('name') : $quelle->name }}" required
+                                                       class="w-full rounded-md border-gray-300 text-sm" placeholder="Name">
+                                                <input name="notiz" value="{{ old('_quelle') == $quelle->id ? old('notiz') : $quelle->notiz }}"
+                                                       class="w-full rounded-md border-gray-300 text-sm" placeholder="Notiz (optional)">
+                                                <div class="flex gap-2 text-xs">
+                                                    <button class="rounded-md bg-indigo-600 px-3 py-1 font-medium text-white hover:bg-indigo-700">Speichern</button>
+                                                    <button type="button" @click="bearbeiten = false" class="text-gray-600 hover:underline">Abbrechen</button>
+                                                </div>
+                                            </form>
                                         </td>
                                         <td class="py-2 pr-4">
                                             <div class="flex items-center gap-2">
@@ -82,6 +97,7 @@
                                         </td>
                                         <td class="py-2 pr-4">
                                             <div class="flex flex-wrap gap-2 whitespace-nowrap">
+                                                <button type="button" x-show="! bearbeiten" @click="bearbeiten = true" class="text-indigo-700 hover:underline">bearbeiten</button>
                                                 <form method="POST" action="{{ route('module.ekkon.webhooks.quelle.toggle', $quelle) }}">
                                                     @csrf
                                                     <button class="text-gray-600 hover:underline">{{ $quelle->aktiv ? 'deaktivieren' : 'aktivieren' }}</button>
