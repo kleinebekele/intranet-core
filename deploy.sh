@@ -120,5 +120,23 @@ else
     echo "public/storage steht bereits."
 fi
 
+# --- Dauerdienste ---------------------------------------------------------
+# Dienste wie der Teams-Lauscher (php artisan teams:lauschen unter systemd)
+# halten den alten Code im Speicher, bis sie neu starten. Welche es auf diesem
+# Server gibt, steht in der deploy.env (DIENSTE="intranet-teams ..."). Der
+# Neustart braucht root: sudo -n schlaegt ohne passende sudoers-Regel sofort
+# fehl statt nach einem Passwort zu fragen - dann gibt es nur die Warnung.
+if [ -n "${DIENSTE:-}" ]; then
+    schritt "Dauerdienste neu starten"
+    for dienst in $DIENSTE; do
+        if sudo -n systemctl restart "$dienst" 2>/dev/null; then
+            echo "$dienst neu gestartet."
+        else
+            echo "WARNUNG: '$dienst' konnte nicht neu gestartet werden (sudo-Regel fehlt?)."
+            echo "         Bis zum Neustart laeuft dort der alte Code: sudo systemctl restart $dienst"
+        fi
+    done
+fi
+
 echo
 echo "Fertig. Aktueller Stand: $(git log --oneline -1)"

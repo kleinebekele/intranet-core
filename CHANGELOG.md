@@ -32,7 +32,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Nachrichten ab, die andere dem verbundenen Konto in Teams schreiben (`ekkon_teams_nachrichten`),
   und feuert je Nachricht `App\Ekkon\Events\TeamsNachrichtEmpfangen` für die Verarbeitung dahinter.
   Neue Admin-Seite Ekkon → „Teams-Chat" mit Antwort von Hand. Zwei neue Tabellen (Migration),
-  Menüpunkt kommt mit `modules:sync`. Unit-Datei in `app/Ekkon/CLAUDE.md`.
+  Menüpunkt kommt mit `modules:sync`. Unit-Datei in `app/Ekkon/CLAUDE.md`. `deploy.sh` startet die in
+  `deploy.env` unter `DIENSTE` genannten systemd-Dienste nach dem Deploy neu (sudoers-Regel nötig).
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die
