@@ -41,8 +41,9 @@
                             const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.kanalordner')) }} + '?kanal=' + encodeURIComponent(wert);
                             const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
                             const j = await r.json().catch(() => ({}));
-                            if (r.ok && j.ordner?.url) { ablage.value = j.ordner.url; ablage.dispatchEvent(new Event('input', { bubbles: true })); }
-                        } catch (e) { /* Ablage bleibt leer – der Kanalordner wird beim Senden ohnehin automatisch genommen */ }
+                            if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
+                            if (j.ordner?.url) { ablage.value = j.ordner.url; ablage.dispatchEvent(new Event('input', { bubbles: true })); }
+                        } catch (e) { (window.hinweis ?? alert)('Kanalordner nicht ermittelt: ' + e.message + ' – Ablage bleibt leer, beim Senden wird der Kanalordner trotzdem automatisch versucht.'); }
                     }
                 },
                 passt(text) { const s = this.auswahl.suche.trim().toLowerCase(); return s === '' || (text || '').toLowerCase().includes(s); },
