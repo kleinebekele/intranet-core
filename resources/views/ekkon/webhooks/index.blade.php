@@ -8,6 +8,9 @@
              x-data="{
                 eingang: null,
                 geloescht: [],
+                tab: {{ (int) ($quellen->first()?->id ?? 0) }},
+                tabMerken() { try { localStorage.setItem('ekkon-webhook-tab', this.tab); } catch (e) {} },
+                tabLaden() { try { const t = parseInt(localStorage.getItem('ekkon-webhook-tab')); if ({{ \Illuminate\Support\Js::from($quellen->pluck('id')->all()) }}.includes(t)) { this.tab = t; } } catch (e) {} },
                 loeschen(id, url) {
                     fetch(url, {
                         method: 'DELETE',
@@ -18,7 +21,7 @@
                 kopiere(text) {
                     navigator.clipboard?.writeText(text).then(() => (window.hinweis ?? alert)('URL kopiert.'));
                 }
-             }">
+             }" x-init="tabLaden()">
 
             @if ($errors->any())
                 <div class="rounded-lg bg-red-100 text-red-800 px-4 py-3 text-sm">
@@ -121,10 +124,30 @@
 
             {{-- ── Eingänge ─────────────────────────────────────────────── --}}
             <div class="bg-white shadow-sm sm:rounded-lg p-4 sm:p-6">
-                <h3 class="font-semibold text-gray-700 mb-1">Eingänge <span class="text-gray-400 font-normal text-sm">(letzte 100)</span></h3>
+                <h3 class="font-semibold text-gray-700 mb-1">Eingänge <span class="text-gray-400 font-normal text-sm">(je Quelle die letzten 100)</span></h3>
                 <p class="text-sm text-gray-500 mb-4">Klick auf die Zeile zeigt Header und Body vollständig.</p>
 
-                @if ($eingaenge->isEmpty())
+                @if ($quellen->isEmpty())
+                    <p class="text-sm text-gray-500 italic">Noch nichts angekommen.</p>
+                @else
+                    <div class="flex flex-wrap gap-1 border-b mb-4">
+                        @foreach ($quellen as $quelle)
+                            <button type="button" @click="tab = {{ $quelle->id }}; tabMerken()"
+                                    :class="tab === {{ $quelle->id }} ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                                    class="-mb-px border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap">
+                                {{ $quelle->name }}
+                                <span class="ml-1 text-xs text-gray-400">{{ $quelle->eingaenge_count }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+
+                @foreach ($quellen as $quelle)
+                @php
+                    $liste = $eingaenge[$quelle->id] ?? collect();
+                @endphp
+                <div x-show="tab === {{ $quelle->id }}" x-cloak>
+                @if ($liste->isEmpty())
                     <p class="text-sm text-gray-500 italic">Noch nichts angekommen.</p>
                 @else
                     <div class="overflow-x-auto">
@@ -141,7 +164,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($eingaenge as $e)
+                                @foreach ($liste as $e)
                                     @php
                                         $details = [
                                             'datum' => $e->created_at?->format('d.m.Y H:i:s'),
@@ -186,6 +209,8 @@
                         </table>
                     </div>
                 @endif
+                </div>
+                @endforeach
             </div>
 
             {{-- Modal: ein Eingang komplett --}}

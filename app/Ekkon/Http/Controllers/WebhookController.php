@@ -61,9 +61,17 @@ class WebhookController extends Controller
 
     public function index(): View
     {
+        $quellen = WebhookQuelle::query()->withCount('eingaenge')->orderBy('name')->get();
+
+        // Je Quelle die letzten 100 – ein Push-Dienst mit Wellen (DHL) würde sonst
+        // die seltenen Eingänge (Sally) aus der einen gemeinsamen Liste drängen.
+        $eingaenge = $quellen->mapWithKeys(fn (WebhookQuelle $q) => [
+            $q->id => WebhookEingang::query()->where('quelle_id', $q->id)->latest('id')->limit(100)->get(),
+        ]);
+
         return view('ekkon::webhooks.index', [
-            'quellen' => WebhookQuelle::query()->withCount('eingaenge')->orderBy('name')->get(),
-            'eingaenge' => WebhookEingang::query()->with('quelle')->latest('id')->limit(100)->get(),
+            'quellen' => $quellen,
+            'eingaenge' => $eingaenge,
         ]);
     }
 

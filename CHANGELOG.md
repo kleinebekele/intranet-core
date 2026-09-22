@@ -14,6 +14,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Feld `datei` des Webhook-Umschlags – der Workflow legt sie per „Datei erstellen" im Kanal ab
   (Anleitung in `app/Ekkon/CLAUDE.md`). Prune räumt die Datei mit weg. Erster Nutzer: Sally-Zusammen-
   fassung als Word-Dokument (`module-ekkon-jtl`).
+- **Webhook-Eingang: ein Reiter je Quelle** mit jeweils den letzten 100 Eingängen (bisher eine
+  gemeinsame Liste, in der ein Push-Dienst mit Wellen alles andere verdrängte). Gewählter Reiter
+  bleibt im Browser gemerkt.
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die
