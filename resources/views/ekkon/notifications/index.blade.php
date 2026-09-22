@@ -463,9 +463,16 @@
                     <h4 class="font-medium text-gray-600 mt-6 mb-2 text-sm">Zuletzt versendet</h4>
                     <ul class="text-sm text-gray-500 space-y-1">
                         @foreach ($letzte as $n)
-                            <li>
-                                <span class="text-gray-400">{{ $n->gesendet_am?->format('d.m. H:i') }}</span>
-                                · {{ $n->typ }} · {{ $n->titel }}
+                            <li class="flex flex-wrap items-center gap-x-2">
+                                <span><span class="text-gray-400">{{ $n->gesendet_am?->format('d.m. H:i') }}</span>
+                                · {{ $n->typ }} · {{ $n->titel }}</span>
+                                @if ($n->anhang_name)
+                                    <span class="text-xs text-gray-400" title="Anhang – Mail: angehängt, Teams: über den Workflow im Kanalordner">&#128206; {{ $n->anhang_name }}</span>
+                                @endif
+                                <form method="POST" action="{{ route('module.ekkon.notifications.retry', $n) }}" class="inline">
+                                    @csrf
+                                    <button class="text-xs text-indigo-700 hover:underline" title="Noch einmal zustellen (z. B. nach Umbau des Teams-Workflows)">nochmal senden</button>
+                                </form>
                             </li>
                         @endforeach
                     </ul>
