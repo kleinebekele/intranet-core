@@ -62,7 +62,7 @@
                     async modelleLaden() {
                         this.laedt = true; this.modellFehler = '';
                         try {
-                            const r = await fetch(@json(route('module.ekkon.teams.ki.modelle')), { headers: { 'Accept': 'application/json' } });
+                            const r = await fetch({{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.modelle')) }}, { headers: { 'Accept': 'application/json' } });
                             const j = await r.json().catch(() => ({}));
                             if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
                             this.modelle = j.modelle || [];
