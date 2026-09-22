@@ -10,7 +10,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use App\Ekkon\Models\Notification;
 use App\Ekkon\Models\NotificationRoute;
+use App\Ekkon\Models\GraphKonto;
 use App\Ekkon\Models\TeamsChannel;
+use App\Ekkon\Services\GraphKontoVerbindung;
+use App\Ekkon\Services\TeamsGraphClient;
 use App\Ekkon\Services\TeamsWebhookClient;
 use App\Ekkon\Support\TaskRegistry;
 
@@ -32,6 +35,11 @@ class NotificationController extends Controller
     {
         return view('ekkon::notifications.index', [
             'channels' => TeamsChannel::query()->orderBy('name')->get(),
+            // Graph-Weg: das verbundene Microsoft-Konto (oder null) und ob die
+            // Entra-App überhaupt konfiguriert ist.
+            'graphKonto' => GraphKonto::aktuelles(),
+            'graphMoeglich' => (new GraphKontoVerbindung)->moeglich(),
+            'graphUmleitung' => (new GraphKontoVerbindung)->umleitungsAdresse(),
             'routes' => NotificationRoute::query()->with(['channel', 'mailUser'])->orderBy('meldungsart')->get(),
             // Auswahl für „Mail an einen bestimmten Administrator".
             'admins' => \App\Models\User::query()->where('is_admin', true)
@@ -81,14 +89,22 @@ class NotificationController extends Controller
     {
         $daten = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            // Nur die Workflow-URL akzeptieren: Der klassische Connector
+            // Zwei Wege: Workflow (Webhook-URL) ODER Graph (Chat-ID). Nur die
+            // Workflow-URL akzeptieren: Der klassische Connector
             // (outlook.office.com) ist seit Ende 2025 tot und würde still
             // scheitern. Lieber hier hart ablehnen als später rätseln.
-            'webhook_url' => ['required', 'url', 'starts_with:https://', 'max:2000'],
+            'webhook_url' => ['nullable', 'required_without:chat_id', 'url', 'starts_with:https://', 'max:2000'],
+            'chat_id' => ['nullable', 'required_without:webhook_url', 'string', 'max:255', 'regex:/19:/'],
+            'ablage_url' => ['nullable', 'required_with:chat_id', 'url', 'starts_with:https://', 'max:1000'],
             'notiz' => ['nullable', 'string', 'max:255'],
+        ], [
+            'webhook_url.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
+            'chat_id.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
+            'chat_id.regex' => 'Die Chat-/Kanal-ID sieht so aus: 19:…@thread.v2 (Chat) oder <Team-GUID>/19:…@thread.tacv2 (Kanal).',
+            'ablage_url.required_with' => 'Für den Graph-Weg wird der SharePoint-Ordner (Ablage-URL) gebraucht, in den Anhänge gelegt werden.',
         ]);
 
-        if ($this->istConnectorUrl($daten['webhook_url'])) {
+        if (filled($daten['webhook_url'] ?? null) && $this->istConnectorUrl($daten['webhook_url'])) {
             return back()->withInput()->withErrors(['webhook_url' => self::CONNECTOR_HINWEIS]);
         }
 
@@ -114,7 +130,12 @@ class NotificationController extends Controller
         $daten = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'webhook_url' => ['nullable', 'url', 'starts_with:https://', 'max:2000'],
+            'chat_id' => ['nullable', 'string', 'max:255', 'regex:/19:/'],
+            'ablage_url' => ['nullable', 'required_with:chat_id', 'url', 'starts_with:https://', 'max:1000'],
             'notiz' => ['nullable', 'string', 'max:255'],
+        ], [
+            'chat_id.regex' => 'Die Chat-/Kanal-ID sieht so aus: 19:…@thread.v2 (Chat) oder <Team-GUID>/19:…@thread.tacv2 (Kanal).',
+            'ablage_url.required_with' => 'Für den Graph-Weg wird der SharePoint-Ordner (Ablage-URL) gebraucht.',
         ]);
 
         $neueUrl = trim((string) ($daten['webhook_url'] ?? ''));
@@ -122,8 +143,15 @@ class NotificationController extends Controller
             return back()->withInput()->withErrors(['webhook_url' => self::CONNECTOR_HINWEIS]);
         }
 
+        $chatId = trim((string) ($daten['chat_id'] ?? ''));
+        if ($chatId === '' && $neueUrl === '' && blank($channel->webhook_url)) {
+            return back()->withInput()->withErrors(['chat_id' => 'Ohne Chat-ID braucht der Channel eine Webhook-URL – eins von beiden muss bleiben.']);
+        }
+
         $channel->name = $daten['name'];
         $channel->notiz = $daten['notiz'] ?? null;
+        $channel->chat_id = $chatId !== '' ? $chatId : null;
+        $channel->ablage_url = $chatId !== '' ? trim((string) ($daten['ablage_url'] ?? '')) : null;
         if ($neueUrl !== '') {
             $channel->webhook_url = $neueUrl;
         }
@@ -158,18 +186,60 @@ class NotificationController extends Controller
      */
     public function channelTest(TeamsChannel $channel): RedirectResponse
     {
-        $fehler = (new TeamsWebhookClient())->sende(
-            (string) $channel->webhook_url,
-            'Testnachricht aus dem Intranet',
-            'Wenn du das hier liest, funktioniert der Channel "'.$channel->name.'".',
-            ['Ausgelöst' => now()->format('d.m.Y H:i'), 'Channel' => $channel->name],
-        );
+        $titel = 'Testnachricht aus dem Intranet';
+        $text = 'Wenn du das hier liest, funktioniert der Channel "'.$channel->name.'".';
+        $daten = ['Ausgelöst' => now()->format('d.m.Y H:i'), 'Channel' => $channel->name];
+
+        // Graph-Weg: Test mit kleiner Textdatei, damit auch Upload und
+        // Dateikarte geprüft sind – genau daran hängt der Nutzen dieses Weges.
+        if ($channel->perGraph()) {
+            $fehler = (new TeamsGraphClient())->sende($channel, $titel, $text, $daten, [
+                'name' => 'intranet-test-'.now()->format('Ymd-His').'.txt',
+                'inhalt' => $text."\n",
+            ]);
+
+            return $fehler !== null
+                ? back()->withErrors(['test' => 'Test fehlgeschlagen: '.$fehler])
+                : back()->with('status', 'Test über Graph gepostet – Nachricht mit Dateikarte sollte im Chat stehen.');
+        }
+
+        $fehler = (new TeamsWebhookClient())->sende((string) $channel->webhook_url, $titel, $text, $daten);
 
         if ($fehler !== null) {
             return back()->withErrors(['test' => 'Test fehlgeschlagen: '.$fehler]);
         }
 
         return back()->with('status', 'Test abgeschickt (HTTP ok). ⚠ Bitte im Teams-Channel nachsehen: Bei falschem Format meldet der Workflow trotzdem Erfolg und postet nichts.');
+    }
+
+    // ── Microsoft-Konto für den Graph-Weg ───────────────────────────────
+
+    public function graphVerbinden(Request $request, GraphKontoVerbindung $verbindung): RedirectResponse
+    {
+        if (! $verbindung->moeglich()) {
+            return back()->withErrors(['graph' => 'Die Microsoft-Anmeldung ist nicht konfiguriert (MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET).']);
+        }
+
+        return redirect()->away($verbindung->startUrl($request));
+    }
+
+    public function graphCallback(Request $request, GraphKontoVerbindung $verbindung): RedirectResponse
+    {
+        try {
+            $konto = $verbindung->abschliessen($request, $request->user()?->id);
+        } catch (\RuntimeException $e) {
+            return redirect()->to(route('module.ekkon.notifications.index').'#channels')->withErrors(['graph' => $e->getMessage()]);
+        }
+
+        return redirect()->to(route('module.ekkon.notifications.index').'#channels')
+            ->with('status', 'Microsoft-Konto verbunden: '.$konto->name.' ('.$konto->email.'). Nachrichten über Graph erscheinen unter diesem Namen.');
+    }
+
+    public function graphTrennen(GraphKontoVerbindung $verbindung): RedirectResponse
+    {
+        $verbindung->trennen();
+
+        return back()->with('status', 'Microsoft-Konto getrennt. Channels mit Chat-ID können bis zum erneuten Verbinden nicht posten.');
     }
 
     // ── Routen ──────────────────────────────────────────────────────────

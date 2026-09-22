@@ -31,6 +31,12 @@ Route::middleware(['web', 'auth'])
                 Route::post('/channel/{channel}/toggle', [NotificationController::class, 'channelToggle'])->name('channel.toggle');
                 Route::delete('/channel/{channel}', [NotificationController::class, 'channelDestroy'])->name('channel.destroy');
 
+                // Microsoft-Konto für den Graph-Weg (Chat-ID statt Webhook).
+                // Die Callback-Adresse muss in der Entra-App als Umleitungs-URI stehen.
+                Route::post('/microsoft/verbinden', [NotificationController::class, 'graphVerbinden'])->name('graph.verbinden');
+                Route::get('/microsoft/callback', [NotificationController::class, 'graphCallback'])->name('graph.callback');
+                Route::delete('/microsoft', [NotificationController::class, 'graphTrennen'])->name('graph.trennen');
+
                 Route::post('/route', [NotificationController::class, 'routeStore'])->name('route.store');
                 Route::post('/route/{route}/toggle', [NotificationController::class, 'routeToggle'])->name('route.toggle');
                 Route::delete('/route/{route}', [NotificationController::class, 'routeDestroy'])->name('route.destroy');

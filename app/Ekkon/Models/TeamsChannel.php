@@ -32,6 +32,17 @@ class TeamsChannel extends Model
         ];
     }
 
+    /**
+     * Zweiter Weg (seit 22.09.2026): `chat_id` gesetzt = Nachrichten gehen
+     * direkt über Microsoft Graph im Namen des verbundenen Kontos
+     * (TeamsGraphClient), nicht über den Workflow. Nur so lässt sich eine Datei
+     * als echte Dateikarte anhängen; sie landet im Ordner `ablage_url`.
+     */
+    public function perGraph(): bool
+    {
+        return trim((string) $this->chat_id) !== '';
+    }
+
     /** @return HasMany<NotificationRoute, $this> */
     public function routes(): HasMany
     {

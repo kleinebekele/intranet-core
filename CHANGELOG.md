@@ -19,6 +19,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   bleibt im Browser gemerkt. Quellen lassen sich jetzt bearbeiten (Name, Notiz); die URL bleibt.
 - **Benachrichtigungen: „nochmal senden"** auch für bereits zugestellte Meldungen (z. B. nach Umbau
   des Teams-Workflows); der Anhang steht mit Namen in der Liste.
+- **Teams direkt über Microsoft Graph.** Ein Teams-Channel kann statt einer Webhook-URL eine
+  **Chat-/Kanal-ID** und einen SharePoint-Ordner tragen; dann postet das Intranet im Namen eines
+  verbundenen Microsoft-Kontos (Benachrichtigungen → Teams-Channels → „Microsoft-Konto verbinden",
+  gleiche Entra-App wie die Anmeldung, Refresh-Token verschlüsselt in `ekkon_graph_konten`). Anhänge
+  werden hochgeladen und als echte Dateikarte angehängt – auch in Besprechungschats, die Power
+  Automate nicht erreicht. Migration macht `webhook_url` optional. Anleitung in `app/Ekkon/CLAUDE.md`.
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die

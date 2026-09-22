@@ -9,6 +9,7 @@ use App\Ekkon\Models\Notification;
 use App\Ekkon\Models\NotificationRoute;
 use App\Ekkon\Models\TeamsChannel;
 use App\Ekkon\Services\Benachrichtiger;
+use App\Ekkon\Services\TeamsGraphClient;
 use App\Ekkon\Services\TeamsWebhookClient;
 use App\Ekkon\Support\HtmlText;
 use App\Ekkon\Tasks\EkkonTask;
@@ -230,6 +231,18 @@ class SendNotifications extends EkkonTask
         $datei = null;
         if ($n->anhang_pfad && Storage::disk('local')->exists($n->anhang_pfad)) {
             $datei = ['name' => (string) $n->anhang_name, 'inhalt' => (string) Storage::disk('local')->get($n->anhang_pfad)];
+        }
+
+        // Channel mit Chat-ID: direkt über Graph (Datei als echte Dateikarte).
+        if ($channel->perGraph()) {
+            return (new TeamsGraphClient())->sende(
+                $channel,
+                (string) $n->titel,
+                $text,
+                (array) ($n->daten ?? []),
+                $datei,
+                $n->html,
+            );
         }
 
         return (new TeamsWebhookClient())->sende(

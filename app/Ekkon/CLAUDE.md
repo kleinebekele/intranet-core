@@ -124,6 +124,24 @@ die Datei in Word Online statt sie herunterzuladen (so läuft es seit 22.09.2026
 Erster Nutzer: `SallyZusammenfassung` (RAV, `module-ekkon-jtl`) baut die Zusammenfassung per PhpWord
 als `.docx` (`Support/SallyWordDokument`).
 
+## Teams über Graph (Chat-ID statt Webhook) – echte Dateikarte
+
+Power Automate kann in **Besprechungschats** nicht posten (Office-365-Groups-Connector: nur `groups`;
+generische HTTP-Aktion = Premium) und eine Datei nie als Dateikarte anhängen. Deshalb zweiter Weg:
+`ekkon_teams_channels.chat_id` gesetzt → `TeamsGraphClient` postet direkt über Microsoft Graph im
+Namen des verbundenen Kontos (`ekkon_graph_konten`, Refresh-Token verschlüsselt, `GraphKontoVerbindung`
+erneuert den Access-Token stündlich). Anhang: Upload in den SharePoint-Ordner `ablage_url` (Drive über
+die webUrl der Site-Drives erkannt, Bibliotheksname ist sprachabhängig) und als `reference`-Anhang mit
+der GUID aus dem eTag an die Nachricht – so sieht es aus wie manuell geteilt, öffnet in Teams.
+Mit Datei bleibt die Nachricht kurz (Titel + Fakten + Karte); ohne Datei Text/HTML wie bisher.
+
+Ziel-ID: Chat `19:…@thread.v2` (Link auf eine Nachricht kopieren), Team-Kanal `<Team-GUID>/19:…@thread.tacv2`.
+Einmalig in der Entra-App der Anmeldung: Umleitungs-URI `…/modules/ekkon/benachrichtigungen/microsoft/callback`
+und delegierte Berechtigungen `offline_access`, `Chat.ReadWrite`, `ChannelMessage.Send`, `Sites.ReadWrite.All`
+(Admin-Zustimmung). Danach Benachrichtigungen → Teams-Channels → „Microsoft-Konto verbinden".
+„Test senden" postet auf diesem Weg eine Nachricht mit kleiner Textdatei. Refresh-Token ungültig
+(Passwortwechsel, Entzug) → `letzter_fehler` in der Maske, neu verbinden.
+
 ## Sicherheitsschalter
 
 Ohne **`EKKON_TASKS_ENABLED=true`** läuft **kein** Task — auch nicht „jetzt ausführen" in der

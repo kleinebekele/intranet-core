@@ -171,7 +171,58 @@
                     <br>
                     ⚠ Der Flow gehört dem, der ihn anlegt – wird das Konto deaktiviert, sind alle
                     Meldungen weg. Möglichst einen technischen Benutzer verwenden.
+                    <br>
+                    <b>Zweiter Weg (Graph):</b> Statt Webhook-URL eine <b>Chat-ID</b> eintragen
+                    (Besprechungschat <code>19:…@thread.v2</code>, Kanal <code>&lt;Team-GUID&gt;/19:…@thread.tacv2</code>)
+                    plus den SharePoint-Ordner für Anhänge. Dann postet das Intranet direkt im Namen des
+                    verbundenen Microsoft-Kontos, und Anhänge erscheinen als echte Dateikarte.
                 </p>
+
+                {{-- Verbundenes Microsoft-Konto für den Graph-Weg --}}
+                <div class="mb-6 rounded-lg border p-4 text-sm {{ $graphKonto ? ($graphKonto->letzter_fehler ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50') : 'border-gray-200 bg-gray-50' }}">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <span class="font-semibold text-gray-700">Microsoft-Konto für Graph:</span>
+                            @if ($graphKonto)
+                                {{ $graphKonto->name }} ({{ $graphKonto->email }}), verbunden {{ $graphKonto->verbunden_am?->format('d.m.Y H:i') }}
+                                @if ($graphKonto->zuletzt_benutzt_am)
+                                    · zuletzt benutzt {{ $graphKonto->zuletzt_benutzt_am->format('d.m.Y H:i') }}
+                                @endif
+                                @if ($graphKonto->letzter_fehler)
+                                    <span class="block text-red-700 mt-1">Zuletzt fehlgeschlagen: {{ $graphKonto->letzter_fehler }} – bitte neu verbinden.</span>
+                                @endif
+                            @elseif ($graphMoeglich)
+                                <span class="text-gray-600">nicht verbunden</span>
+                            @else
+                                <span class="text-gray-600">Microsoft-Anmeldung ist nicht konfiguriert (MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET in der .env).</span>
+                            @endif
+                        </div>
+                        @if ($graphMoeglich)
+                            <div class="flex gap-3">
+                                <form method="POST" action="{{ route('module.ekkon.notifications.graph.verbinden') }}">
+                                    @csrf
+                                    <button class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700">
+                                        {{ $graphKonto ? 'neu verbinden' : 'Microsoft-Konto verbinden' }}
+                                    </button>
+                                </form>
+                                @if ($graphKonto)
+                                    <form method="POST" action="{{ route('module.ekkon.notifications.graph.trennen') }}"
+                                          onsubmit="return confirm('Verbindung trennen? Channels mit Chat-ID können dann nicht mehr posten.')">
+                                        @csrf @method('DELETE')
+                                        <button class="text-sm text-red-700 hover:underline">trennen</button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                    @if ($graphMoeglich && ! $graphKonto)
+                        <p class="mt-2 text-xs text-gray-500">
+                            Vorher in der Entra-App: Umleitungs-URI <code>{{ $graphUmleitung }}</code> eintragen und die delegierten
+                            Berechtigungen <code>offline_access</code>, <code>Chat.ReadWrite</code>, <code>ChannelMessage.Send</code>,
+                            <code>Sites.ReadWrite.All</code> mit Admin-Zustimmung ergänzen. Nachrichten erscheinen unter dem Namen des verbundenen Kontos.
+                        </p>
+                    @endif
+                </div>
 
                 @if ($channels->isEmpty())
                     <p class="text-sm text-gray-500 mb-4 italic">Noch kein Channel angelegt.</p>
@@ -181,6 +232,7 @@
                             <thead class="text-left text-gray-500 border-b">
                                 <tr>
                                     <th class="py-2 pr-4">Name</th>
+                                    <th class="py-2 pr-4">Weg</th>
                                     <th class="py-2 pr-4">Notiz</th>
                                     <th class="py-2 pr-4">Status</th>
                                     <th class="py-2 pr-4">Aktion</th>
@@ -190,6 +242,16 @@
                                 @foreach ($channels as $channel)
                                     <tr class="border-b last:border-0">
                                         <td class="py-2 pr-4 font-medium">{{ $channel->name }}</td>
+                                        <td class="py-2 pr-4 text-xs">
+                                            @if ($channel->perGraph())
+                                                <span class="font-semibold text-indigo-700 bg-indigo-50 rounded px-2 py-0.5" title="{{ $channel->chat_id }}">Graph</span>
+                                                @unless ($graphKonto)
+                                                    <span class="block text-red-700 mt-1">kein Konto verbunden</span>
+                                                @endunless
+                                            @else
+                                                <span class="text-gray-600 bg-gray-100 rounded px-2 py-0.5">Workflow</span>
+                                            @endif
+                                        </td>
                                         <td class="py-2 pr-4 text-gray-500">{{ $channel->notiz }}</td>
                                         <td class="py-2 pr-4">
                                             @if ($channel->aktiv)
@@ -219,7 +281,7 @@
                                         </td>
                                     </tr>
                                     <tr x-show="bearbeite === {{ $channel->id }}" x-cloak class="border-b last:border-0 bg-gray-50">
-                                        <td colspan="4" class="py-3 pr-4">
+                                        <td colspan="5" class="py-3 pr-4">
                                             <form method="POST" action="{{ route('module.ekkon.notifications.channel.update', $channel) }}"
                                                   class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                                                 @csrf @method('PUT')
@@ -239,6 +301,20 @@
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">Notiz</label>
                                                     <input name="notiz" value="{{ $channel->notiz }}"
                                                            class="w-full rounded-md border-gray-300 text-sm" placeholder="optional">
+                                                </div>
+                                                <div class="md:col-span-2">
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1">
+                                                        Chat-/Kanal-ID <span class="text-gray-400">(Graph-Weg; leer = Workflow)</span>
+                                                    </label>
+                                                    <input name="chat_id" value="{{ $channel->chat_id }}"
+                                                           class="w-full rounded-md border-gray-300 text-sm font-mono" placeholder="19:meeting_…@thread.v2">
+                                                </div>
+                                                <div class="md:col-span-2">
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1">
+                                                        SharePoint-Ordner für Anhänge <span class="text-gray-400">(Adresse aus dem Browser)</span>
+                                                    </label>
+                                                    <input name="ablage_url" value="{{ $channel->ablage_url }}"
+                                                           class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
                                                 </div>
                                                 <div class="md:col-span-4 flex gap-3 items-center">
                                                     <button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
@@ -265,15 +341,29 @@
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-medium text-gray-600 mb-1">
-                            Webhook-URL <span class="text-gray-400">(wird verschlüsselt gespeichert)</span>
+                            Webhook-URL <span class="text-gray-400">(Workflow-Weg; wird verschlüsselt gespeichert)</span>
                         </label>
-                        <input name="webhook_url" value="{{ old('webhook_url') }}" required
+                        <input name="webhook_url" value="{{ old('webhook_url') }}"
                                class="w-full rounded-md border-gray-300 text-sm" placeholder="https://…logic.azure.com/…">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Notiz</label>
                         <input name="notiz" value="{{ old('notiz') }}"
                                class="w-full rounded-md border-gray-300 text-sm" placeholder="optional">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">
+                            Chat-/Kanal-ID <span class="text-gray-400">(Graph-Weg, statt Webhook-URL)</span>
+                        </label>
+                        <input name="chat_id" value="{{ old('chat_id') }}"
+                               class="w-full rounded-md border-gray-300 text-sm font-mono" placeholder="19:meeting_…@thread.v2">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">
+                            SharePoint-Ordner für Anhänge <span class="text-gray-400">(nur Graph-Weg)</span>
+                        </label>
+                        <input name="ablage_url" value="{{ old('ablage_url') }}"
+                               class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
                     </div>
                     <div class="md:col-span-4">
                         <button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
