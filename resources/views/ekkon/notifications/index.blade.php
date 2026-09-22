@@ -206,6 +206,9 @@
                                     </button>
                                 </form>
                                 @if ($graphKonto)
+                                    <a href="{{ route('module.ekkon.notifications.graph.zugriffe') }}"
+                                       class="rounded-md border border-indigo-600 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+                                       title="Chats, Teams/Kanäle und SharePoint-Sites, die das Konto sieht – mit IDs zum Kopieren">Zugriffe anzeigen</a>
                                     <form method="POST" action="{{ route('module.ekkon.notifications.graph.trennen') }}"
                                           onsubmit="return confirm('Verbindung trennen? Channels mit Chat-ID können dann nicht mehr posten.')">
                                         @csrf @method('DELETE')
@@ -218,7 +221,7 @@
                     @if ($graphMoeglich && ! $graphKonto)
                         <p class="mt-2 text-xs text-gray-500">
                             Vorher in der Entra-App: Umleitungs-URI <code>{{ $graphUmleitung }}</code> eintragen und die delegierten
-                            Berechtigungen <code>offline_access</code>, <code>Chat.ReadWrite</code>, <code>ChannelMessage.Send</code>,
+                            Berechtigungen <code>offline_access</code>, <code>Chat.ReadWrite</code>, <code>ChannelMessage.Send</code>, <code>Team.ReadBasic.All</code>, <code>Channel.ReadBasic.All</code>,
                             <code>Sites.ReadWrite.All</code> mit Admin-Zustimmung ergänzen. Nachrichten erscheinen unter dem Namen des verbundenen Kontos.
                         </p>
                     @endif

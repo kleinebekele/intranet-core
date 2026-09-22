@@ -36,6 +36,7 @@ Route::middleware(['web', 'auth'])
                 Route::post('/microsoft/verbinden', [NotificationController::class, 'graphVerbinden'])->name('graph.verbinden');
                 Route::get('/microsoft/callback', [NotificationController::class, 'graphCallback'])->name('graph.callback');
                 Route::delete('/microsoft', [NotificationController::class, 'graphTrennen'])->name('graph.trennen');
+                Route::get('/microsoft/zugriffe', [NotificationController::class, 'graphZugriffe'])->name('graph.zugriffe');
 
                 Route::post('/route', [NotificationController::class, 'routeStore'])->name('route.store');
                 Route::post('/route/{route}/toggle', [NotificationController::class, 'routeToggle'])->name('route.toggle');

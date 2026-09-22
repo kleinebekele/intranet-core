@@ -142,7 +142,9 @@ Ziel-ID: Chat `19:…@thread.v2` (Link auf eine Nachricht kopieren), Team-Kanal 
 ein neutraler M365-Benutzer sein; er braucht eine Teams-Lizenz, Mitgliedschaft in den Ziel-Chats und
 Zugriff auf die Ablage-Ordner.
 Einmalig in der Entra-App der Anmeldung: Umleitungs-URI `…/modules/ekkon/benachrichtigungen/microsoft/callback`
-und delegierte Berechtigungen `offline_access`, `Chat.ReadWrite`, `ChannelMessage.Send`, `Sites.ReadWrite.All`
+und delegierte Berechtigungen `offline_access`, `Chat.ReadWrite`, `ChannelMessage.Send`, `Sites.ReadWrite.All`,
+`Team.ReadBasic.All`, `Channel.ReadBasic.All` (letztere für „Zugriffe anzeigen": `GraphAuskunft` listet Chats,
+Teams/Kanäle und Sites samt IDs/Bibliotheks-URLs zum Kopieren)
 (Admin-Zustimmung). Danach Benachrichtigungen → Teams-Channels → „Microsoft-Konto verbinden".
 „Test senden" postet auf diesem Weg eine Nachricht mit kleiner Textdatei. Refresh-Token ungültig
 (Passwortwechsel, Entzug) → `letzter_fehler` in der Maske, neu verbinden.

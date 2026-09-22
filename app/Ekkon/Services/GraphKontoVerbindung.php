@@ -22,6 +22,7 @@ use RuntimeException;
  *  - Chat.ReadWrite       → Nachrichten in Chats (auch Besprechungschats)
  *  - ChannelMessage.Send  → Nachrichten in Team-Kanäle
  *  - Sites.ReadWrite.All  → Datei in den SharePoint-Ordner hochladen
+ *  - Team.ReadBasic.All, Channel.ReadBasic.All → Übersicht „Zugriffe des Kontos" (GraphAuskunft)
  *
  * Warum delegiert und nicht als App-Berechtigung: Nachrichten in Chats darf
  * eine App nur im Namen eines Nutzers senden; App-only gibt es dafür nicht.
@@ -35,7 +36,7 @@ class GraphKontoVerbindung
 
     private const CACHE = 'ekkon-graph-access-token';
 
-    public const SCOPES = ['openid', 'profile', 'email', 'offline_access', 'User.Read', 'Chat.ReadWrite', 'ChannelMessage.Send', 'Sites.ReadWrite.All'];
+    public const SCOPES = ['openid', 'profile', 'email', 'offline_access', 'User.Read', 'Chat.ReadWrite', 'ChannelMessage.Send', 'Sites.ReadWrite.All', 'Team.ReadBasic.All', 'Channel.ReadBasic.All'];
 
     /** Ist die Entra-App überhaupt konfiguriert? */
     public function moeglich(): bool

@@ -237,6 +237,23 @@ class NotificationController extends Controller
             ->with('status', 'Microsoft-Konto verbunden: '.$konto->name.' ('.$konto->email.'). Nachrichten über Graph erscheinen unter diesem Namen.');
     }
 
+    /** Was sieht das verbundene Konto? Chats, Teams/Kanäle, Sites – mit IDs zum Kopieren. */
+    public function graphZugriffe(\App\Ekkon\Services\GraphAuskunft $auskunft): View|RedirectResponse
+    {
+        if (GraphKonto::aktuelles() === null) {
+            return redirect()->to(route('module.ekkon.notifications.index').'#channels')
+                ->withErrors(['graph' => 'Erst ein Microsoft-Konto verbinden.']);
+        }
+
+        try {
+            $zugriffe = $auskunft->zugriffe();
+        } catch (\RuntimeException $e) {
+            return redirect()->to(route('module.ekkon.notifications.index').'#channels')->withErrors(['graph' => $e->getMessage()]);
+        }
+
+        return view('ekkon::notifications.zugriffe', $zugriffe + ['konto' => GraphKonto::aktuelles()]);
+    }
+
     public function graphTrennen(GraphKontoVerbindung $verbindung): RedirectResponse
     {
         $verbindung->trennen();
