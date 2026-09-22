@@ -51,6 +51,9 @@ Route::middleware(['web', 'auth'])
             // Teams-Chat-Eingang (Admin-Seite): was andere dem Bot-Konto schreiben.
             Route::prefix('teams')->name('teams.')->group(function (): void {
                 Route::get('/', [TeamsEingangController::class, 'index'])->name('index');
+                Route::post('/ki', [TeamsEingangController::class, 'kiSpeichern'])->name('ki.speichern');
+                Route::get('/ki/modelle', [TeamsEingangController::class, 'kiModelle'])->name('ki.modelle');
+                Route::post('/ki/test', [TeamsEingangController::class, 'kiTest'])->name('ki.test');
                 Route::post('/{nachricht}/antworten', [TeamsEingangController::class, 'antworten'])->name('antworten');
                 Route::delete('/{nachricht}', [TeamsEingangController::class, 'destroy'])->name('destroy');
             });

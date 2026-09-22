@@ -145,6 +145,9 @@ class TeamsLauscher
                     'url' => (string) ($a['contentUrl'] ?? ''),
                     'typ' => (string) ($a['contentType'] ?? ''),
                 ], (array) ($m['attachments'] ?? []))),
+                // @-Erwähnung des Bots (für „in Gruppen nur auf Ansprache antworten").
+                'bot_erwaehnt' => collect((array) ($m['mentions'] ?? []))
+                    ->contains(fn ($mn) => (string) ($mn['mentioned']['user']['id'] ?? '') === $konto->ms_id),
                 'gesendet_am' => $am,
             ]);
 

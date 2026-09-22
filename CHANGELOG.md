@@ -34,6 +34,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Neue Admin-Seite Ekkon → „Teams-Chat" mit Antwort von Hand. Zwei neue Tabellen (Migration),
   Menüpunkt kommt mit `modules:sync`. Unit-Datei in `app/Ekkon/CLAUDE.md`. `deploy.sh` startet die in
   `deploy.env` unter `DIENSTE` genannten systemd-Dienste nach dem Deploy neu (sudoers-Regel nötig).
+- **KI antwortet im Teams-Chat.** Eingehende Nachrichten an das Bot-Konto beantwortet eine
+  OpenAI-kompatible Chat-API (vorbelegt: DeutschlandGPT) mit dem Gesprächsverlauf des Chats.
+  Einstellungen unter Ekkon → Teams-Chat: API-Adresse, Schlüssel (verschlüsselt in `settings`),
+  Modell (Liste vom Anbieter), Systemprompt, Ein/Aus, „in Gruppen nur bei @-Erwähnung"
+  (neue Spalte `bot_erwaehnt`, Migration). Probefrage direkt in der Maske.
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die

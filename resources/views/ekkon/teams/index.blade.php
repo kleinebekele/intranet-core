@@ -53,6 +53,100 @@
                 </dl>
             </div>
 
+            {{-- ── KI ───────────────────────────────────────────────────── --}}
+            <div class="bg-white shadow-sm sm:rounded-lg p-4 sm:p-6"
+                 x-data="{
+                    modelle: [],
+                    modellFehler: '',
+                    laedt: false,
+                    async modelleLaden() {
+                        this.laedt = true; this.modellFehler = '';
+                        try {
+                            const r = await fetch(@json(route('module.ekkon.teams.ki.modelle')), { headers: { 'Accept': 'application/json' } });
+                            const j = await r.json().catch(() => ({}));
+                            if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
+                            this.modelle = j.modelle || [];
+                            if (this.modelle.length === 0) { this.modellFehler = 'Der Anbieter liefert keine Modelle.'; }
+                        } catch (e) { this.modellFehler = e.message; }
+                        this.laedt = false;
+                    }
+                 }">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-1">
+                    <h3 class="font-semibold text-gray-700">KI-Antworten (DeutschlandGPT)</h3>
+                    @if ($ki['aktiv'] && $ki['schluessel_da'] && $ki['modell'] !== '')
+                        <span class="text-xs font-semibold text-green-700 bg-green-100 rounded px-2 py-0.5">antwortet · {{ $ki['modell'] }}</span>
+                    @elseif ($ki['aktiv'])
+                        <span class="text-xs font-semibold text-red-700 bg-red-100 rounded px-2 py-0.5">eingeschaltet, aber unvollständig</span>
+                    @else
+                        <span class="text-xs font-semibold text-gray-500 bg-gray-100 rounded px-2 py-0.5">aus</span>
+                    @endif
+                </div>
+                <p class="text-sm text-gray-500 mb-4">
+                    Jede eingehende Nachricht geht mit dem Gesprächsverlauf des Chats an die KI, die Antwort postet
+                    der Bot zurück. OpenAI-kompatible Schnittstelle: Schlüssel aus dem DeutschlandGPT-Dashboard
+                    (Plattform-API), Modell aus der Liste des Anbieters.
+                </p>
+
+                <form method="POST" action="{{ route('module.ekkon.teams.ki.speichern') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    @csrf
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">API-Adresse</label>
+                        <input name="url" value="{{ old('url', $ki['url']) }}" required class="w-full rounded-md border-gray-300 text-sm">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">
+                            API-Schlüssel
+                            @if ($ki['schluessel_da'])
+                                <span class="text-green-700">– hinterlegt, wird nicht angezeigt</span> <span class="text-gray-400">(leer lassen = behalten)</span>
+                            @else
+                                <span class="text-red-700">– fehlt</span>
+                            @endif
+                        </label>
+                        <input name="schluessel" value="" type="password" autocomplete="off" class="w-full rounded-md border-gray-300 text-sm"
+                               placeholder="{{ $ki['schluessel_da'] ? '••••••••••••  (hinterlegt)' : 'dgpt_…' }}">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Modell</label>
+                        <div class="flex gap-2">
+                            <input name="modell" list="ki-modelle" value="{{ old('modell', $ki['modell']) }}" class="w-full rounded-md border-gray-300 text-sm font-mono" placeholder="z. B. claude-sonnet-… oder gpt-…">
+                            <datalist id="ki-modelle">
+                                <template x-for="m in modelle" :key="m"><option :value="m"></option></template>
+                            </datalist>
+                            <button type="button" @click="modelleLaden()" class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    :disabled="laedt" x-text="laedt ? 'lädt …' : 'Modelle laden'"></button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1" x-show="modelle.length > 0">Liste geladen (<span x-text="modelle.length"></span>) – ins Feld klicken zeigt die Auswahl.</p>
+                        <p class="text-xs text-red-700 mt-1" x-show="modellFehler" x-text="modellFehler"></p>
+                    </div>
+                    <div class="md:col-span-2 flex flex-col gap-2 text-sm pb-2">
+                        <label class="inline-flex items-center gap-2">
+                            <input type="hidden" name="aktiv" value="0">
+                            <input type="checkbox" name="aktiv" value="1" class="rounded border-gray-300" @checked(old('aktiv', $ki['aktiv']))>
+                            KI antwortet automatisch
+                        </label>
+                        <label class="inline-flex items-center gap-2">
+                            <input type="hidden" name="gruppen_nur_erwaehnt" value="0">
+                            <input type="checkbox" name="gruppen_nur_erwaehnt" value="1" class="rounded border-gray-300" @checked(old('gruppen_nur_erwaehnt', $ki['gruppen_nur_erwaehnt']))>
+                            in Gruppen- und Besprechungschats nur bei @-Erwähnung des Bots
+                        </label>
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Systemprompt <span class="text-gray-400">(Rolle und Regeln für die KI)</span></label>
+                        <textarea name="system" rows="4" class="w-full rounded-md border-gray-300 text-sm">{{ old('system', $ki['system']) }}</textarea>
+                    </div>
+                    <div class="md:col-span-4">
+                        <button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Speichern</button>
+                    </div>
+                </form>
+
+                <form method="POST" action="{{ route('module.ekkon.teams.ki.test') }}" class="mt-4 flex flex-wrap gap-2 items-center border-t pt-4">
+                    @csrf
+                    <input name="frage" value="Antworte mit einem Satz: Funktioniert die Verbindung?" class="flex-1 min-w-64 rounded-md border-gray-300 text-sm">
+                    <button class="rounded-md border border-indigo-600 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50">Probefrage an die KI</button>
+                    <span class="text-xs text-gray-500">postet nichts nach Teams, zeigt nur die Antwort hier</span>
+                </form>
+            </div>
+
             {{-- ── Nachrichten ─────────────────────────────────────────── --}}
             <div class="bg-white shadow-sm sm:rounded-lg p-4 sm:p-6">
                 <h3 class="font-semibold text-gray-700 mb-1">Nachrichten <span class="text-gray-400 font-normal text-sm">(letzte 100)</span></h3>

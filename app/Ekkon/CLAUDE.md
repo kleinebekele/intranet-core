@@ -183,6 +183,16 @@ WantedBy=multi-user.target
 ```
 
 `systemctl daemon-reload && systemctl enable --now intranet-teams`, Log: `journalctl -u intranet-teams -f`.
+`deploy.sh` startet ihn neu, wenn `DIENSTE="intranet-teams"` in der `deploy.env` steht (sudoers-Regel).
+
+**KI-Antworten (DeutschlandGPT):** Listener `Listeners/KiAntwortet` auf `TeamsNachrichtEmpfangen`
+schickt Verlauf (letzte 12 Nachrichten des Chats + Antworten) an `Services/KiClient` – OpenAI-
+kompatibel, Basis `https://api.deutschlandgpt.de/v2`, `POST /chat/completions`, `GET /models`,
+Bearer-Token. Einstellungen in `settings` (Ekkon → Teams-Chat): URL, Schlüssel (verschlüsselt),
+Modell (Liste per „Modelle laden"), Systemprompt, Schalter „aktiv", „Gruppen nur bei @-Erwähnung"
+(`bot_erwaehnt` aus den `mentions` der Nachricht). 1:1-Chats werden immer beantwortet. Fehler →
+`verarbeitung = Fehler: …` und eine kurze Entschuldigung im Chat. Der Aufruf läuft im Lauscher-Prozess
+(blockiert dessen Schleife bis zu 90 s) – bei viel Verkehr auf eine Queue umstellen.
 
 ## Sicherheitsschalter
 

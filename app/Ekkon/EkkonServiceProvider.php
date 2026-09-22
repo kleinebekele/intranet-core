@@ -101,6 +101,14 @@ class EkkonServiceProvider extends ModuleServiceProvider
         $this->benachrichtigungsVorlagenAnmelden();
         $this->hinweiseAnmelden();
 
+        // Teams-Chat: Eingehende Nachrichten an das Bot-Konto beantwortet die KI
+        // (Ekkon → Teams-Chat → KI-Einstellungen). Der Listener prüft selbst, ob
+        // die KI eingeschaltet ist.
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Ekkon\Events\TeamsNachrichtEmpfangen::class,
+            \App\Ekkon\Listeners\KiAntwortet::class,
+        );
+
         if (! $this->app->runningInConsole()) {
             return;
         }
