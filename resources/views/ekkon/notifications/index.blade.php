@@ -15,6 +15,39 @@
                 zielFuer: null,
                 meldung: null,
                 geloescht: [],
+                // Auswahl-Dialog für Ziel (Chat/Kanal) und Ablage-Ordner: holt einmal die
+                // Zugriffe des verbundenen Kontos und schreibt die Wahl direkt ins Feld.
+                auswahl: { offen: false, art: 'ziel', feld: null, daten: null, fehler: '', laedt: false, suche: '', ordner: {}, ordnerLaedt: '' },
+                async auswahlOeffnen(art, feld) {
+                    this.auswahl.art = art; this.auswahl.feld = feld; this.auswahl.offen = true; this.auswahl.fehler = ''; this.auswahl.suche = '';
+                    if (this.auswahl.daten !== null) { return; }
+                    this.auswahl.laedt = true;
+                    try {
+                        const r = await fetch({{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.zugriffe.json')) }}, { headers: { 'Accept': 'application/json' } });
+                        const j = await r.json().catch(() => ({}));
+                        if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
+                        this.auswahl.daten = j;
+                    } catch (e) { this.auswahl.fehler = e.message; }
+                    this.auswahl.laedt = false;
+                },
+                auswahlUebernehmen(wert) {
+                    if (this.auswahl.feld) { this.auswahl.feld.value = wert; this.auswahl.feld.dispatchEvent(new Event('input', { bubbles: true })); }
+                    this.auswahl.offen = false;
+                },
+                passt(text) { const s = this.auswahl.suche.trim().toLowerCase(); return s === '' || (text || '').toLowerCase().includes(s); },
+                async ordnerLaden(driveId, pfad) {
+                    const key = driveId + '|' + pfad;
+                    if (this.auswahl.ordner[key]) { delete this.auswahl.ordner[key]; return; }
+                    this.auswahl.ordnerLaedt = key;
+                    try {
+                        const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.ordner')) }} + '?drive=' + encodeURIComponent(driveId) + '&pfad=' + encodeURIComponent(pfad);
+                        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                        const j = await r.json().catch(() => ({}));
+                        if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
+                        this.auswahl.ordner[key] = j.ordner || [];
+                    } catch (e) { this.auswahl.fehler = e.message; }
+                    this.auswahl.ordnerLaedt = '';
+                },
                 // Bewusst OHNE Rückfrage: hier räumt man in Serie auf, jede Frage bremst.
                 loeschen(id, url) {
                     fetch(url, {
@@ -206,9 +239,6 @@
                                     </button>
                                 </form>
                                 @if ($graphKonto)
-                                    <a href="{{ route('module.ekkon.notifications.graph.zugriffe') }}"
-                                       class="rounded-md border border-indigo-600 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
-                                       title="Chats, Teams/Kanäle und SharePoint-Sites, die das Konto sieht – mit IDs zum Kopieren">Zugriffe anzeigen</a>
                                     <form method="POST" action="{{ route('module.ekkon.notifications.graph.trennen') }}"
                                           onsubmit="return confirm('Verbindung trennen? Channels mit Chat-ID können dann nicht mehr posten.')">
                                         @csrf @method('DELETE')
@@ -327,16 +357,24 @@
                                                         <span x-show="weg === 'chat'">Chat-/Kanal-ID <span class="text-gray-400">(19:…@thread.v2 oder Team-GUID/19:…@thread.tacv2)</span></span>
                                                         <span x-show="weg === 'person'">E-Mail-Adresse der Person <span class="text-gray-400">(Microsoft-365-Konto)</span></span>
                                                     </label>
-                                                    <input name="chat_id" value="{{ $channel->chat_id }}" :disabled="weg === 'workflow'"
-                                                           class="w-full rounded-md border-gray-300 text-sm font-mono"
-                                                           :placeholder="weg === 'person' ? 'vorname.nachname@firma.de' : '19:meeting_…@thread.v2'">
+                                                    <div class="flex gap-2">
+                                                        <input name="chat_id" value="{{ $channel->chat_id }}" :disabled="weg === 'workflow'"
+                                                               class="w-full rounded-md border-gray-300 text-sm font-mono"
+                                                               :placeholder="weg === 'person' ? 'vorname.nachname@firma.de' : '19:meeting_…@thread.v2'">
+                                                        <button type="button" x-show="weg === 'chat'" @click="auswahlOeffnen('ziel', $el.closest('form').querySelector('[name=chat_id]'))"
+                                                                class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">auswählen</button>
+                                                    </div>
                                                 </div>
                                                 <div class="md:col-span-2" x-show="weg !== 'workflow'">
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">
                                                         SharePoint-Ordner für Anhänge <span class="text-gray-400">(Adresse aus dem Browser)</span>
                                                     </label>
-                                                    <input name="ablage_url" value="{{ $channel->ablage_url }}" :disabled="weg === 'workflow'"
-                                                           class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
+                                                    <div class="flex gap-2">
+                                                        <input name="ablage_url" value="{{ $channel->ablage_url }}" :disabled="weg === 'workflow'"
+                                                               class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
+                                                        <button type="button" @click="auswahlOeffnen('ablage', $el.closest('form').querySelector('[name=ablage_url]'))"
+                                                                class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">auswählen</button>
+                                                    </div>
                                                 </div>
                                                 <div class="md:col-span-4 flex gap-3 items-center">
                                                     <button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
@@ -389,16 +427,24 @@
                             <span x-show="weg === 'chat'">Chat-/Kanal-ID <span class="text-gray-400">(19:…@thread.v2 oder Team-GUID/19:…@thread.tacv2)</span></span>
                             <span x-show="weg === 'person'">E-Mail-Adresse der Person <span class="text-gray-400">(Microsoft-365-Konto)</span></span>
                         </label>
-                        <input name="chat_id" value="{{ old('chat_id') }}" :disabled="weg === 'workflow'"
-                               class="w-full rounded-md border-gray-300 text-sm font-mono"
-                               :placeholder="weg === 'person' ? 'vorname.nachname@firma.de' : '19:meeting_…@thread.v2'">
+                        <div class="flex gap-2">
+                            <input name="chat_id" value="{{ old('chat_id') }}" :disabled="weg === 'workflow'"
+                                   class="w-full rounded-md border-gray-300 text-sm font-mono"
+                                   :placeholder="weg === 'person' ? 'vorname.nachname@firma.de' : '19:meeting_…@thread.v2'">
+                            <button type="button" x-show="weg === 'chat'" @click="auswahlOeffnen('ziel', $el.closest('form').querySelector('[name=chat_id]'))"
+                                    class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">auswählen</button>
+                        </div>
                     </div>
                     <div class="md:col-span-2" x-show="weg !== 'workflow'">
                         <label class="block text-xs font-medium text-gray-600 mb-1">
                             SharePoint-Ordner für Anhänge <span class="text-gray-400">(Adresse aus dem Browser)</span>
                         </label>
-                        <input name="ablage_url" value="{{ old('ablage_url') }}" :disabled="weg === 'workflow'"
-                               class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
+                        <div class="flex gap-2">
+                            <input name="ablage_url" value="{{ old('ablage_url') }}" :disabled="weg === 'workflow'"
+                                   class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
+                            <button type="button" @click="auswahlOeffnen('ablage', $el.closest('form').querySelector('[name=ablage_url]'))"
+                                    class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">auswählen</button>
+                        </div>
                     </div>
                     <div class="md:col-span-4">
                         <button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
@@ -602,6 +648,111 @@
                         @endforeach
                     </ul>
                 @endif
+            </div>
+
+            {{-- ── Auswahl-Dialog: Ziel (Chat/Kanal) oder Ablage-Ordner ─── --}}
+            <div x-show="auswahl.offen" x-cloak @keydown.escape.window="auswahl.offen = false"
+                 class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
+                <div @click.outside="auswahl.offen = false" class="w-full max-w-3xl max-h-[85vh] flex flex-col rounded-lg bg-white shadow-xl">
+                    <div class="flex items-center justify-between gap-4 border-b px-5 py-3">
+                        <h4 class="font-semibold text-gray-800" x-text="auswahl.art === 'ziel' ? 'Chat oder Kanal wählen' : 'SharePoint-Ordner wählen'"></h4>
+                        <button type="button" @click="auswahl.offen = false" class="text-gray-400 hover:text-gray-700 text-xl leading-none" aria-label="Schließen">&times;</button>
+                    </div>
+                    <div class="px-5 py-3 border-b">
+                        <input type="search" x-model="auswahl.suche" placeholder="filtern …" class="w-full rounded-md border-gray-300 text-sm">
+                    </div>
+                    <div class="px-5 py-4 overflow-y-auto text-sm space-y-5">
+                        <p x-show="auswahl.laedt" class="text-gray-500">Zugriffe des Kontos werden geladen …</p>
+                        <p x-show="auswahl.fehler" x-text="auswahl.fehler" class="text-red-700"></p>
+
+                        {{-- Ziel: Chats + Teams/Kanäle --}}
+                        <template x-if="auswahl.daten && auswahl.art === 'ziel'">
+                            <div class="space-y-5">
+                                <div>
+                                    <div class="font-medium text-gray-700 mb-1">Chats</div>
+                                    <ul class="divide-y">
+                                        <template x-for="c in auswahl.daten.chats" :key="c.id">
+                                            <li x-show="passt(c.titel)" class="py-1.5 flex items-center justify-between gap-3">
+                                                <span><span x-text="c.titel"></span> <span class="text-xs text-gray-400" x-text="c.typ + ' · ' + c.mitglieder + ' Mitgl.'"></span></span>
+                                                <button type="button" @click="auswahlUebernehmen(c.id)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                    <p x-show="auswahl.daten.chats.length === 0" class="text-gray-400 italic">Keine Chats.</p>
+                                </div>
+                                <template x-for="t in auswahl.daten.teams" :key="t.id">
+                                    <div>
+                                        <div class="font-medium text-gray-700 mb-1" x-text="'Team: ' + t.name"></div>
+                                        <ul class="divide-y">
+                                            <template x-for="k in t.kanaele" :key="k.id">
+                                                <li x-show="passt(t.name + ' ' + k.name)" class="py-1.5 pl-3 flex items-center justify-between gap-3">
+                                                    <span><span x-text="k.name"></span> <span class="text-xs text-gray-400" x-text="k.typ"></span></span>
+                                                    <button type="button" @click="auswahlUebernehmen(k.id)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        {{-- Ablage: Sites → Bibliotheken → Unterordner --}}
+                        <template x-if="auswahl.daten && auswahl.art === 'ablage'">
+                            <div class="space-y-5">
+                                <template x-for="s in auswahl.daten.sites" :key="s.url">
+                                    <div x-show="passt(s.name)">
+                                        <div class="font-medium text-gray-700 mb-1" x-text="s.name"></div>
+                                        <ul class="divide-y">
+                                            <template x-for="b in s.bibliotheken" :key="b.id">
+                                                <li class="py-1.5 pl-3">
+                                                    <div class="flex items-center justify-between gap-3">
+                                                        <span>
+                                                            <button type="button" @click="ordnerLaden(b.id, '')" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.ordner[b.id + '|'] ? '▾' : '▸'"></button>
+                                                            <span x-text="b.name"></span>
+                                                            <span x-show="auswahl.ordnerLaedt === b.id + '|'" class="text-xs text-gray-400">lädt …</span>
+                                                        </span>
+                                                        <button type="button" @click="auswahlUebernehmen(b.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
+                                                    </div>
+                                                    {{-- Unterordner, eine Ebene je Aufklappen (Pfad als Schlüssel) --}}
+                                                    <template x-for="o in (auswahl.ordner[b.id + '|'] || [])" :key="o.pfad">
+                                                        <div class="pl-5">
+                                                            <div class="flex items-center justify-between gap-3 py-1">
+                                                                <span>
+                                                                    <button type="button" @click="ordnerLaden(b.id, o.pfad)" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.ordner[b.id + '|' + o.pfad] ? '▾' : '▸'"></button>
+                                                                    <span x-text="o.name"></span>
+                                                                    <span x-show="auswahl.ordnerLaedt === b.id + '|' + o.pfad" class="text-xs text-gray-400">lädt …</span>
+                                                                </span>
+                                                                <button type="button" @click="auswahlUebernehmen(o.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
+                                                            </div>
+                                                            <template x-for="u in (auswahl.ordner[b.id + '|' + o.pfad] || [])" :key="u.pfad">
+                                                                <div class="pl-5 flex items-center justify-between gap-3 py-1">
+                                                                    <span>
+                                                                        <button type="button" @click="ordnerLaden(b.id, u.pfad)" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.ordner[b.id + '|' + u.pfad] ? '▾' : '▸'"></button>
+                                                                        <span x-text="u.name"></span>
+                                                                    </span>
+                                                                    <button type="button" @click="auswahlUebernehmen(u.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
+                                                                </div>
+                                                            </template>
+                                                            <template x-for="u in (auswahl.ordner[b.id + '|' + o.pfad] || [])" :key="'x' + u.pfad">
+                                                                <template x-for="v in (auswahl.ordner[b.id + '|' + u.pfad] || [])" :key="v.pfad">
+                                                                    <div class="pl-10 flex items-center justify-between gap-3 py-1">
+                                                                        <span>· <span x-text="v.name"></span></span>
+                                                                        <button type="button" @click="auswahlUebernehmen(v.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
+                                                                    </div>
+                                                                </template>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </template>
+                                <p x-show="auswahl.daten.sites.length === 0" class="text-gray-400 italic">Keine Sites.</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
 
         </div>

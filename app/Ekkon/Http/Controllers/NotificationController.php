@@ -254,6 +254,26 @@ class NotificationController extends Controller
         return view('ekkon::notifications.zugriffe', $zugriffe + ['konto' => GraphKonto::aktuelles()]);
     }
 
+    /**
+     * Dieselben Zugriffe als JSON für den Auswahl-Dialog in der Channel-Maske.
+     * Fünf Minuten gecacht: Der Dialog geht beim Anlegen mehrerer Channels
+     * öfter auf, die Graph-Abfragen dauern aber ein paar Sekunden.
+     */
+    public function graphZugriffeJson(\App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
+    {
+        if (GraphKonto::aktuelles() === null) {
+            return response()->json(['fehler' => 'Erst ein Microsoft-Konto verbinden.'], 409);
+        }
+
+        try {
+            $daten = \Illuminate\Support\Facades\Cache::remember('ekkon-graph-zugriffe', now()->addMinutes(5), fn () => $auskunft->zugriffe());
+        } catch (\RuntimeException $e) {
+            return response()->json(['fehler' => $e->getMessage()], 502);
+        }
+
+        return response()->json($daten);
+    }
+
     /** Unterordner einer Bibliothek als JSON – die Zugriffe-Seite klappt damit Ebene für Ebene auf. */
     public function graphOrdner(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
     {

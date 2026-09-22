@@ -39,6 +39,7 @@ Route::middleware(['web', 'auth'])
                 Route::delete('/microsoft', [NotificationController::class, 'graphTrennen'])->name('graph.trennen');
                 Route::get('/microsoft/zugriffe', [NotificationController::class, 'graphZugriffe'])->name('graph.zugriffe');
                 Route::get('/microsoft/zugriffe/ordner', [NotificationController::class, 'graphOrdner'])->name('graph.ordner');
+                Route::get('/microsoft/zugriffe.json', [NotificationController::class, 'graphZugriffeJson'])->name('graph.zugriffe.json');
 
                 Route::post('/route', [NotificationController::class, 'routeStore'])->name('route.store');
                 Route::post('/route/{route}/toggle', [NotificationController::class, 'routeToggle'])->name('route.toggle');
