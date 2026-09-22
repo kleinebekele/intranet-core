@@ -48,7 +48,7 @@
                         let neu = 0;
                         for (const s of (j.sites || [])) { if (! bekannt.has(s.url.toLowerCase())) { this.auswahl.daten.sites.push(s); neu++; } }
                         this.auswahl.daten.sites.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
-                        if ((j.sites || []).length === 0) { this.auswahl.fehler = 'SharePoint-Suche: nichts gefunden zu „' + q + '".'; }
+                        if ((j.sites || []).length === 0) { this.auswahl.fehler = 'SharePoint-Suche: nichts gefunden zu „' + q + '“.'; }
                         else if (neu === 0) { this.auswahl.fehler = 'SharePoint-Suche: nur schon bekannte Sites.'; }
                     } catch (e) { this.auswahl.fehler = e.message; }
                     this.auswahl.ordnerLaedt = '';
