@@ -104,6 +104,61 @@ class TeamsGraphClient
         }
     }
 
+    /**
+     * Nachricht anlegen und ihre ID zurückgeben – für Platzhalter, die später
+     * per nachrichtBearbeiten() ersetzt werden („Helper schreibt …").
+     *
+     * @return array{chat: string, id: string} aufgelöstes Ziel + Nachrichten-ID
+     *
+     * @throws \RuntimeException
+     */
+    public function nachrichtAnlegen(string $ziel, string $html): array
+    {
+        $token = $this->verbindung->accessToken();
+        if (TeamsChannel::istPerson($ziel)) {
+            $ziel = $this->einzelchat($token, $ziel);
+        }
+        $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
+            ->post($this->nachrichtenEndpunkt($ziel), ['body' => ['contentType' => 'html', 'content' => $html]]);
+        if ($res->failed()) {
+            throw new \RuntimeException($this->fehler('Nachricht abgelehnt', $res));
+        }
+
+        return ['chat' => $ziel, 'id' => (string) $res->json('id')];
+    }
+
+    /** Eigene Nachricht nachträglich ersetzen (Platzhalter → Antwort). */
+    public function nachrichtBearbeiten(string $ziel, string $nachrichtId, string $html): ?string
+    {
+        try {
+            $token = $this->verbindung->accessToken();
+            $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
+                ->patch($this->nachrichtenEndpunkt($ziel).'/'.rawurlencode($nachrichtId), ['body' => ['contentType' => 'html', 'content' => $html]]);
+
+            return $res->failed() ? $this->fehler('Bearbeiten abgelehnt', $res) : null;
+        } catch (Throwable $e) {
+            return mb_substr($e->getMessage(), 0, 300);
+        }
+    }
+
+    /**
+     * Reaktion (Emoji) auf eine fremde Nachricht setzen oder entfernen – rein
+     * kosmetisch („gesehen"), Fehler werden nur geloggt.
+     */
+    public function reagieren(string $ziel, string $nachrichtId, string $emoji, bool $entfernen = false): void
+    {
+        try {
+            $token = $this->verbindung->accessToken();
+            $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
+                ->post($this->nachrichtenEndpunkt($ziel).'/'.rawurlencode($nachrichtId).'/'.($entfernen ? 'unsetReaction' : 'setReaction'), ['reactionType' => $emoji]);
+            if ($res->failed()) {
+                Log::info('Teams-Reaktion nicht gesetzt', ['fehler' => $this->fehler('Reaktion', $res)]);
+            }
+        } catch (Throwable $e) {
+            Log::info('Teams-Reaktion nicht gesetzt', ['fehler' => $e->getMessage()]);
+        }
+    }
+
     // ── Datei nach SharePoint ────────────────────────────────────────────
 
     /**

@@ -51,16 +51,35 @@ class KiAntwortet
             return;
         }
 
+        // „Schreibt gerade": Graph kennt für Benutzerkonten keinen Tipp-Indikator.
+        // Ersatz: 👀 auf die Frage und sofort ein Platzhalter „…", der nachher
+        // durch die Antwort ersetzt wird – an derselben Stelle, ohne zweite Nachricht.
+        $this->teams->reagieren($n->chat_id, $n->nachricht_id, '👀');
+        $platzhalter = null;
         try {
-            $antwort = $this->ki->antworte($this->verlauf($n));
+            $platzhalter = $this->teams->nachrichtAnlegen($n->chat_id, '<p><i>…</i></p>');
         } catch (Throwable $e) {
-            $n->update(['verarbeitung' => 'Fehler: '.mb_substr($e->getMessage(), 0, 200)]);
-            $this->teams->nachrichtPosten($n->chat_id, '<p>Entschuldigung, ich kann gerade nicht antworten. Bitte später noch einmal versuchen.</p>');
+            $n->update(['verarbeitung' => 'Fehler beim Posten: '.mb_substr($e->getMessage(), 0, 200)]);
 
             return;
         }
 
-        $fehler = $this->teams->nachrichtPosten($n->chat_id, $this->alsHtml($antwort['text']));
+        try {
+            $antwort = $this->ki->antworte($this->verlauf($n));
+        } catch (Throwable $e) {
+            $n->update(['verarbeitung' => 'Fehler: '.mb_substr($e->getMessage(), 0, 200)]);
+            $this->teams->nachrichtBearbeiten($platzhalter['chat'], $platzhalter['id'], '<p>Entschuldigung, ich kann gerade nicht antworten. Bitte später noch einmal versuchen.</p>');
+            $this->teams->reagieren($n->chat_id, $n->nachricht_id, '👀', entfernen: true);
+
+            return;
+        }
+
+        $fehler = $this->teams->nachrichtBearbeiten($platzhalter['chat'], $platzhalter['id'], $this->alsHtml($antwort['text']));
+        if ($fehler !== null) {
+            // Bearbeiten ging nicht – dann wenigstens als neue Nachricht.
+            $fehler = $this->teams->nachrichtPosten($n->chat_id, $this->alsHtml($antwort['text']));
+        }
+        $this->teams->reagieren($n->chat_id, $n->nachricht_id, '👀', entfernen: true);
         if ($fehler !== null) {
             $n->update(['verarbeitung' => 'Fehler beim Posten: '.mb_substr($fehler, 0, 200), 'antwort' => $antwort['text']]);
 

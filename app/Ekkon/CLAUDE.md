@@ -191,7 +191,9 @@ kompatibel, Basis `https://api.deutschlandgpt.de/v2`, `POST /chat/completions`, 
 Bearer-Token. Einstellungen in `settings` (Ekkon → Teams-Chat): URL, Schlüssel (verschlüsselt),
 Modell (Liste per „Modelle laden"), Systemprompt, Schalter „aktiv", „Gruppen nur bei @-Erwähnung"
 (`bot_erwaehnt` aus den `mentions` der Nachricht). 1:1-Chats werden immer beantwortet. Fehler →
-`verarbeitung = Fehler: …` und eine kurze Entschuldigung im Chat. Der Aufruf läuft im Lauscher-Prozess
+`verarbeitung = Fehler: …` und eine kurze Entschuldigung im Chat. „Schreibt gerade": Graph hat für
+Benutzerkonten keinen Tipp-Indikator → 👀-Reaktion (`setReaction`) + Platzhalter „…", der per
+`PATCH …/messages/{id}` durch die Antwort ersetzt wird. Der Aufruf läuft im Lauscher-Prozess
 (blockiert dessen Schleife bis zu 90 s) – bei viel Verkehr auf eine Queue umstellen.
 
 ## Sicherheitsschalter
