@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Ekkon\Http\Controllers\NotificationController;
 use App\Ekkon\Http\Controllers\TaskController;
+use App\Ekkon\Http\Controllers\TeamsEingangController;
 use App\Ekkon\Http\Controllers\WebhookController;
 
 Route::middleware(['web', 'auth'])
@@ -45,6 +46,13 @@ Route::middleware(['web', 'auth'])
 
                 Route::post('/{notification}/retry', [NotificationController::class, 'retry'])->name('retry');
                 Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+            });
+
+            // Teams-Chat-Eingang (Admin-Seite): was andere dem Bot-Konto schreiben.
+            Route::prefix('teams')->name('teams.')->group(function (): void {
+                Route::get('/', [TeamsEingangController::class, 'index'])->name('index');
+                Route::post('/{nachricht}/antworten', [TeamsEingangController::class, 'antworten'])->name('antworten');
+                Route::delete('/{nachricht}', [TeamsEingangController::class, 'destroy'])->name('destroy');
             });
 
             // Webhook-Eingang (Admin-Seite): Schlüssel sind Passwörter.

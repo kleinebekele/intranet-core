@@ -82,6 +82,28 @@ class TeamsGraphClient
         }
     }
 
+    /**
+     * Freie Nachricht (HTML) in einen Chat/Kanal – z. B. die Antwort des Bots
+     * auf eine eingegangene Teams-Nachricht (TeamsNachrichtEmpfangen).
+     *
+     * @return string|null null = gepostet, sonst Fehlertext
+     */
+    public function nachrichtPosten(string $ziel, string $html): ?string
+    {
+        try {
+            $token = $this->verbindung->accessToken();
+            if (TeamsChannel::istPerson($ziel)) {
+                $ziel = $this->einzelchat($token, $ziel);
+            }
+            $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
+                ->post($this->nachrichtenEndpunkt($ziel), ['body' => ['contentType' => 'html', 'content' => $html]]);
+
+            return $res->failed() ? $this->fehler('Nachricht abgelehnt', $res) : null;
+        } catch (Throwable $e) {
+            return mb_substr($e->getMessage(), 0, 300);
+        }
+    }
+
     // ── Datei nach SharePoint ────────────────────────────────────────────
 
     /**

@@ -28,6 +28,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Als Ziel geht auch eine **Person** (E-Mail-Adresse): 1:1-Chat mit dem verbundenen Konto, die Datei
   wird ihr freigegeben. Die Maske bietet den Weg zur Auswahl (Workflow / Graph → Chat/Kanal / Graph → Person).
   „Zugriffe anzeigen" listet Chats, Teams/Kanäle und SharePoint-Bibliotheken des Kontos mit IDs zum Kopieren.
+- **Teams-Chat-Eingang.** Der Dauerdienst `php artisan teams:lauschen` (systemd, alle 5 s) holt
+  Nachrichten ab, die andere dem verbundenen Konto in Teams schreiben (`ekkon_teams_nachrichten`),
+  und feuert je Nachricht `App\Ekkon\Events\TeamsNachrichtEmpfangen` für die Verarbeitung dahinter.
+  Neue Admin-Seite Ekkon → „Teams-Chat" mit Antwort von Hand. Zwei neue Tabellen (Migration),
+  Menüpunkt kommt mit `modules:sync`. Unit-Datei in `app/Ekkon/CLAUDE.md`.
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die

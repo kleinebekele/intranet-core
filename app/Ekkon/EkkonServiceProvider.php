@@ -6,6 +6,7 @@ use App\Modules\Support\ModuleManifest;
 use App\Modules\Support\ModuleServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Ekkon\Console\RunTaskCommand;
+use App\Ekkon\Console\TeamsLauschenCommand;
 use App\Ekkon\Console\TimeoutTestCommand;
 use App\Ekkon\Models\Notification;
 use App\Ekkon\Models\TaskRun;
@@ -39,7 +40,9 @@ class EkkonServiceProvider extends ModuleServiceProvider
             // EnsureUserIsAdmin (Webhook-URLs sind Passwörter). Neuer Menüpunkt
             // startet ohne Rollen = nur Admin – passt.
             ->item('notifications', 'Benachrichtigungen', 'module.ekkon.notifications.index')
-            ->item('webhooks', 'Webhook-Eingang', 'module.ekkon.webhooks.index');
+            ->item('webhooks', 'Webhook-Eingang', 'module.ekkon.webhooks.index')
+            // Teams-Chat-Eingang: was andere dem Bot-Konto schreiben (Lauscher).
+            ->item('teams', 'Teams-Chat', 'module.ekkon.teams.index');
     }
 
     /**
@@ -102,7 +105,7 @@ class EkkonServiceProvider extends ModuleServiceProvider
             return;
         }
 
-        $this->commands([RunTaskCommand::class, TimeoutTestCommand::class]);
+        $this->commands([RunTaskCommand::class, TimeoutTestCommand::class, TeamsLauschenCommand::class]);
 
         // Jeden aktiven Task beim Laravel-Scheduler anmelden. Der Server braucht
         // dafür nur EINEN Cron-Eintrag: * * * * * php artisan schedule:run

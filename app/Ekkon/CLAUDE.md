@@ -149,6 +149,41 @@ Teams/Kanäle und Sites samt IDs/Bibliotheks-URLs zum Kopieren)
 „Test senden" postet auf diesem Weg eine Nachricht mit kleiner Textdatei. Refresh-Token ungültig
 (Passwortwechsel, Entzug) → `letzter_fehler` in der Maske, neu verbinden.
 
+## Teams-Chat-Eingang (Lauscher)
+
+Was andere dem Bot-Konto in Teams schreiben, holt `TeamsLauscher` per Graph ab: eine Runde = `GET
+/me/chats?$expand=lastMessagePreview` (ein Aufruf), dann nur für Chats mit Neuem seit dem Stand
+(`ekkon_teams_chat_stand`) die Nachrichten. Fremde Nachrichten landen in `ekkon_teams_nachrichten`
+(HTML + Klartext, Anhänge als Liste) und feuern **`App\Ekkon\Events\TeamsNachrichtEmpfangen`** –
+dort hängt sich die Fachlogik ein (später: KI). Antworten über
+`TeamsGraphClient::nachrichtPosten($chatId, $html)`; die Admin-Seite „Teams-Chat" zeigt alles und
+kann von Hand antworten. Eigene Nachrichten des Bots und Systemnachrichten werden übersprungen;
+beim ersten Blick auf einen Chat nur die letzten 10 Minuten.
+
+**Bewusst kein Ekkon-Task** (Emanuels Entscheidung, 22.09.2026): Der Lauscher läuft als Dauerdienst
+`php artisan teams:lauschen` (alle 5 s; `--einmal` zum Testen) unter systemd. Er beendet sich nach
+`--max-laufzeit` (Standard 1 h) selbst, systemd startet ihn neu – so greift ein Deploy spätestens nach
+einer Stunde; sofort mit `systemctl restart intranet-teams`. Bei Fehlern verdoppelt er die Pause bis 5 min.
+
+```ini
+# /etc/systemd/system/intranet-teams.service  (RAV: PHP 8.5 aus Plesk, Benutzer rav)
+[Unit]
+Description=Intranet Teams-Lauscher
+After=network-online.target
+
+[Service]
+User=rav
+WorkingDirectory=/pfad/zum/intranet
+ExecStart=/opt/plesk/php/8.5/bin/php artisan teams:lauschen
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`systemctl daemon-reload && systemctl enable --now intranet-teams`, Log: `journalctl -u intranet-teams -f`.
+
 ## Sicherheitsschalter
 
 Ohne **`EKKON_TASKS_ENABLED=true`** läuft **kein** Task — auch nicht „jetzt ausführen" in der
