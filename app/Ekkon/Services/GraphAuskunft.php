@@ -18,7 +18,7 @@ class GraphAuskunft
 
     private const TIMEOUT = 20;
 
-    private const MAX_SITES = 60;
+    private const MAX_SEITEN = 5;
 
     public function __construct(private readonly GraphKontoVerbindung $verbindung = new GraphKontoVerbindung) {}
 
@@ -108,7 +108,7 @@ class GraphAuskunft
                     'mitglieder' => (string) count($mitglieder),
                 ];
             }
-            $url = $res->json('@odata.nextLink');
+            $url = $res->json()['@odata.nextLink'] ?? null; // json('a.b') wuerde den Punkt als Pfad lesen
         }
 
         return $liste;
@@ -163,31 +163,49 @@ class GraphAuskunft
      */
     private function sites(string $token, array &$fehler): array
     {
-        $res = Http::withToken($token)->timeout(self::TIMEOUT)->get(self::GRAPH.'/sites', ['search' => '*', '$select' => 'id,displayName,name,webUrl', '$top' => self::MAX_SITES]);
-        if ($res->failed()) {
-            $fehler[] = 'Sites: '.($res->json('error.message') ?: 'HTTP '.$res->status());
-
-            return [];
-        }
-
         $liste = [];
-        foreach (array_slice((array) $res->json('value', []), 0, self::MAX_SITES) as $site) {
-            $siteId = (string) ($site['id'] ?? '');
-            $bibliotheken = [];
-            $d = Http::withToken($token)->timeout(self::TIMEOUT)->get(self::GRAPH.'/sites/'.$siteId.'/drives', ['$select' => 'id,name,webUrl']);
-            if ($d->successful()) {
-                foreach ((array) $d->json('value', []) as $drive) {
-                    $bibliotheken[] = ['id' => (string) ($drive['id'] ?? ''), 'name' => (string) ($drive['name'] ?? ''), 'url' => rawurldecode((string) ($drive['webUrl'] ?? ''))];
-                }
+        $url = self::GRAPH.'/sites?search=*&$select=id,displayName,name,webUrl&$top=200';
+
+        // Alle Sites, seitenweise – ohne Bibliotheken: Die kommen erst beim
+        // Aufklappen (bibliotheken()), sonst wären es hunderte Aufrufe.
+        for ($seite = 0; $seite < self::MAX_SEITEN && $url !== null; $seite++) {
+            $res = Http::withToken($token)->timeout(self::TIMEOUT)->get($url);
+            if ($res->failed()) {
+                $fehler[] = 'Sites: '.($res->json('error.message') ?: 'HTTP '.$res->status());
+                break;
             }
-            $liste[] = [
-                'name' => (string) ($site['displayName'] ?? $site['name'] ?? ''),
-                'url' => (string) ($site['webUrl'] ?? ''),
-                'bibliotheken' => $bibliotheken,
-            ];
+            foreach ((array) $res->json('value', []) as $site) {
+                $liste[] = [
+                    'id' => (string) ($site['id'] ?? ''),
+                    'name' => (string) ($site['displayName'] ?? $site['name'] ?? ''),
+                    'url' => (string) ($site['webUrl'] ?? ''),
+                ];
+            }
+            $url = $res->json()['@odata.nextLink'] ?? null; // json('a.b') wuerde den Punkt als Pfad lesen
         }
 
         usort($liste, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return $liste;
+    }
+
+    /**
+     * Bibliotheken (Drives) einer Site – beim Aufklappen im Dialog.
+     *
+     * @return array<int, array{id: string, name: string, url: string}>
+     */
+    public function bibliotheken(string $siteId): array
+    {
+        $token = $this->verbindung->accessToken();
+        $d = Http::withToken($token)->timeout(self::TIMEOUT)->get(self::GRAPH.'/sites/'.rawurlencode($siteId).'/drives', ['$select' => 'id,name,webUrl']);
+        if ($d->failed()) {
+            throw new \RuntimeException('Bibliotheken nicht lesbar: '.($d->json('error.message') ?: 'HTTP '.$d->status()));
+        }
+
+        $liste = [];
+        foreach ((array) $d->json('value', []) as $drive) {
+            $liste[] = ['id' => (string) ($drive['id'] ?? ''), 'name' => (string) ($drive['name'] ?? ''), 'url' => rawurldecode((string) ($drive['webUrl'] ?? ''))];
+        }
 
         return $liste;
     }

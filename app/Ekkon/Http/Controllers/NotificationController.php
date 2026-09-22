@@ -237,25 +237,20 @@ class NotificationController extends Controller
             ->with('status', 'Microsoft-Konto verbunden: '.$konto->name.' ('.$konto->email.'). Nachrichten über Graph erscheinen unter diesem Namen.');
     }
 
-    /** Was sieht das verbundene Konto? Chats, Teams/Kanäle, Sites – mit IDs zum Kopieren. */
-    public function graphZugriffe(\App\Ekkon\Services\GraphAuskunft $auskunft): View|RedirectResponse
+    /** Bibliotheken einer Site als JSON – der Dialog holt sie beim Aufklappen. */
+    public function graphBibliotheken(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
     {
-        if (GraphKonto::aktuelles() === null) {
-            return redirect()->to(route('module.ekkon.notifications.index').'#channels')
-                ->withErrors(['graph' => 'Erst ein Microsoft-Konto verbinden.']);
-        }
+        $daten = $request->validate(['site' => ['required', 'string', 'max:500']]);
 
         try {
-            $zugriffe = $auskunft->zugriffe();
+            return response()->json(['bibliotheken' => $auskunft->bibliotheken($daten['site'])]);
         } catch (\RuntimeException $e) {
-            return redirect()->to(route('module.ekkon.notifications.index').'#channels')->withErrors(['graph' => $e->getMessage()]);
+            return response()->json(['fehler' => $e->getMessage()], 502);
         }
-
-        return view('ekkon::notifications.zugriffe', $zugriffe + ['konto' => GraphKonto::aktuelles()]);
     }
 
     /**
-     * Dieselben Zugriffe als JSON für den Auswahl-Dialog in der Channel-Maske.
+     * Zugriffe des Kontos als JSON für den Auswahl-Dialog in der Channel-Maske.
      * Fünf Minuten gecacht: Der Dialog geht beim Anlegen mehrerer Channels
      * öfter auf, die Graph-Abfragen dauern aber ein paar Sekunden.
      */

@@ -17,7 +17,7 @@
                 geloescht: [],
                 // Auswahl-Dialog für Ziel (Chat/Kanal) und Ablage-Ordner: holt einmal die
                 // Zugriffe des verbundenen Kontos und schreibt die Wahl direkt ins Feld.
-                auswahl: { offen: false, art: 'ziel', feld: null, daten: null, fehler: '', laedt: false, suche: '', ordner: {}, ordnerLaedt: '' },
+                auswahl: { offen: false, art: 'ziel', feld: null, daten: null, fehler: '', laedt: false, suche: '', ordner: {}, bibs: {}, ordnerLaedt: '' },
                 async auswahlOeffnen(art, feld) {
                     this.auswahl.art = art; this.auswahl.feld = feld; this.auswahl.offen = true; this.auswahl.fehler = ''; this.auswahl.suche = '';
                     if (this.auswahl.daten !== null) { return; }
@@ -35,6 +35,18 @@
                     this.auswahl.offen = false;
                 },
                 passt(text) { const s = this.auswahl.suche.trim().toLowerCase(); return s === '' || (text || '').toLowerCase().includes(s); },
+                async bibliothekenLaden(siteId) {
+                    if (this.auswahl.bibs[siteId]) { delete this.auswahl.bibs[siteId]; return; }
+                    this.auswahl.ordnerLaedt = 'site|' + siteId;
+                    try {
+                        const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.bibliotheken')) }} + '?site=' + encodeURIComponent(siteId);
+                        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                        const j = await r.json().catch(() => ({}));
+                        if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
+                        this.auswahl.bibs[siteId] = j.bibliotheken || [];
+                    } catch (e) { this.auswahl.fehler = e.message; }
+                    this.auswahl.ordnerLaedt = '';
+                },
                 async ordnerLaden(driveId, pfad) {
                     const key = driveId + '|' + pfad;
                     if (this.auswahl.ordner[key]) { delete this.auswahl.ordner[key]; return; }
@@ -699,11 +711,17 @@
                         {{-- Ablage: Sites → Bibliotheken → Unterordner --}}
                         <template x-if="auswahl.daten && auswahl.art === 'ablage'">
                             <div class="space-y-5">
-                                <template x-for="s in auswahl.daten.sites" :key="s.url">
+                                <template x-for="s in auswahl.daten.sites" :key="s.id">
                                     <div x-show="passt(s.name)">
-                                        <div class="font-medium text-gray-700 mb-1" x-text="s.name"></div>
-                                        <ul class="divide-y">
-                                            <template x-for="b in s.bibliotheken" :key="b.id">
+                                        <div class="font-medium text-gray-700 mb-1">
+                                            <button type="button" @click="bibliothekenLaden(s.id)" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.bibs[s.id] ? '▾' : '▸'"></button>
+                                            <span x-text="s.name"></span>
+                                            <span x-show="auswahl.ordnerLaedt === 'site|' + s.id" class="text-xs text-gray-400 font-normal">lädt …</span>
+                                            <a :href="s.url" target="_blank" rel="noopener" class="text-xs text-gray-400 hover:underline font-normal" x-text="s.url"></a>
+                                        </div>
+                                        <ul class="divide-y" x-show="auswahl.bibs[s.id]">
+                                            <li x-show="(auswahl.bibs[s.id] || []).length === 0" class="py-1.5 pl-3 text-xs text-gray-400 italic">keine Bibliothek lesbar</li>
+                                            <template x-for="b in (auswahl.bibs[s.id] || [])" :key="b.id">
                                                 <li class="py-1.5 pl-3">
                                                     <div class="flex items-center justify-between gap-3">
                                                         <span>
