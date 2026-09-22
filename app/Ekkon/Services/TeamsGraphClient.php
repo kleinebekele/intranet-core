@@ -49,9 +49,21 @@ class TeamsGraphClient
         try {
             $token = $this->verbindung->accessToken();
 
+            // Ziel „Person": E-Mail-Adresse statt 19:…-ID → 1:1-Chat zwischen dem
+            // verbundenen Konto und der Person (Graph liefert den bestehenden).
+            $person = TeamsChannel::istPerson($ziel) ? $ziel : null;
+            if ($person !== null) {
+                $ziel = $this->einzelchat($token, $person);
+            }
+
             $anhang = null;
             if ($datei !== null && ($datei['inhalt'] ?? '') !== '') {
                 $anhang = $this->hochladen($token, $channel, (string) $datei['name'], (string) $datei['inhalt']);
+                // Auf den SharePoint-Ordner hat eine einzelne Person meist keinen
+                // Zugriff – die Datei wird ihr deshalb ausdrücklich freigegeben.
+                if ($person !== null) {
+                    $this->freigeben($token, $anhang, $person);
+                }
             }
 
             $body = $this->nachricht($titel, $text, $daten, $html, $anhang);
@@ -98,10 +110,73 @@ class TeamsGraphClient
 
         return [
             'id' => (string) $res->json('id'),
+            'driveId' => $driveId,
             'webUrl' => (string) $res->json('webUrl'),
             'name' => (string) $res->json('name'),
             'eTag' => (string) $res->json('eTag'),
         ];
+    }
+
+    /**
+     * Der Person Schreibzugriff auf die Datei geben (ohne Einladungsmail) –
+     * sonst zeigt die Dateikarte ihr nur „kein Zugriff".
+     *
+     * @param  array{id: string, driveId: string}  $anhang
+     */
+    private function freigeben(string $token, array $anhang, string $email): void
+    {
+        $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
+            ->post(self::GRAPH.'/drives/'.$anhang['driveId'].'/items/'.$anhang['id'].'/invite', [
+                'requireSignIn' => true,
+                'sendInvitation' => false,
+                'roles' => ['write'],
+                'recipients' => [['email' => $email]],
+            ]);
+
+        if ($res->failed()) {
+            throw new \RuntimeException($this->fehler('Datei konnte nicht für '.$email.' freigegeben werden', $res));
+        }
+    }
+
+    /**
+     * 1:1-Chat zwischen dem verbundenen Konto und der Person. Graph legt ihn an
+     * oder gibt den bestehenden zurück; die ID wird einen Tag gemerkt.
+     */
+    private function einzelchat(string $token, string $email): string
+    {
+        $cacheKey = 'ekkon-graph-einzelchat-'.md5(mb_strtolower($email));
+        $gemerkt = Cache::get($cacheKey);
+        if (is_string($gemerkt) && $gemerkt !== '') {
+            return $gemerkt;
+        }
+
+        $konto = \App\Ekkon\Models\GraphKonto::aktuelles();
+        $ich = (string) ($konto?->ms_id ?? '');
+
+        $person = Http::withToken($token)->timeout(self::TIMEOUT)
+            ->get(self::GRAPH.'/users/'.rawurlencode($email), ['$select' => 'id']);
+        if ($person->failed()) {
+            throw new \RuntimeException($this->fehler('Person '.$email.' nicht im Tenant gefunden', $person));
+        }
+
+        $mitglied = fn (string $id) => [
+            '@odata.type' => '#microsoft.graph.aadUserConversationMember',
+            'roles' => ['owner'],
+            'user@odata.bind' => self::GRAPH."/users('".$id."')",
+        ];
+
+        $chat = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()->post(self::GRAPH.'/chats', [
+            'chatType' => 'oneOnOne',
+            'members' => [$mitglied($ich), $mitglied((string) $person->json('id'))],
+        ]);
+        if ($chat->failed()) {
+            throw new \RuntimeException($this->fehler('Chat mit '.$email.' konnte nicht angelegt werden', $chat));
+        }
+
+        $id = (string) $chat->json('id');
+        Cache::put($cacheKey, $id, now()->addDay());
+
+        return $id;
     }
 
     /**

@@ -43,6 +43,22 @@ class TeamsChannel extends Model
         return trim((string) $this->chat_id) !== '';
     }
 
+    /** Ziel ist eine Person (E-Mail-Adresse) statt Chat/Kanal (19:…-ID). */
+    public static function istPerson(string $ziel): bool
+    {
+        return ! str_contains($ziel, '19:') && filter_var(trim($ziel), FILTER_VALIDATE_EMAIL) !== false;
+    }
+
+    /** Für die Anzeige: Workflow / Graph → Chat/Kanal / Graph → Person. */
+    public function weg(): string
+    {
+        if (! $this->perGraph()) {
+            return 'Workflow';
+        }
+
+        return self::istPerson((string) $this->chat_id) ? 'Graph → Person' : 'Graph → Chat/Kanal';
+    }
+
     /** @return HasMany<NotificationRoute, $this> */
     public function routes(): HasMany
     {

@@ -25,6 +25,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   gleiche Entra-App wie die Anmeldung, Refresh-Token verschlüsselt in `ekkon_graph_konten`). Anhänge
   werden hochgeladen und als echte Dateikarte angehängt – auch in Besprechungschats, die Power
   Automate nicht erreicht. Migration macht `webhook_url` optional. Anleitung in `app/Ekkon/CLAUDE.md`.
+  Als Ziel geht auch eine **Person** (E-Mail-Adresse): 1:1-Chat mit dem verbundenen Konto, die Datei
+  wird ihr freigegeben. Die Maske bietet den Weg zur Auswahl (Workflow / Graph → Chat/Kanal / Graph → Person).
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die

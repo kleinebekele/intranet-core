@@ -244,7 +244,7 @@
                                         <td class="py-2 pr-4 font-medium">{{ $channel->name }}</td>
                                         <td class="py-2 pr-4 text-xs">
                                             @if ($channel->perGraph())
-                                                <span class="font-semibold text-indigo-700 bg-indigo-50 rounded px-2 py-0.5" title="{{ $channel->chat_id }}">Graph</span>
+                                                <span class="font-semibold text-indigo-700 bg-indigo-50 rounded px-2 py-0.5" title="{{ $channel->chat_id }}">{{ $channel->weg() }}</span>
                                                 @unless ($graphKonto)
                                                     <span class="block text-red-700 mt-1">kein Konto verbunden</span>
                                                 @endunless
@@ -282,8 +282,11 @@
                                     </tr>
                                     <tr x-show="bearbeite === {{ $channel->id }}" x-cloak class="border-b last:border-0 bg-gray-50">
                                         <td colspan="5" class="py-3 pr-4">
+                                            @php
+                                                $wegStart = ! $channel->perGraph() ? 'workflow' : (\App\Ekkon\Models\TeamsChannel::istPerson((string) $channel->chat_id) ? 'person' : 'chat');
+                                            @endphp
                                             <form method="POST" action="{{ route('module.ekkon.notifications.channel.update', $channel) }}"
-                                                  class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                                  class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end" x-data="{ weg: '{{ $wegStart }}' }">
                                                 @csrf @method('PUT')
                                                 <div>
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
@@ -291,6 +294,19 @@
                                                            class="w-full rounded-md border-gray-300 text-sm">
                                                 </div>
                                                 <div class="md:col-span-2">
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1">Weg</label>
+                                                    <div class="flex flex-wrap gap-4 text-sm py-2">
+                                                        <label class="inline-flex items-center gap-1"><input type="radio" x-model="weg" value="workflow" class="border-gray-300"> Workflow (Webhook)</label>
+                                                        <label class="inline-flex items-center gap-1"><input type="radio" x-model="weg" value="chat" class="border-gray-300"> Graph → Chat/Kanal</label>
+                                                        <label class="inline-flex items-center gap-1"><input type="radio" x-model="weg" value="person" class="border-gray-300"> Graph → Person</label>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1">Notiz</label>
+                                                    <input name="notiz" value="{{ $channel->notiz }}"
+                                                           class="w-full rounded-md border-gray-300 text-sm" placeholder="optional">
+                                                </div>
+                                                <div class="md:col-span-4" x-show="weg === 'workflow'">
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">
                                                         Webhook-URL
                                                         @if (filled($channel->webhook_url))
@@ -300,26 +316,23 @@
                                                             <span class="text-gray-400">(keine hinterlegt)</span>
                                                         @endif
                                                     </label>
-                                                    <input name="webhook_url" value=""
+                                                    <input name="webhook_url" value="" :disabled="weg !== 'workflow'"
                                                            class="w-full rounded-md border-gray-300 text-sm" placeholder="{{ filled($channel->webhook_url) ? '••••••••••••  (hinterlegt)' : 'https://…logic.azure.com/…' }}">
                                                 </div>
-                                                <div>
-                                                    <label class="block text-xs font-medium text-gray-600 mb-1">Notiz</label>
-                                                    <input name="notiz" value="{{ $channel->notiz }}"
-                                                           class="w-full rounded-md border-gray-300 text-sm" placeholder="optional">
-                                                </div>
-                                                <div class="md:col-span-2">
+                                                <div class="md:col-span-2" x-show="weg !== 'workflow'">
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">
-                                                        Chat-/Kanal-ID <span class="text-gray-400">(Graph-Weg; leer = Workflow)</span>
+                                                        <span x-show="weg === 'chat'">Chat-/Kanal-ID <span class="text-gray-400">(19:…@thread.v2 oder Team-GUID/19:…@thread.tacv2)</span></span>
+                                                        <span x-show="weg === 'person'">E-Mail-Adresse der Person <span class="text-gray-400">(Microsoft-365-Konto)</span></span>
                                                     </label>
-                                                    <input name="chat_id" value="{{ $channel->chat_id }}"
-                                                           class="w-full rounded-md border-gray-300 text-sm font-mono" placeholder="19:meeting_…@thread.v2">
+                                                    <input name="chat_id" value="{{ $channel->chat_id }}" :disabled="weg === 'workflow'"
+                                                           class="w-full rounded-md border-gray-300 text-sm font-mono"
+                                                           :placeholder="weg === 'person' ? 'vorname.nachname@firma.de' : '19:meeting_…@thread.v2'">
                                                 </div>
-                                                <div class="md:col-span-2">
+                                                <div class="md:col-span-2" x-show="weg !== 'workflow'">
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">
                                                         SharePoint-Ordner für Anhänge <span class="text-gray-400">(Adresse aus dem Browser)</span>
                                                     </label>
-                                                    <input name="ablage_url" value="{{ $channel->ablage_url }}"
+                                                    <input name="ablage_url" value="{{ $channel->ablage_url }}" :disabled="weg === 'workflow'"
                                                            class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
                                                 </div>
                                                 <div class="md:col-span-4 flex gap-3 items-center">
@@ -337,8 +350,11 @@
                     </div>
                 @endif
 
+                @php
+                    $wegNeu = old('chat_id') ? (\App\Ekkon\Models\TeamsChannel::istPerson((string) old('chat_id')) ? 'person' : 'chat') : 'workflow';
+                @endphp
                 <form method="POST" action="{{ route('module.ekkon.notifications.channel.store') }}"
-                      class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end border-t pt-4">
+                      class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end border-t pt-4" x-data="{ weg: '{{ $wegNeu }}' }">
                     @csrf
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
@@ -346,29 +362,39 @@
                                class="w-full rounded-md border-gray-300 text-sm" placeholder="z. B. Betrieb">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">
-                            Webhook-URL <span class="text-gray-400">(Workflow-Weg; wird verschlüsselt gespeichert)</span>
-                        </label>
-                        <input name="webhook_url" value="{{ old('webhook_url') }}"
-                               class="w-full rounded-md border-gray-300 text-sm" placeholder="https://…logic.azure.com/…">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Weg</label>
+                        <div class="flex flex-wrap gap-4 text-sm py-2">
+                            <label class="inline-flex items-center gap-1"><input type="radio" x-model="weg" value="workflow" class="border-gray-300"> Workflow (Webhook)</label>
+                            <label class="inline-flex items-center gap-1"><input type="radio" x-model="weg" value="chat" class="border-gray-300"> Graph → Chat/Kanal</label>
+                            <label class="inline-flex items-center gap-1"><input type="radio" x-model="weg" value="person" class="border-gray-300"> Graph → Person</label>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Notiz</label>
                         <input name="notiz" value="{{ old('notiz') }}"
                                class="w-full rounded-md border-gray-300 text-sm" placeholder="optional">
                     </div>
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-4" x-show="weg === 'workflow'">
                         <label class="block text-xs font-medium text-gray-600 mb-1">
-                            Chat-/Kanal-ID <span class="text-gray-400">(Graph-Weg, statt Webhook-URL)</span>
+                            Webhook-URL <span class="text-gray-400">(wird verschlüsselt gespeichert)</span>
                         </label>
-                        <input name="chat_id" value="{{ old('chat_id') }}"
-                               class="w-full rounded-md border-gray-300 text-sm font-mono" placeholder="19:meeting_…@thread.v2">
+                        <input name="webhook_url" value="{{ old('webhook_url') }}" :disabled="weg !== 'workflow'"
+                               class="w-full rounded-md border-gray-300 text-sm" placeholder="https://…logic.azure.com/…">
                     </div>
-                    <div class="md:col-span-2">
+                    <div class="md:col-span-2" x-show="weg !== 'workflow'">
                         <label class="block text-xs font-medium text-gray-600 mb-1">
-                            SharePoint-Ordner für Anhänge <span class="text-gray-400">(nur Graph-Weg)</span>
+                            <span x-show="weg === 'chat'">Chat-/Kanal-ID <span class="text-gray-400">(19:…@thread.v2 oder Team-GUID/19:…@thread.tacv2)</span></span>
+                            <span x-show="weg === 'person'">E-Mail-Adresse der Person <span class="text-gray-400">(Microsoft-365-Konto)</span></span>
                         </label>
-                        <input name="ablage_url" value="{{ old('ablage_url') }}"
+                        <input name="chat_id" value="{{ old('chat_id') }}" :disabled="weg === 'workflow'"
+                               class="w-full rounded-md border-gray-300 text-sm font-mono"
+                               :placeholder="weg === 'person' ? 'vorname.nachname@firma.de' : '19:meeting_…@thread.v2'">
+                    </div>
+                    <div class="md:col-span-2" x-show="weg !== 'workflow'">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">
+                            SharePoint-Ordner für Anhänge <span class="text-gray-400">(Adresse aus dem Browser)</span>
+                        </label>
+                        <input name="ablage_url" value="{{ old('ablage_url') }}" :disabled="weg === 'workflow'"
                                class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
                     </div>
                     <div class="md:col-span-4">

@@ -135,7 +135,12 @@ die webUrl der Site-Drives erkannt, Bibliotheksname ist sprachabhängig) und als
 der GUID aus dem eTag an die Nachricht – so sieht es aus wie manuell geteilt, öffnet in Teams.
 Mit Datei bleibt die Nachricht kurz (Titel + Fakten + Karte); ohne Datei Text/HTML wie bisher.
 
-Ziel-ID: Chat `19:…@thread.v2` (Link auf eine Nachricht kopieren), Team-Kanal `<Team-GUID>/19:…@thread.tacv2`.
+Ziel-ID: Chat `19:…@thread.v2` (Link auf eine Nachricht kopieren), Team-Kanal `<Team-GUID>/19:…@thread.tacv2`,
+**Person** = ihre E-Mail-Adresse: dann legt Graph den 1:1-Chat zwischen verbundenem Konto und Person an
+(`POST /chats`, oneOnOne, ID einen Tag gecacht) und gibt ihr die hochgeladene Datei per `/invite`
+(write, ohne Mail) frei – auf den Ordner selbst hat sie ja keinen Zugriff. Das verbundene Konto darf
+ein neutraler M365-Benutzer sein; er braucht eine Teams-Lizenz, Mitgliedschaft in den Ziel-Chats und
+Zugriff auf die Ablage-Ordner.
 Einmalig in der Entra-App der Anmeldung: Umleitungs-URI `…/modules/ekkon/benachrichtigungen/microsoft/callback`
 und delegierte Berechtigungen `offline_access`, `Chat.ReadWrite`, `ChannelMessage.Send`, `Sites.ReadWrite.All`
 (Admin-Zustimmung). Danach Benachrichtigungen → Teams-Channels → „Microsoft-Konto verbinden".
