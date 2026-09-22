@@ -336,6 +336,11 @@ class KiClient
                     break;
                 }
             }
+            foreach (\App\Ekkon\Support\Wissensquellen::letzteFehler() as $f) {
+                $this->letzteQuellen[] = 'FEHLER '.$f;
+            }
+        } elseif ($this->wissensquellenAktiv()) {
+            $this->letzteQuellen[] = 'FEHLER keine Wissensquelle angemeldet (Wiki in diesem Prozess nicht geladen?)';
         }
 
         $ordner = $this->ordner();

@@ -139,14 +139,15 @@ class TeamsEingangController extends Controller
         $frage = trim((string) $request->input('frage', 'Antworte mit einem Satz: Funktioniert die Verbindung?'));
 
         try {
-            $a = (new KiClient)->antworte([['role' => 'user', 'content' => $frage !== '' ? $frage : 'Hallo']]);
+            // Mit dem angemeldeten Konto – so zeigt die Probefrage dasselbe Wissen wie im Chat.
+            $a = (new KiClient)->antworte([['role' => 'user', 'content' => $frage !== '' ? $frage : 'Hallo']], $request->user());
         } catch (\RuntimeException $e) {
             return back()->withErrors(['ki' => 'KI-Test fehlgeschlagen: '.$e->getMessage()]);
         }
 
         $wissen = ($a['wissen'] ?? []) === [] ? 'kein Wissen mitgegeben' : count($a['wissen']).' Wissenstreffer: '.implode(' | ', $a['wissen']);
 
-        return back()->with('status', 'KI antwortet ('.$a['modell'].'; '.$wissen.'; Probefrage läuft ohne Benutzerkonto, also nur mit Wissen für alle): '.mb_substr($a['text'], 0, 300));
+        return back()->with('status', 'KI antwortet ('.$a['modell'].'; '.$wissen.'; Wissen wie für '.$request->user()?->name.'): '.mb_substr($a['text'], 0, 300));
     }
 
     public function destroy(Request $request, TeamsNachricht $nachricht): RedirectResponse|JsonResponse

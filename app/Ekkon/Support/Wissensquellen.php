@@ -52,6 +52,7 @@ class Wissensquellen
      */
     public static function suchen(string $frage, ?User $benutzer, int $limit = 6): array
     {
+        static::$letzteFehler = [];
         $treffer = [];
         foreach (static::$quellen as $name => $suche) {
             try {
@@ -63,10 +64,25 @@ class Wissensquellen
                     $treffer[] = ['quelle' => (string) ($t['quelle'] ?? $name), 'text' => $text];
                 }
             } catch (Throwable $e) {
+                static::$letzteFehler[] = $name.': '.mb_substr($e->getMessage(), 0, 160);
                 \Illuminate\Support\Facades\Log::warning('Wissensquelle '.$name.' fehlgeschlagen', ['fehler' => $e->getMessage()]);
             }
         }
 
         return $treffer;
+    }
+
+    /** @var array<int, string> */
+    private static array $letzteFehler = [];
+
+    /**
+     * Fehler der Quellen beim letzten suchen() – für die Verarbeitungsspalte,
+     * damit ein stiller Ausfall nicht wie „nichts gefunden" aussieht.
+     *
+     * @return array<int, string>
+     */
+    public static function letzteFehler(): array
+    {
+        return static::$letzteFehler;
     }
 }
