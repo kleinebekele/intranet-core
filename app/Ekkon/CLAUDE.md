@@ -201,6 +201,11 @@ in /chat/completions, /responses, /anthropic/v1/messages). `KiClient` übernimmt
 Kontextwissen per `POST /document-folders/{id}/search` (6 Treffer, max. 12k Zeichen) in den Systemprompt.
 Einstellungen `ekkon.ki.spezialanwendung` / `ekkon.ki.ordner`; beide müssen im Dashboard für den Key
 freigegeben sein (Custom-GPT-/Ordnerberechtigungen, Enterprise).
+**Intranet-Wissen:** `Support/Wissensquellen` – Module melden `anmelden(name, fn($frage, ?$benutzer, $limit))`
+an (Wiki: `WikiWissen`, Stichwortsuche mit Rollenfilter über `Rechte::rollenIds`). `KiAntwortet` ordnet den
+Teams-Absender über `users.microsoft_id` zu; ohne Konto bekommt die Quelle `null` und darf nur Allgemeines
+liefern. Schalter `ekkon.ki.wissensquellen`. Intranet-Treffer kommen vor den Ordner-Treffern, gemeinsam
+max. 12k Zeichen.
 
 ## Sicherheitsschalter
 

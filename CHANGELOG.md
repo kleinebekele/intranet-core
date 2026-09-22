@@ -50,6 +50,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   wählen (Anweisungen + Modell werden übernommen; die Chat-API kann sie nicht direkt befragen) und ein
   Dokumentenordner, der vor jeder Antwort semantisch durchsucht wird (Treffer gehen als Wissen mit).
   Beides muss im DeutschlandGPT-Dashboard für den API-Schlüssel freigegeben sein.
+  **Intranet-Wissen:** Module melden über `AppkkonSupportWissensquellen::anmelden()` Quellen an
+  (das Wiki tut es ab v1.3.0); Schalter „Intranet-Wissen mitgeben" in der KI-Maske. Die fragende Person
+  wird über ihre Microsoft-ID dem Intranet-Konto zugeordnet, die Quelle filtert nach deren Rollen –
+  ohne Konto nur, was für alle gedacht ist.
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die

@@ -65,7 +65,10 @@ class KiAntwortet
         }
 
         try {
-            $antwort = $this->ki->antworte($this->verlauf($n));
+            // Die fragende Person als Intranet-Benutzer (über die Microsoft-ID der
+            // Anmeldung) – bestimmt, was Wissensquellen wie das Wiki preisgeben.
+            $benutzer = filled($n->von_id) ? \App\Models\User::query()->where('microsoft_id', $n->von_id)->first() : null;
+            $antwort = $this->ki->antworte($this->verlauf($n), $benutzer);
         } catch (Throwable $e) {
             $n->update(['verarbeitung' => 'Fehler: '.mb_substr($e->getMessage(), 0, 200)]);
             $this->teams->nachrichtBearbeiten($platzhalter['chat'], $platzhalter['id'], '<p>Entschuldigung, ich kann gerade nicht antworten. Bitte später noch einmal versuchen.</p>');

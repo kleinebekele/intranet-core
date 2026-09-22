@@ -182,6 +182,16 @@
                             <input type="checkbox" name="aktiv" value="1" class="rounded border-gray-300" @checked(old('aktiv', $ki['aktiv']))>
                             KI antwortet automatisch
                         </label>
+                        <label class="inline-flex items-center gap-2" title="Module wie das Wiki melden Wissensquellen an; was die KI daraus bekommt, richtet sich nach den Rollen der fragenden Person (Zuordnung über ihr Microsoft-Konto)">
+                            <input type="hidden" name="wissensquellen" value="0">
+                            <input type="checkbox" name="wissensquellen" value="1" class="rounded border-gray-300" @checked(old('wissensquellen', $ki['wissensquellen'])) @disabled($ki['wissensquellen_namen'] === [])>
+                            Intranet-Wissen mitgeben
+                            @if ($ki['wissensquellen_namen'] !== [])
+                                <span class="text-xs text-gray-500">({{ implode(', ', $ki['wissensquellen_namen']) }})</span>
+                            @else
+                                <span class="text-xs text-gray-400">(kein Modul stellt Wissen bereit)</span>
+                            @endif
+                        </label>
                         <label class="inline-flex items-center gap-2">
                             <input type="hidden" name="gruppen_nur_erwaehnt" value="0">
                             <input type="checkbox" name="gruppen_nur_erwaehnt" value="1" class="rounded border-gray-300" @checked(old('gruppen_nur_erwaehnt', $ki['gruppen_nur_erwaehnt']))>

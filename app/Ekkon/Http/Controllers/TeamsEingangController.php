@@ -36,6 +36,8 @@ class TeamsEingangController extends Controller
                 'modell' => $ki->modell(),
                 'spezialanwendung' => $ki->spezialanwendung(),
                 'ordner' => $ki->ordner(),
+                'wissensquellen' => $ki->wissensquellenAktiv(),
+                'wissensquellen_namen' => \App\Ekkon\Support\Wissensquellen::namen(),
                 'system' => $ki->systemPrompt(),
                 'gruppen_nur_erwaehnt' => $ki->gruppenNurBeiErwaehnung(),
             ],
@@ -88,6 +90,7 @@ class TeamsEingangController extends Controller
         Setting::set(KiClient::MODELL, trim((string) ($daten['modell'] ?? '')));
         Setting::set(KiClient::SPEZIALANWENDUNG, trim((string) $request->input('spezialanwendung', '')));
         Setting::set(KiClient::ORDNER, trim((string) $request->input('ordner', '')));
+        Setting::set(KiClient::WISSENSQUELLEN, $request->boolean('wissensquellen') ? '1' : '0');
         \Illuminate\Support\Facades\Cache::forget('ekkon-ki-spezialanwendung-'.trim((string) $request->input('spezialanwendung', '')));
         Setting::set(KiClient::SYSTEM, trim((string) ($daten['system'] ?? '')) ?: KiClient::STANDARD_SYSTEM);
         Setting::set(KiClient::AKTIV, $request->boolean('aktiv') ? '1' : '0');

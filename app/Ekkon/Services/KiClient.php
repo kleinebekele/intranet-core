@@ -45,6 +45,9 @@ class KiClient
     /** Dokumentenordner der Plattform, der vor jeder Antwort semantisch durchsucht wird. */
     public const ORDNER = 'ekkon.ki.ordner';
 
+    /** Intranet-Wissensquellen (Wiki …, s. App\Ekkon\Support\Wissensquellen) mitgeben. */
+    public const WISSENSQUELLEN = 'ekkon.ki.wissensquellen';
+
     private const TREFFER = 6;
 
     private const WISSEN_ZEICHEN = 12000;
@@ -124,7 +127,7 @@ class KiClient
      * @param  array<int, array{role: string, content: string}>  $verlauf  ohne System-Nachricht, chronologisch
      * @return array{text: string, modell: string, tokens: int}
      */
-    public function antworte(array $verlauf): array
+    public function antworte(array $verlauf, ?\App\Models\User $benutzer = null): array
     {
         if ($this->schluessel() === '') {
             throw new RuntimeException('Kein API-Schlüssel hinterlegt.');
@@ -147,7 +150,7 @@ class KiClient
 
         // Kontextwissen: Dokumentenordner semantisch nach der aktuellen Frage
         // durchsuchen und die Treffer als Wissen mitgeben (RAG über die API).
-        $wissen = $this->wissenSuchen($this->letzteFrage($verlauf));
+        $wissen = $this->wissenSuchen($this->letzteFrage($verlauf), $benutzer);
         if ($wissen !== '') {
             $system .= "\n\nNutze für die Antwort vorrangig folgendes Wissen aus den Dokumenten der Firma; fehlt dort etwas, sag es ehrlich:\n\n".$wissen;
         }
@@ -285,32 +288,61 @@ class KiClient
         return $liste;
     }
 
-    /** Treffer aus dem eingestellten Dokumentenordner als Textblock; leer, wenn kein Ordner oder nichts gefunden. */
-    private function wissenSuchen(string $frage): string
+    /** Sind Intranet-Wissensquellen (z. B. das Wiki) für die KI eingeschaltet? */
+    public function wissensquellenAktiv(): bool
     {
-        $ordner = $this->ordner();
-        if ($ordner === '' || trim($frage) === '') {
-            return '';
-        }
+        return (bool) Setting::get(self::WISSENSQUELLEN, false);
+    }
 
-        $res = Http::withToken($this->schluessel())->timeout(30)->acceptJson()
-            ->post($this->url().'/document-folders/'.rawurlencode($ordner).'/search', ['query' => mb_substr($frage, 0, 1000), 'limit' => self::TREFFER]);
-        if ($res->failed()) {
-            throw new RuntimeException('Dokumentensuche fehlgeschlagen: '.$this->fehlertext($res));
+    /**
+     * Kontextwissen zur Frage: Treffer aus dem DeutschlandGPT-Dokumentenordner
+     * und aus den Intranet-Wissensquellen (Wiki …), als Textblock mit
+     * Herkunftsangaben. Leer, wenn nichts eingestellt oder nichts gefunden.
+     * Der Benutzer bestimmt, was die Intranet-Quellen preisgeben dürfen.
+     */
+    private function wissenSuchen(string $frage, ?\App\Models\User $benutzer): string
+    {
+        if (trim($frage) === '') {
+            return '';
         }
 
         $stuecke = [];
         $zeichen = 0;
-        foreach ((array) ($res->json('data') ?? $res->json('results') ?? $res->json()) as $t) {
-            $text = trim((string) ($t['chunk_content'] ?? ''));
+        $aufnehmen = function (string $quelle, string $text) use (&$stuecke, &$zeichen): bool {
+            $text = trim($text);
             if ($text === '') {
-                continue;
+                return true;
+            }
+            if ($zeichen + mb_strlen($text) > self::WISSEN_ZEICHEN) {
+                return false;
             }
             $zeichen += mb_strlen($text);
-            if ($zeichen > self::WISSEN_ZEICHEN) {
-                break;
+            $stuecke[] = '[Quelle: '.$quelle."]\n".$text;
+
+            return true;
+        };
+
+        // Intranet zuerst: Das Wiki ist die hauseigene Wahrheit, der Ordner ergänzt.
+        if ($this->wissensquellenAktiv() && \App\Ekkon\Support\Wissensquellen::verfuegbar()) {
+            foreach (\App\Ekkon\Support\Wissensquellen::suchen($frage, $benutzer, self::TREFFER) as $t) {
+                if (! $aufnehmen($t['quelle'], $t['text'])) {
+                    break;
+                }
             }
-            $stuecke[] = '[Quelle: '.((string) ($t['file_name'] ?? 'Dokument'))."]\n".$text;
+        }
+
+        $ordner = $this->ordner();
+        if ($ordner !== '') {
+            $res = Http::withToken($this->schluessel())->timeout(30)->acceptJson()
+                ->post($this->url().'/document-folders/'.rawurlencode($ordner).'/search', ['query' => mb_substr($frage, 0, 1000), 'limit' => self::TREFFER]);
+            if ($res->failed()) {
+                throw new RuntimeException('Dokumentensuche fehlgeschlagen: '.$this->fehlertext($res));
+            }
+            foreach ((array) ($res->json('data') ?? $res->json('results') ?? $res->json()) as $t) {
+                if (! $aufnehmen((string) ($t['file_name'] ?? 'Dokument'), (string) ($t['chunk_content'] ?? ''))) {
+                    break;
+                }
+            }
         }
 
         return implode("\n\n", $stuecke);
