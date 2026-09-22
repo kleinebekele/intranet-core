@@ -131,7 +131,8 @@ generische HTTP-Aktion = Premium) und eine Datei nie als Dateikarte anhängen. D
 `ekkon_teams_channels.chat_id` gesetzt → `TeamsGraphClient` postet direkt über Microsoft Graph im
 Namen des verbundenen Kontos (`ekkon_graph_konten`, Refresh-Token verschlüsselt, `GraphKontoVerbindung`
 erneuert den Access-Token stündlich). Anhang: Upload ins **OneDrive des Bots** (`/me/drive`, Ordner `Intranet-Anhaenge`, Scope
-`Files.ReadWrite`), Organisationslink (`/createLink`, edit, organization) und als `reference`-Anhang mit
+`Files.ReadWrite`), Organisationslink (`/createLink`, edit, organization; **dessen webUrl wird contentUrl der Karte**, die direkte
+Dateiadresse gäbe anderen „Zugriff verweigert") und als `reference`-Anhang mit
 der GUID aus dem eTag an die Nachricht – genau wie beim manuellen Teilen in Teams, öffnet dort. Kein
 SharePoint-Ordner mehr nötig (Emanuels Entscheidung 22.09.2026; die Spalte `ablage_url` bleibt ungenutzt).
 Mit Datei bleibt die Nachricht kurz (Titel + Fakten + Karte); ohne Datei Text/HTML wie bisher.

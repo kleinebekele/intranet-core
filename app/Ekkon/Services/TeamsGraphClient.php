@@ -57,7 +57,7 @@ class TeamsGraphClient
      *
      * @param  array{id: string, driveId: string}  $anhang
      */
-    private function organisationsLink(string $token, array $anhang): void
+    private function organisationsLink(string $token, array $anhang): string
     {
         $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
             ->post(self::GRAPH.'/drives/'.$anhang['driveId'].'/items/'.$anhang['id'].'/createLink', [
@@ -68,6 +68,13 @@ class TeamsGraphClient
         if ($res->failed()) {
             throw new \RuntimeException($this->fehler('Organisationslink konnte nicht erstellt werden', $res));
         }
+
+        $link = (string) $res->json('link.webUrl');
+        if ($link === '') {
+            throw new \RuntimeException('Organisationslink ohne Adresse.');
+        }
+
+        return $link;
     }
 
     /**
@@ -98,7 +105,9 @@ class TeamsGraphClient
                 $anhang = $this->hochladen($token, (string) $datei['name'], (string) $datei['inhalt']);
                 // Organisationslink – wie beim Teilen in Teams: Jeder im Tenant mit
                 // dem Link (also alle Chat-Teilnehmer) sieht die Dateikarte.
-                $this->organisationsLink($token, $anhang);
+                // Die Karte zeigt auf den Freigabelink (traegt das Freigabe-Token) – die
+                // direkte Dateiadresse liefert anderen nur „Zugriff verweigert".
+                $anhang['webUrl'] = $this->organisationsLink($token, $anhang);
             }
 
             $body = $this->nachricht($titel, $text, $daten, $html, $anhang);
