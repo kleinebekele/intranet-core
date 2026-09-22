@@ -292,10 +292,16 @@
                                                 </div>
                                                 <div class="md:col-span-2">
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">
-                                                        Neue Webhook-URL <span class="text-gray-400">(leer lassen = bestehende behalten; sie wird nie angezeigt)</span>
+                                                        Webhook-URL
+                                                        @if (filled($channel->webhook_url))
+                                                            <span class="text-green-700">– hinterlegt, wird aus Sicherheitsgründen nicht angezeigt</span>
+                                                            <span class="text-gray-400">(leer lassen = behalten, neue URL eintragen = ersetzen)</span>
+                                                        @else
+                                                            <span class="text-gray-400">(keine hinterlegt)</span>
+                                                        @endif
                                                     </label>
                                                     <input name="webhook_url" value=""
-                                                           class="w-full rounded-md border-gray-300 text-sm" placeholder="https://…logic.azure.com/…">
+                                                           class="w-full rounded-md border-gray-300 text-sm" placeholder="{{ filled($channel->webhook_url) ? '••••••••••••  (hinterlegt)' : 'https://…logic.azure.com/…' }}">
                                                 </div>
                                                 <div>
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">Notiz</label>

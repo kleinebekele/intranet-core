@@ -95,13 +95,14 @@ class NotificationController extends Controller
             // scheitern. Lieber hier hart ablehnen als später rätseln.
             'webhook_url' => ['nullable', 'required_without:chat_id', 'url', 'starts_with:https://', 'max:2000'],
             'chat_id' => ['nullable', 'required_without:webhook_url', 'string', 'max:255', 'regex:/19:/'],
-            'ablage_url' => ['nullable', 'required_with:chat_id', 'url', 'starts_with:https://', 'max:1000'],
+            'ablage_url' => ['nullable', 'required_with:chat_id', 'string', 'regex:~^https://[^/]+.sharepoint.com/~i', 'max:1000'],
             'notiz' => ['nullable', 'string', 'max:255'],
         ], [
             'webhook_url.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
             'chat_id.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
             'chat_id.regex' => 'Die Chat-/Kanal-ID sieht so aus: 19:…@thread.v2 (Chat) oder <Team-GUID>/19:…@thread.tacv2 (Kanal).',
             'ablage_url.required_with' => 'Für den Graph-Weg wird der SharePoint-Ordner (Ablage-URL) gebraucht, in den Anhänge gelegt werden.',
+            'ablage_url.regex' => 'Der SharePoint-Ordner muss eine Adresse auf …sharepoint.com sein (aus dem Browser kopieren).',
         ]);
 
         if (filled($daten['webhook_url'] ?? null) && $this->istConnectorUrl($daten['webhook_url'])) {
@@ -131,11 +132,12 @@ class NotificationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'webhook_url' => ['nullable', 'url', 'starts_with:https://', 'max:2000'],
             'chat_id' => ['nullable', 'string', 'max:255', 'regex:/19:/'],
-            'ablage_url' => ['nullable', 'required_with:chat_id', 'url', 'starts_with:https://', 'max:1000'],
+            'ablage_url' => ['nullable', 'required_with:chat_id', 'string', 'regex:~^https://[^/]+.sharepoint.com/~i', 'max:1000'],
             'notiz' => ['nullable', 'string', 'max:255'],
         ], [
             'chat_id.regex' => 'Die Chat-/Kanal-ID sieht so aus: 19:…@thread.v2 (Chat) oder <Team-GUID>/19:…@thread.tacv2 (Kanal).',
             'ablage_url.required_with' => 'Für den Graph-Weg wird der SharePoint-Ordner (Ablage-URL) gebraucht.',
+            'ablage_url.regex' => 'Der SharePoint-Ordner muss eine Adresse auf …sharepoint.com sein (aus dem Browser kopieren).',
         ]);
 
         $neueUrl = trim((string) ($daten['webhook_url'] ?? ''));
