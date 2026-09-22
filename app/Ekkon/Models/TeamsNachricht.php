@@ -19,6 +19,7 @@ class TeamsNachricht extends Model
     {
         return [
             'anhaenge' => 'array',
+            'diagnose' => 'array',
             'gesendet_am' => 'datetime',
             'verarbeitet_am' => 'datetime',
         ];

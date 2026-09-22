@@ -91,11 +91,16 @@ class KiAntwortet
 
         $n->update([
             'verarbeitet_am' => now(),
-            // Diagnose gleich mit: erkannter Benutzer (bestimmt die Wissensfilter)
+            'verarbeitung' => 'KI '.$antwort['modell'].($antwort['tokens'] ? ' ('.$antwort['tokens'].' Tokens)' : ''),
+            // Diagnose fürs Modal: erkannter Benutzer (bestimmt die Wissensfilter)
             // und welches Wissen mitging – sonst rätselt man, warum die KI etwas nicht weiß.
-            'verarbeitung' => mb_substr('KI '.$antwort['modell'].($antwort['tokens'] ? ' ('.$antwort['tokens'].' Tokens)' : '')
-                .' · Absender: '.($benutzer ? $benutzer->name.' ('.$benutzer->roles->pluck('role_id')->implode(', ').')' : 'kein Intranet-Konto zur Microsoft-ID')
-                .' · Wissen: '.(($antwort['wissen'] ?? []) === [] ? 'keins' : count($antwort['wissen']).' Treffer – '.implode(' | ', $antwort['wissen'])), 0, 255),
+            'diagnose' => [
+                'absender' => $benutzer ? $benutzer->name : null,
+                'rollen' => $benutzer ? $benutzer->roles->pluck('role_id')->values()->all() : [],
+                'admin' => (bool) ($benutzer?->is_admin),
+                'wissen' => array_values(array_filter($antwort['wissen'] ?? [], fn ($q) => ! str_starts_with($q, 'FEHLER '))),
+                'fehler' => array_values(array_map(fn ($q) => mb_substr($q, 7), array_filter($antwort['wissen'] ?? [], fn ($q) => str_starts_with($q, 'FEHLER ')))),
+            ],
             'antwort' => $antwort['text'],
         ]);
     }

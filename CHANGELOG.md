@@ -46,6 +46,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   (neue Spalte `bot_erwaehnt`, Migration). Probefrage direkt in der Maske. Während die KI arbeitet,
   reagiert der Bot mit 👀 auf die Frage und postet „…", das anschließend durch die Antwort ersetzt wird.
   Gelesene Chats markiert der Lauscher für das Bot-Konto als gelesen (`markChatReadForUser`).
+  Je Antwort ein Modal „Wissen (n)": erkannter Absender mit Rollen, Wissenstreffer, Fehler der Quellen
+  (Spalte `diagnose`, Migration); die Probefrage läuft mit dem eigenen Konto.
   **Spezialanwendung und Dokumentenordner:** In der KI-Maske lässt sich eine DeutschlandGPT-Spezialanwendung
   wählen (Anweisungen + Modell werden übernommen; die Chat-API kann sie nicht direkt befragen) und ein
   Dokumentenordner, der vor jeder Antwort semantisch durchsucht wird (Treffer gehen als Wissen mit).

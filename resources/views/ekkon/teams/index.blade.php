@@ -7,6 +7,7 @@
         <div class="w-full mx-auto sm:px-6 lg:px-8 space-y-8"
              x-data="{
                 offen: null,
+                diagnose: null,
                 antwortAn: null,
                 geloescht: [],
                 loeschen(id, url) {
@@ -249,6 +250,12 @@
                                         <td class="py-2 pr-4 text-xs whitespace-nowrap">
                                             @if ($n->verarbeitet_am)
                                                 <span class="text-gray-600" title="{{ $n->verarbeitet_am->format('d.m.Y H:i:s') }}">{{ $n->verarbeitung ?: 'verarbeitet' }}</span>
+                                                @if (is_array($n->diagnose))
+                                                    <button type="button" @click.stop="diagnose = {{ \Illuminate\Support\Js::from($n->diagnose + ['nachricht' => mb_substr((string) $n->text, 0, 200)]) }}"
+                                                            class="block mt-0.5 text-indigo-700 hover:underline">
+                                                        Wissen ({{ count($n->diagnose['wissen'] ?? []) }}){{ ($n->diagnose['fehler'] ?? []) !== [] ? ' ⚠' : '' }}
+                                                    </button>
+                                                @endif
                                             @elseif (str_starts_with((string) $n->verarbeitung, 'Fehler'))
                                                 <span class="text-red-700" title="{{ $n->verarbeitung }}">Fehler</span>
                                             @else
@@ -296,6 +303,47 @@
                         </table>
                     </div>
                 @endif
+            </div>
+
+            {{-- ── Modal: Diagnose einer KI-Antwort ─────────────────────── --}}
+            <div x-show="diagnose !== null" x-cloak @keydown.escape.window="diagnose = null"
+                 class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
+                <div @click.outside="diagnose = null" class="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-lg bg-white shadow-xl">
+                    <div class="flex items-start justify-between gap-4 border-b px-5 py-3">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">Was die KI zur Antwort bekam</h4>
+                            <p class="text-xs text-gray-500" x-text="diagnose?.nachricht"></p>
+                        </div>
+                        <button type="button" @click="diagnose = null" class="text-gray-400 hover:text-gray-700 text-xl leading-none" aria-label="Schließen">&times;</button>
+                    </div>
+                    <div class="px-5 py-4 space-y-4 text-sm">
+                        <div>
+                            <div class="text-xs text-gray-500 mb-1">Absender (bestimmt, welches Wissen sichtbar ist)</div>
+                            <template x-if="diagnose?.absender">
+                                <p><span x-text="diagnose.absender"></span>
+                                    <span class="text-gray-500" x-text="' – Rollen: ' + ((diagnose.rollen || []).join(', ') || 'keine') + (diagnose.admin ? ' · Administrator (sieht alles)' : '')"></span></p>
+                            </template>
+                            <template x-if="! diagnose?.absender">
+                                <p class="text-yellow-800">Kein Intranet-Konto zur Microsoft-ID – nur Wissen für alle.</p>
+                            </template>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500 mb-1">Wissenstreffer</div>
+                            <ul class="list-disc list-inside space-y-0.5">
+                                <template x-for="(q, i) in (diagnose?.wissen || [])" :key="i"><li x-text="q"></li></template>
+                            </ul>
+                            <p x-show="(diagnose?.wissen || []).length === 0" class="text-gray-500 italic">keins</p>
+                        </div>
+                        <template x-if="(diagnose?.fehler || []).length > 0">
+                            <div>
+                                <div class="text-xs text-gray-500 mb-1">Fehler der Wissensquellen</div>
+                                <ul class="list-disc list-inside text-red-700 space-y-0.5">
+                                    <template x-for="(f, i) in diagnose.fehler" :key="'f' + i"><li x-text="f"></li></template>
+                                </ul>
+                            </div>
+                        </template>
+                    </div>
+                </div>
             </div>
 
             {{-- ── Chats ────────────────────────────────────────────────── --}}
