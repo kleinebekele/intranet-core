@@ -15,9 +15,9 @@
                 zielFuer: null,
                 meldung: null,
                 geloescht: [],
-                // Auswahl-Dialog für Ziel (Chat/Kanal) und Ablage-Ordner: holt einmal die
+                // Auswahl-Dialog für das Ziel (Chat/Kanal): holt einmal die
                 // Zugriffe des verbundenen Kontos und schreibt die Wahl direkt ins Feld.
-                auswahl: { offen: false, art: 'ziel', feld: null, daten: null, fehler: '', laedt: false, suche: '', ordner: {}, bibs: {}, ordnerLaedt: '' },
+                auswahl: { offen: false, art: 'ziel', feld: null, daten: null, fehler: '', laedt: false, suche: '' },
                 async auswahlOeffnen(art, feld) {
                     this.auswahl.art = art; this.auswahl.feld = feld; this.auswahl.offen = true; this.auswahl.fehler = ''; this.auswahl.suche = '';
                     if (this.auswahl.daten !== null) { return; }
@@ -33,63 +33,8 @@
                 async auswahlUebernehmen(wert) {
                     if (this.auswahl.feld) { this.auswahl.feld.value = wert; this.auswahl.feld.dispatchEvent(new Event('input', { bubbles: true })); }
                     this.auswahl.offen = false;
-                    // Teamskanal gewählt: Graph kennt dessen Dateiordner – gleich in die Ablage-URL desselben Formulars.
-                    if (this.auswahl.art === 'ziel' && wert.includes('/') && this.auswahl.feld) {
-                        const ablage = this.auswahl.feld.closest('form')?.querySelector('[name=ablage_url]');
-                        if (! ablage) { return; }
-                        try {
-                            const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.kanalordner')) }} + '?kanal=' + encodeURIComponent(wert);
-                            const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                            const j = await r.json().catch(() => ({}));
-                            if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
-                            if (j.ordner?.url) { ablage.value = j.ordner.url; ablage.dispatchEvent(new Event('input', { bubbles: true })); }
-                        } catch (e) { (window.hinweis ?? alert)('Kanalordner nicht ermittelt: ' + e.message + ' – Ablage bleibt leer, beim Senden wird der Kanalordner trotzdem automatisch versucht.'); }
-                    }
                 },
                 passt(text) { const s = this.auswahl.suche.trim().toLowerCase(); return s === '' || (text || '').toLowerCase().includes(s); },
-                async sitesSuchen() {
-                    const q = this.auswahl.suche.trim();
-                    if (q.length < 2 || ! this.auswahl.daten) { return; }
-                    this.auswahl.ordnerLaedt = 'suche'; this.auswahl.fehler = '';
-                    try {
-                        const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.sites')) }} + '?q=' + encodeURIComponent(q);
-                        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                        const j = await r.json().catch(() => ({}));
-                        if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
-                        const bekannt = new Set(this.auswahl.daten.sites.map(s => s.url.toLowerCase()));
-                        let neu = 0;
-                        for (const s of (j.sites || [])) { if (! bekannt.has(s.url.toLowerCase())) { this.auswahl.daten.sites.push(s); neu++; } }
-                        this.auswahl.daten.sites.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
-                        if ((j.sites || []).length === 0) { this.auswahl.fehler = 'SharePoint-Suche: nichts gefunden zu „' + q + '“.'; }
-                        else if (neu === 0) { this.auswahl.fehler = 'SharePoint-Suche: nur schon bekannte Sites.'; }
-                    } catch (e) { this.auswahl.fehler = e.message; }
-                    this.auswahl.ordnerLaedt = '';
-                },
-                async bibliothekenLaden(siteId) {
-                    if (this.auswahl.bibs[siteId]) { delete this.auswahl.bibs[siteId]; return; }
-                    this.auswahl.ordnerLaedt = 'site|' + siteId;
-                    try {
-                        const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.bibliotheken')) }} + '?site=' + encodeURIComponent(siteId);
-                        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                        const j = await r.json().catch(() => ({}));
-                        if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
-                        this.auswahl.bibs[siteId] = j.bibliotheken || [];
-                    } catch (e) { this.auswahl.fehler = e.message; }
-                    this.auswahl.ordnerLaedt = '';
-                },
-                async ordnerLaden(driveId, pfad) {
-                    const key = driveId + '|' + pfad;
-                    if (this.auswahl.ordner[key]) { delete this.auswahl.ordner[key]; return; }
-                    this.auswahl.ordnerLaedt = key;
-                    try {
-                        const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.ordner')) }} + '?drive=' + encodeURIComponent(driveId) + '&pfad=' + encodeURIComponent(pfad);
-                        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                        const j = await r.json().catch(() => ({}));
-                        if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
-                        this.auswahl.ordner[key] = j.ordner || [];
-                    } catch (e) { this.auswahl.fehler = e.message; }
-                    this.auswahl.ordnerLaedt = '';
-                },
                 // Bewusst OHNE Rückfrage: hier räumt man in Serie auf, jede Frage bremst.
                 loeschen(id, url) {
                     fetch(url, {
@@ -249,8 +194,9 @@
                     <br>
                     <b>Zweiter Weg (Graph):</b> Statt Webhook-URL eine <b>Chat-ID</b> eintragen
                     (Besprechungschat <code>19:…@thread.v2</code>, Kanal <code>&lt;Team-GUID&gt;/19:…@thread.tacv2</code>)
-                    plus den SharePoint-Ordner für Anhänge. Dann postet das Intranet direkt im Namen des
-                    verbundenen Microsoft-Kontos, und Anhänge erscheinen als echte Dateikarte.
+                    (Dialog „auswählen"). Dann postet das Intranet direkt im Namen des
+                    verbundenen Microsoft-Kontos; Anhänge landen im OneDrive des Kontos (Ordner Intranet-Anhaenge,
+                    Organisationslink) und erscheinen im Chat als echte Dateikarte.
                 </p>
 
                 {{-- Verbundenes Microsoft-Konto für den Graph-Weg --}}
@@ -407,17 +353,6 @@
                                                                 class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">auswählen</button>
                                                     </div>
                                                 </div>
-                                                <div class="md:col-span-2" x-show="weg !== 'workflow'">
-                                                    <label class="block text-xs font-medium text-gray-600 mb-1">
-                                                        SharePoint-Ordner für Anhänge <span class="text-gray-400">(optional: leer = Kanalordner bzw. OneDrive des Kontos mit Freigabe an die Mitglieder)</span>
-                                                    </label>
-                                                    <div class="flex gap-2">
-                                                        <input name="ablage_url" value="{{ $channel->ablage_url }}" :disabled="weg === 'workflow'"
-                                                               class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
-                                                        <button type="button" @click="auswahlOeffnen('ablage', $el.closest('form').querySelector('[name=ablage_url]'))"
-                                                                class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">auswählen</button>
-                                                    </div>
-                                                </div>
                                                 <div class="md:col-span-4 flex gap-3 items-center">
                                                     <button class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                                                         Speichern
@@ -474,17 +409,6 @@
                                    class="w-full rounded-md border-gray-300 text-sm font-mono"
                                    :placeholder="weg === 'person' ? 'vorname.nachname@firma.de' : '19:meeting_…@thread.v2'">
                             <button type="button" x-show="weg === 'chat'" @click="auswahlOeffnen('ziel', $el.closest('form').querySelector('[name=chat_id]'))"
-                                    class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">auswählen</button>
-                        </div>
-                    </div>
-                    <div class="md:col-span-2" x-show="weg !== 'workflow'">
-                        <label class="block text-xs font-medium text-gray-600 mb-1">
-                            SharePoint-Ordner für Anhänge <span class="text-gray-400">(optional: leer = Kanalordner bzw. OneDrive des Kontos mit Freigabe an die Mitglieder)</span>
-                        </label>
-                        <div class="flex gap-2">
-                            <input name="ablage_url" value="{{ old('ablage_url') }}" :disabled="weg === 'workflow'"
-                                   class="w-full rounded-md border-gray-300 text-sm" placeholder="https://….sharepoint.com/sites/…/Freigegebene Dokumente/…">
-                            <button type="button" @click="auswahlOeffnen('ablage', $el.closest('form').querySelector('[name=ablage_url]'))"
                                     class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">auswählen</button>
                         </div>
                     </div>
@@ -692,21 +616,16 @@
                 @endif
             </div>
 
-            {{-- ── Auswahl-Dialog: Ziel (Chat/Kanal) oder Ablage-Ordner ─── --}}
+            {{-- ── Auswahl-Dialog: Ziel (Chat/Kanal) ───────────────────── --}}
             <div x-show="auswahl.offen" x-cloak @keydown.escape.window="auswahl.offen = false"
                  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
                 <div @click.outside="auswahl.offen = false" class="w-full max-w-3xl max-h-[85vh] flex flex-col rounded-lg bg-white shadow-xl">
                     <div class="flex items-center justify-between gap-4 border-b px-5 py-3">
-                        <h4 class="font-semibold text-gray-800" x-text="auswahl.art === 'ziel' ? 'Chat oder Kanal wählen' : 'SharePoint-Ordner wählen'"></h4>
+                        <h4 class="font-semibold text-gray-800">Chat oder Kanal wählen</h4>
                         <button type="button" @click="auswahl.offen = false" class="text-gray-400 hover:text-gray-700 text-xl leading-none" aria-label="Schließen">&times;</button>
                     </div>
-                    <div class="px-5 py-3 border-b flex gap-2 items-center">
-                        <input type="search" x-model="auswahl.suche" placeholder="filtern …" class="w-full rounded-md border-gray-300 text-sm"
-                               @keydown.enter.prevent="if (auswahl.art === 'ablage') sitesSuchen()">
-                        <button type="button" x-show="auswahl.art === 'ablage'" @click="sitesSuchen()" :disabled="auswahl.suche.trim().length < 2 || auswahl.ordnerLaedt === 'suche'"
-                                class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                                title="Fehlt eine Site in der Liste: gezielt bei SharePoint danach suchen"
-                                x-text="auswahl.ordnerLaedt === 'suche' ? 'sucht …' : 'bei SharePoint suchen'"></button>
+                    <div class="px-5 py-3 border-b">
+                        <input type="search" x-model="auswahl.suche" placeholder="filtern …" class="w-full rounded-md border-gray-300 text-sm">
                     </div>
                     <div class="px-5 py-4 overflow-y-auto text-sm space-y-5">
                         <p x-show="auswahl.laedt" class="text-gray-500">Zugriffe des Kontos werden geladen …</p>
@@ -743,67 +662,6 @@
                             </div>
                         </template>
 
-                        {{-- Ablage: Sites → Bibliotheken → Unterordner --}}
-                        <template x-if="auswahl.daten && auswahl.art === 'ablage'">
-                            <div class="space-y-5">
-                                <template x-for="s in auswahl.daten.sites" :key="s.id">
-                                    <div x-show="passt(s.name + ' ' + s.url)">
-                                        <div class="font-medium text-gray-700 mb-1">
-                                            <button type="button" @click="bibliothekenLaden(s.id)" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.bibs[s.id] ? '▾' : '▸'"></button>
-                                            <span x-text="s.name"></span>
-                                            <span x-show="auswahl.ordnerLaedt === 'site|' + s.id" class="text-xs text-gray-400 font-normal">lädt …</span>
-                                            <a :href="s.url" target="_blank" rel="noopener" class="text-xs text-gray-400 hover:underline font-normal" x-text="s.url"></a>
-                                        </div>
-                                        <ul class="divide-y" x-show="auswahl.bibs[s.id]">
-                                            <li x-show="(auswahl.bibs[s.id] || []).length === 0" class="py-1.5 pl-3 text-xs text-gray-400 italic">keine Bibliothek lesbar</li>
-                                            <template x-for="b in (auswahl.bibs[s.id] || [])" :key="b.id">
-                                                <li class="py-1.5 pl-3">
-                                                    <div class="flex items-center justify-between gap-3">
-                                                        <span>
-                                                            <button type="button" @click="ordnerLaden(b.id, '')" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.ordner[b.id + '|'] ? '▾' : '▸'"></button>
-                                                            <span x-text="b.name"></span>
-                                                            <span x-show="auswahl.ordnerLaedt === b.id + '|'" class="text-xs text-gray-400">lädt …</span>
-                                                        </span>
-                                                        <button type="button" @click="auswahlUebernehmen(b.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
-                                                    </div>
-                                                    {{-- Unterordner, eine Ebene je Aufklappen (Pfad als Schlüssel) --}}
-                                                    <template x-for="o in (auswahl.ordner[b.id + '|'] || [])" :key="o.pfad">
-                                                        <div class="pl-5">
-                                                            <div class="flex items-center justify-between gap-3 py-1">
-                                                                <span>
-                                                                    <button type="button" @click="ordnerLaden(b.id, o.pfad)" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.ordner[b.id + '|' + o.pfad] ? '▾' : '▸'"></button>
-                                                                    <span x-text="o.name"></span>
-                                                                    <span x-show="auswahl.ordnerLaedt === b.id + '|' + o.pfad" class="text-xs text-gray-400">lädt …</span>
-                                                                </span>
-                                                                <button type="button" @click="auswahlUebernehmen(o.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
-                                                            </div>
-                                                            <template x-for="u in (auswahl.ordner[b.id + '|' + o.pfad] || [])" :key="u.pfad">
-                                                                <div class="pl-5 flex items-center justify-between gap-3 py-1">
-                                                                    <span>
-                                                                        <button type="button" @click="ordnerLaden(b.id, u.pfad)" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.ordner[b.id + '|' + u.pfad] ? '▾' : '▸'"></button>
-                                                                        <span x-text="u.name"></span>
-                                                                    </span>
-                                                                    <button type="button" @click="auswahlUebernehmen(u.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
-                                                                </div>
-                                                            </template>
-                                                            <template x-for="u in (auswahl.ordner[b.id + '|' + o.pfad] || [])" :key="'x' + u.pfad">
-                                                                <template x-for="v in (auswahl.ordner[b.id + '|' + u.pfad] || [])" :key="v.pfad">
-                                                                    <div class="pl-10 flex items-center justify-between gap-3 py-1">
-                                                                        <span>· <span x-text="v.name"></span></span>
-                                                                        <button type="button" @click="auswahlUebernehmen(v.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">übernehmen</button>
-                                                                    </div>
-                                                                </template>
-                                                            </template>
-                                                        </div>
-                                                    </template>
-                                                </li>
-                                            </template>
-                                        </ul>
-                                    </div>
-                                </template>
-                                <p x-show="auswahl.daten.sites.length === 0" class="text-gray-400 italic">Keine Sites.</p>
-                            </div>
-                        </template>
                     </div>
                 </div>
             </div>

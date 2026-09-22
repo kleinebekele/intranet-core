@@ -27,11 +27,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Automate nicht erreicht. Migration macht `webhook_url` optional. Anleitung in `app/Ekkon/CLAUDE.md`.
   Als Ziel geht auch eine **Person** (E-Mail-Adresse): 1:1-Chat mit dem verbundenen Konto, die Datei
   wird ihr freigegeben. Die Maske bietet den Weg zur Auswahl (Workflow / Graph → Chat/Kanal / Graph → Person).
-  Neben den Feldern Chat-ID und Ablage-Ordner öffnet „auswählen" einen Dialog mit den Chats, Teams/Kanälen
-  und SharePoint-Ordnern des Kontos; die Wahl landet direkt im Feld. Bei einem Teamskanal als Ziel ist die
-  Ablage-URL optional: Der Kanalordner (`filesFolder`) wird automatisch genommen und beim Auswählen eingetragen.
-  Ohne Ablage-URL bei Chats und Personen landet die Datei im OneDrive des Kontos mit Organisationslink
-  („jeder in der Organisation mit dem Link") (neuer Scope `Files.ReadWrite` → einmal neu verbinden).
+  Neben dem Feld Chat-ID öffnet „auswählen" einen Dialog mit den Chats und Teams/Kanälen des Kontos; die
+  Wahl landet direkt im Feld. Anhänge landen immer im OneDrive des Kontos (Ordner `Intranet-Anhaenge`) mit
+  Organisationslink – wie beim Teilen in Teams; ein SharePoint-Ordner ist nicht mehr nötig (neuer Scope
+  `Files.ReadWrite` → einmal neu verbinden).
 - **Teams-Chat-Eingang.** Der Dauerdienst `php artisan teams:lauschen` (systemd, alle 5 s) holt
   Nachrichten ab, die andere dem verbundenen Konto in Teams schreiben (`ekkon_teams_nachrichten`),
   und feuert je Nachricht `App\Ekkon\Events\TeamsNachrichtEmpfangen` für die Verarbeitung dahinter.

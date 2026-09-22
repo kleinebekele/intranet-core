@@ -130,23 +130,18 @@ Power Automate kann in **Besprechungschats** nicht posten (Office-365-Groups-Con
 generische HTTP-Aktion = Premium) und eine Datei nie als Dateikarte anhängen. Deshalb zweiter Weg:
 `ekkon_teams_channels.chat_id` gesetzt → `TeamsGraphClient` postet direkt über Microsoft Graph im
 Namen des verbundenen Kontos (`ekkon_graph_konten`, Refresh-Token verschlüsselt, `GraphKontoVerbindung`
-erneuert den Access-Token stündlich). Anhang: Upload in den SharePoint-Ordner `ablage_url` (Drive über
-die webUrl der Site-Drives erkannt, Bibliotheksname ist sprachabhängig) und als `reference`-Anhang mit
-der GUID aus dem eTag an die Nachricht – so sieht es aus wie manuell geteilt, öffnet in Teams.
+erneuert den Access-Token stündlich). Anhang: Upload ins **OneDrive des Bots** (`/me/drive`, Ordner `Intranet-Anhaenge`, Scope
+`Files.ReadWrite`), Organisationslink (`/createLink`, edit, organization) und als `reference`-Anhang mit
+der GUID aus dem eTag an die Nachricht – genau wie beim manuellen Teilen in Teams, öffnet dort. Kein
+SharePoint-Ordner mehr nötig (Emanuels Entscheidung 22.09.2026; die Spalte `ablage_url` bleibt ungenutzt).
 Mit Datei bleibt die Nachricht kurz (Titel + Fakten + Karte); ohne Datei Text/HTML wie bisher.
 
 Ziel-ID: Chat `19:…@thread.v2` (Link auf eine Nachricht kopieren), Team-Kanal `<Team-GUID>/19:…@thread.tacv2`,
 **Person** = ihre E-Mail-Adresse: dann legt Graph den 1:1-Chat zwischen verbundenem Konto und Person an
-(`POST /chats`, oneOnOne, ID einen Tag gecacht) und gibt ihr die hochgeladene Datei per `/invite`
-(write, ohne Mail) frei – auf den Ordner selbst hat sie ja keinen Zugriff. Das verbundene Konto darf
-ein neutraler M365-Benutzer sein; er braucht eine Teams-Lizenz, Mitgliedschaft in den Ziel-Chats und
-Zugriff auf die Ablage-Ordner. **Teamskanal als Ziel:** Ablage-URL darf leer bleiben – der Client nimmt
-`/teams/{t}/channels/{k}/filesFolder` (Drive + Ordner-Item, 1 Tag gecacht) und lädt per
-`/drives/{d}/items/{id}:/{name}:/content` hoch; der Dialog trägt den Ordner beim Auswählen des Kanals ein. **Chat/Person ohne Ablage-URL:** Datei ins
-OneDrive des Bots (`/me/drive`, Ordner `Intranet-Anhaenge`, Scope `Files.ReadWrite`) und per `/invite` an alle
-Organisationslink (`/createLink`, type edit, scope organization) freigeben – so macht es Teams selbst.
+(`POST /chats`, oneOnOne, ID einen Tag gecacht). Das verbundene Konto darf ein neutraler M365-Benutzer
+sein; er braucht eine Teams-Lizenz und Mitgliedschaft in den Ziel-Chats (OneDrive kommt mit der Lizenz).
 Einmalig in der Entra-App der Anmeldung: Umleitungs-URI `…/modules/ekkon/benachrichtigungen/microsoft/callback`
-und delegierte Berechtigungen `offline_access`, `Chat.ReadWrite`, `ChannelMessage.Send`, `Sites.ReadWrite.All`,
+und delegierte Berechtigungen `offline_access`, `Chat.ReadWrite`, `ChannelMessage.Send`, `Files.ReadWrite`, `Sites.ReadWrite.All`,
 `Team.ReadBasic.All`, `Channel.ReadBasic.All` (letztere für „Zugriffe anzeigen": `GraphAuskunft` listet Chats,
 Teams/Kanäle und Sites samt IDs/Bibliotheks-URLs zum Kopieren)
 (Admin-Zustimmung). Danach Benachrichtigungen → Teams-Channels → „Microsoft-Konto verbinden".

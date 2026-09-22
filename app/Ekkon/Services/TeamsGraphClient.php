@@ -16,8 +16,8 @@ use Throwable;
  * Gegenüber dem Workflow-Weg (TeamsWebhookClient) kann dieser Weg eine Datei
  * so anhängen, wie Teams es beim manuellen Teilen tut: als Dateikarte, die
  * sich direkt in Teams öffnen und bearbeiten lässt. Dafür wird die Datei
- * zuerst in den SharePoint-Ordner des Channels hochgeladen (`ablage_url`) und
- * dann als „reference"-Anhang an die Nachricht gehängt.
+ * ins OneDrive des Bots gelegt (Ordner Intranet-Anhaenge, Organisationslink)
+ * und als „reference"-Anhang an die Nachricht gehängt.
  *
  * Ziel-ID (`chat_id`):
  *  - Chat / Besprechungschat: `19:…@thread.v2`  → POST /chats/{id}/messages
@@ -31,7 +31,7 @@ class TeamsGraphClient
 
     private const TIMEOUT = 30;
 
-    /** Ordner im OneDrive des Bots für Anhänge ohne eigene Ablage-URL. */
+    /** Ordner im OneDrive des Bots für alle Anhänge. */
     private const ONEDRIVE_ORDNER = 'Intranet-Anhaenge';
 
     public function __construct(private readonly GraphKontoVerbindung $verbindung = new GraphKontoVerbindung) {}
@@ -95,17 +95,10 @@ class TeamsGraphClient
 
             $anhang = null;
             if ($datei !== null && ($datei['inhalt'] ?? '') !== '') {
-                $anhang = $this->hochladen($token, $channel, (string) $datei['name'], (string) $datei['inhalt']);
-                // Freigabe: Liegt die Datei im OneDrive des Bots (keine Ablage-URL,
-                // kein Kanal), bekommt sie einen Organisationslink – wie beim Teilen
-                // in Teams. Bei eigener Ablage hat eine einzelne Person dort meist
-                // keinen Zugriff und wird ausdrücklich eingeladen.
-                $ohneAblage = trim((string) $channel->ablage_url) === '' && ! str_contains((string) $channel->chat_id, '/');
-                if ($ohneAblage) {
-                    $this->organisationsLink($token, $anhang);
-                } elseif ($person !== null) {
-                    $this->freigeben($token, $anhang, $person);
-                }
+                $anhang = $this->hochladen($token, (string) $datei['name'], (string) $datei['inhalt']);
+                // Organisationslink – wie beim Teilen in Teams: Jeder im Tenant mit
+                // dem Link (also alle Chat-Teilnehmer) sieht die Dateikarte.
+                $this->organisationsLink($token, $anhang);
             }
 
             $body = $this->nachricht($titel, $text, $daten, $html, $anhang);
@@ -201,41 +194,26 @@ class TeamsGraphClient
         }
     }
 
-    // ── Datei nach SharePoint ────────────────────────────────────────────
+    // ── Datei ins OneDrive ─────────────────────────────────────────────
 
     /**
-     * Datei in den Ordner des Channels legen. Gleicher Name = Microsoft hängt
-     * eine Nummer an (conflictBehavior=rename), nichts wird überschrieben.
+     * Datei ins OneDrive des Bots legen (Ordner Intranet-Anhaenge). Gleicher
+     * Name = Microsoft hängt eine Nummer an (conflictBehavior=rename), nichts
+     * wird überschrieben.
      *
-     * @return array{id: string, webUrl: string, name: string, eTag: string}
+     * @return array{id: string, driveId: string, webUrl: string, name: string, eTag: string}
      */
-    private function hochladen(string $token, TeamsChannel $channel, string $name, string $inhalt): array
+    private function hochladen(string $token, string $name, string $inhalt): array
     {
-        $ablage = trim((string) $channel->ablage_url);
-        $ziel = trim((string) $channel->chat_id);
-
-        if ($ablage === '' && str_contains($ziel, '/')) {
-            // Teamskanal ohne eigene Ablage: Graph kennt den Kanalordner (filesFolder).
-            $k = Cache::remember('ekkon-graph-kanalordner-'.md5($ziel), now()->addDay(), fn () => (new GraphAuskunft($this->verbindung))->kanalOrdner($ziel));
-            $driveId = $k['driveId'];
-            $adresse = self::GRAPH.'/drives/'.$driveId.'/items/'.$k['itemId'].':/'.rawurlencode($name).':/content';
-        } elseif ($ablage === '') {
-            // Chat oder Person ohne Ablage: wie Teams selbst – ins OneDrive des
-            // Bots, Freigabe an die Mitglieder folgt in sende() (freigebenAnChat).
-            $driveId = $this->eigenesDrive($token);
-            $adresse = self::GRAPH.'/drives/'.$driveId.'/root:/'.rawurlencode(self::ONEDRIVE_ORDNER).'/'.rawurlencode($name).':/content';
-        } else {
-            [$driveId, $ordner] = $this->ordnerAufloesen($token, $ablage);
-            $pfad = $ordner === '' ? rawurlencode($name) : $ordner.'/'.rawurlencode($name);
-            $adresse = self::GRAPH.'/drives/'.$driveId.'/root:/'.$pfad.':/content';
-        }
+        $driveId = $this->eigenesDrive($token);
+        $adresse = self::GRAPH.'/drives/'.$driveId.'/root:/'.rawurlencode(self::ONEDRIVE_ORDNER).'/'.rawurlencode($name).':/content';
 
         $res = Http::withToken($token)->timeout(60)
             ->withBody($inhalt, 'application/octet-stream')
             ->put($adresse.'?@microsoft.graph.conflictBehavior=rename');
 
         if ($res->failed()) {
-            throw new \RuntimeException($this->fehler('Upload nach SharePoint abgelehnt', $res));
+            throw new \RuntimeException($this->fehler('Upload ins OneDrive abgelehnt', $res));
         }
 
         return [
@@ -245,32 +223,6 @@ class TeamsGraphClient
             'name' => (string) $res->json('name'),
             'eTag' => (string) $res->json('eTag'),
         ];
-    }
-
-    /**
-     * Der Person Schreibzugriff auf die Datei geben (ohne Einladungsmail) –
-     * sonst zeigt die Dateikarte ihr nur „kein Zugriff".
-     *
-     * @param  array{id: string, driveId: string}  $anhang
-     */
-    private function freigeben(string $token, array $anhang, string|array $email): void
-    {
-        $mails = array_values(array_filter(array_map('trim', (array) $email)));
-        if ($mails === []) {
-            return;
-        }
-
-        $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
-            ->post(self::GRAPH.'/drives/'.$anhang['driveId'].'/items/'.$anhang['id'].'/invite', [
-                'requireSignIn' => true,
-                'sendInvitation' => false,
-                'roles' => ['write'],
-                'recipients' => array_map(fn (string $m) => ['email' => $m], $mails),
-            ]);
-
-        if ($res->failed()) {
-            throw new \RuntimeException($this->fehler('Datei konnte nicht für '.implode(', ', $mails).' freigegeben werden', $res));
-        }
     }
 
     /**
@@ -312,61 +264,6 @@ class TeamsGraphClient
         Cache::put($cacheKey, $id, now()->addDay());
 
         return $id;
-    }
-
-    /**
-     * Aus der Browser-Adresse eines SharePoint-Ordners Drive-ID und Pfad im
-     * Drive machen. Die Bibliothek heißt je nach Sprache anders („Freigegebene
-     * Dokumente" / „Shared Documents"), deshalb nicht raten, sondern die Drives
-     * der Site abfragen und die passende an ihrer webUrl erkennen.
-     *
-     * @return array{0: string, 1: string} Drive-ID, Ordnerpfad (URL-kodiert, ohne führenden Schrägstrich)
-     */
-    private function ordnerAufloesen(string $token, string $ablage): array
-    {
-        $cacheKey = 'ekkon-graph-ablage-'.md5($ablage);
-        $gemerkt = Cache::get($cacheKey);
-        if (is_array($gemerkt) && isset($gemerkt[0], $gemerkt[1])) {
-            return $gemerkt;
-        }
-
-        $teile = parse_url($ablage);
-        $host = (string) ($teile['host'] ?? '');
-        $pfad = rawurldecode((string) ($teile['path'] ?? '/'));
-        if ($host === '') {
-            throw new \RuntimeException('Ablage-URL unlesbar: '.$ablage);
-        }
-
-        // Site-Pfad: /sites/<Name> oder /teams/<Name>; sonst die Stammsite.
-        $sitePfad = preg_match('~^(/(?:sites|teams)/[^/]+)~i', $pfad, $m) ? $m[1] : '';
-
-        $site = Http::withToken($token)->timeout(self::TIMEOUT)
-            ->get(self::GRAPH.'/sites/'.$host.':'.($sitePfad !== '' ? $sitePfad : '/'), ['$select' => 'id']);
-        if ($site->failed()) {
-            throw new \RuntimeException($this->fehler('SharePoint-Site nicht gefunden', $site));
-        }
-
-        $drives = Http::withToken($token)->timeout(self::TIMEOUT)
-            ->get(self::GRAPH.'/sites/'.$site->json('id').'/drives', ['$select' => 'id,webUrl']);
-        if ($drives->failed()) {
-            throw new \RuntimeException($this->fehler('Bibliotheken der Site nicht lesbar', $drives));
-        }
-
-        $ordnerUrl = rtrim($host.$pfad, '/');
-        foreach ((array) $drives->json('value', []) as $drive) {
-            $driveUrl = rawurldecode((string) preg_replace('~^https?://~', '', (string) ($drive['webUrl'] ?? '')));
-            if (! str_starts_with(mb_strtolower($ordnerUrl.'/'), mb_strtolower(rtrim($driveUrl, '/').'/'))) {
-                continue;
-            }
-            $rest = trim(mb_substr($ordnerUrl, mb_strlen(rtrim($driveUrl, '/'))), '/');
-            $ordner = implode('/', array_map('rawurlencode', $rest === '' ? [] : explode('/', $rest)));
-            $ergebnis = [(string) $drive['id'], $ordner];
-            Cache::put($cacheKey, $ergebnis, now()->addDay());
-
-            return $ergebnis;
-        }
-
-        throw new \RuntimeException('Zur Ablage-URL passt keine Bibliothek der Site – bitte die Adresse des Ordners aus dem Browser kopieren.');
     }
 
     // ── Nachricht ────────────────────────────────────────────────────────

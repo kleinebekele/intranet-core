@@ -95,13 +95,11 @@ class NotificationController extends Controller
             // scheitern. Lieber hier hart ablehnen als später rätseln.
             'webhook_url' => ['nullable', 'required_without:chat_id', 'url', 'starts_with:https://', 'max:2000'],
             'chat_id' => ['nullable', 'required_without:webhook_url', 'string', 'max:255', 'regex:/19:|@/'],
-            'ablage_url' => ['nullable', 'string', 'regex:~^https://[^/]+.sharepoint.com/~i', 'max:1000'],
             'notiz' => ['nullable', 'string', 'max:255'],
         ], [
             'webhook_url.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
             'chat_id.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
             'chat_id.regex' => 'Ziel: 19:…@thread.v2 (Chat), <Team-GUID>/19:…@thread.tacv2 (Kanal) oder die E-Mail-Adresse einer Person.',
-            'ablage_url.regex' => 'Der SharePoint-Ordner muss eine Adresse auf …sharepoint.com sein (aus dem Browser kopieren).',
         ]);
 
         if (filled($daten['webhook_url'] ?? null) && $this->istConnectorUrl($daten['webhook_url'])) {
@@ -131,11 +129,9 @@ class NotificationController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'webhook_url' => ['nullable', 'url', 'starts_with:https://', 'max:2000'],
             'chat_id' => ['nullable', 'string', 'max:255', 'regex:/19:|@/'],
-            'ablage_url' => ['nullable', 'string', 'regex:~^https://[^/]+.sharepoint.com/~i', 'max:1000'],
             'notiz' => ['nullable', 'string', 'max:255'],
         ], [
             'chat_id.regex' => 'Ziel: 19:…@thread.v2 (Chat), <Team-GUID>/19:…@thread.tacv2 (Kanal) oder die E-Mail-Adresse einer Person.',
-            'ablage_url.regex' => 'Der SharePoint-Ordner muss eine Adresse auf …sharepoint.com sein (aus dem Browser kopieren).',
         ]);
 
         $neueUrl = trim((string) ($daten['webhook_url'] ?? ''));
@@ -150,7 +146,6 @@ class NotificationController extends Controller
         $channel->name = $daten['name'];
         $channel->notiz = $daten['notiz'] ?? null;
         $channel->chat_id = $chatId !== '' ? $chatId : null;
-        $channel->ablage_url = $chatId !== '' ? trim((string) ($daten['ablage_url'] ?? '')) : null;
         if ($neueUrl !== '') {
             $channel->webhook_url = $neueUrl;
         }
@@ -234,41 +229,6 @@ class NotificationController extends Controller
             ->with('status', 'Microsoft-Konto verbunden: '.$konto->name.' ('.$konto->email.'). Nachrichten über Graph erscheinen unter diesem Namen.');
     }
 
-    /** Gezielte Site-Suche für den Dialog (Filtertext) – findet, was die Übersicht verschweigt. */
-    public function graphSitesSuchen(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
-    {
-        $daten = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
-
-        try {
-            return response()->json(['sites' => $auskunft->sitesSuchen($daten['q'])]);
-        } catch (\RuntimeException $e) {
-            return response()->json(['fehler' => $e->getMessage()], 502);
-        }
-    }
-
-    /** Dateiordner eines Teamskanals (filesFolder) – der Dialog füllt damit die Ablage-URL. */
-    public function graphKanalordner(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
-    {
-        $daten = $request->validate(['kanal' => ['required', 'string', 'max:255']]);
-
-        try {
-            return response()->json(['ordner' => $auskunft->kanalOrdner($daten['kanal'])]);
-        } catch (\RuntimeException $e) {
-            return response()->json(['fehler' => $e->getMessage()], 502);
-        }
-    }
-
-    /** Bibliotheken einer Site als JSON – der Dialog holt sie beim Aufklappen. */
-    public function graphBibliotheken(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
-    {
-        $daten = $request->validate(['site' => ['required', 'string', 'max:500']]);
-
-        try {
-            return response()->json(['bibliotheken' => $auskunft->bibliotheken($daten['site'])]);
-        } catch (\RuntimeException $e) {
-            return response()->json(['fehler' => $e->getMessage()], 502);
-        }
-    }
 
     /**
      * Zugriffe des Kontos als JSON für den Auswahl-Dialog in der Channel-Maske.
@@ -288,21 +248,6 @@ class NotificationController extends Controller
         }
 
         return response()->json($daten);
-    }
-
-    /** Unterordner einer Bibliothek als JSON – die Zugriffe-Seite klappt damit Ebene für Ebene auf. */
-    public function graphOrdner(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
-    {
-        $daten = $request->validate([
-            'drive' => ['required', 'string', 'max:255'],
-            'pfad' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        try {
-            return response()->json(['ordner' => $auskunft->unterordner($daten['drive'], (string) ($daten['pfad'] ?? ''))]);
-        } catch (\RuntimeException $e) {
-            return response()->json(['fehler' => $e->getMessage()], 502);
-        }
     }
 
     public function graphTrennen(GraphKontoVerbindung $verbindung): RedirectResponse
