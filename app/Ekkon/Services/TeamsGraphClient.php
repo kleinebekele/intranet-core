@@ -31,7 +31,53 @@ class TeamsGraphClient
 
     private const TIMEOUT = 30;
 
+    /** Ordner im OneDrive des Bots für Anhänge ohne eigene Ablage-URL. */
+    private const ONEDRIVE_ORDNER = 'Intranet-Anhaenge';
+
     public function __construct(private readonly GraphKontoVerbindung $verbindung = new GraphKontoVerbindung) {}
+
+    /** Drive-ID des OneDrive des verbundenen Kontos (einen Tag gemerkt). */
+    private function eigenesDrive(string $token): string
+    {
+        return Cache::remember('ekkon-graph-eigenes-drive', now()->addDay(), function () use ($token): string {
+            $res = Http::withToken($token)->timeout(self::TIMEOUT)->get(self::GRAPH.'/me/drive', ['$select' => 'id']);
+            if ($res->failed()) {
+                throw new \RuntimeException($this->fehler('OneDrive des Kontos nicht lesbar (Berechtigung Files.ReadWrite?)', $res));
+            }
+
+            return (string) $res->json('id');
+        });
+    }
+
+    /**
+     * Datei im OneDrive des Bots allen Mitgliedern eines Chats freigeben –
+     * sonst zeigt die Dateikarte ihnen „kein Zugriff".
+     *
+     * @param  array{id: string, driveId: string}  $anhang
+     */
+    private function freigebenAnChat(string $token, array $anhang, string $chatId): void
+    {
+        $res = Http::withToken($token)->timeout(self::TIMEOUT)->get(self::GRAPH.'/chats/'.rawurlencode($chatId).'/members');
+        if ($res->failed()) {
+            throw new \RuntimeException($this->fehler('Chat-Mitglieder nicht lesbar', $res));
+        }
+
+        $konto = \App\Ekkon\Models\GraphKonto::aktuelles();
+        $mails = [];
+        foreach ((array) $res->json('value', []) as $m) {
+            $mail = strtolower(trim((string) ($m['email'] ?? '')));
+            if ($mail !== '' && $mail !== strtolower((string) ($konto?->email ?? ''))) {
+                $mails[] = $mail;
+            }
+        }
+        if ($mails === []) {
+            return;
+        }
+
+        foreach (array_chunk(array_unique($mails), 20) as $teil) {
+            $this->freigeben($token, $anhang, $teil);
+        }
+    }
 
     /**
      * @param  array<string, mixed>  $daten  Faktenliste unter dem Text
@@ -59,10 +105,14 @@ class TeamsGraphClient
             $anhang = null;
             if ($datei !== null && ($datei['inhalt'] ?? '') !== '') {
                 $anhang = $this->hochladen($token, $channel, (string) $datei['name'], (string) $datei['inhalt']);
-                // Auf den SharePoint-Ordner hat eine einzelne Person meist keinen
-                // Zugriff – die Datei wird ihr deshalb ausdrücklich freigegeben.
+                // Freigabe: Eine Person hat auf den Ablageort meist keinen Zugriff;
+                // liegt die Datei im OneDrive des Bots (keine Ablage-URL, kein
+                // Kanal), müssen alle Chat-Mitglieder sie ausdrücklich bekommen.
+                $ohneAblage = trim((string) $channel->ablage_url) === '' && ! str_contains((string) $channel->chat_id, '/');
                 if ($person !== null) {
                     $this->freigeben($token, $anhang, $person);
+                } elseif ($ohneAblage) {
+                    $this->freigebenAnChat($token, $anhang, $ziel);
                 }
             }
 
@@ -178,7 +228,10 @@ class TeamsGraphClient
             $driveId = $k['driveId'];
             $adresse = self::GRAPH.'/drives/'.$driveId.'/items/'.$k['itemId'].':/'.rawurlencode($name).':/content';
         } elseif ($ablage === '') {
-            throw new \RuntimeException('Channel "'.$channel->name.'" hat keinen SharePoint-Ordner (Ablage-URL) – die Datei kann nicht abgelegt werden.');
+            // Chat oder Person ohne Ablage: wie Teams selbst – ins OneDrive des
+            // Bots, Freigabe an die Mitglieder folgt in sende() (freigebenAnChat).
+            $driveId = $this->eigenesDrive($token);
+            $adresse = self::GRAPH.'/drives/'.$driveId.'/root:/'.rawurlencode(self::ONEDRIVE_ORDNER).'/'.rawurlencode($name).':/content';
         } else {
             [$driveId, $ordner] = $this->ordnerAufloesen($token, $ablage);
             $pfad = $ordner === '' ? rawurlencode($name) : $ordner.'/'.rawurlencode($name);
@@ -208,18 +261,23 @@ class TeamsGraphClient
      *
      * @param  array{id: string, driveId: string}  $anhang
      */
-    private function freigeben(string $token, array $anhang, string $email): void
+    private function freigeben(string $token, array $anhang, string|array $email): void
     {
+        $mails = array_values(array_filter(array_map('trim', (array) $email)));
+        if ($mails === []) {
+            return;
+        }
+
         $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
             ->post(self::GRAPH.'/drives/'.$anhang['driveId'].'/items/'.$anhang['id'].'/invite', [
                 'requireSignIn' => true,
                 'sendInvitation' => false,
                 'roles' => ['write'],
-                'recipients' => [['email' => $email]],
+                'recipients' => array_map(fn (string $m) => ['email' => $m], $mails),
             ]);
 
         if ($res->failed()) {
-            throw new \RuntimeException($this->fehler('Datei konnte nicht für '.$email.' freigegeben werden', $res));
+            throw new \RuntimeException($this->fehler('Datei konnte nicht für '.implode(', ', $mails).' freigegeben werden', $res));
         }
     }
 

@@ -142,7 +142,9 @@ Ziel-ID: Chat `19:…@thread.v2` (Link auf eine Nachricht kopieren), Team-Kanal 
 ein neutraler M365-Benutzer sein; er braucht eine Teams-Lizenz, Mitgliedschaft in den Ziel-Chats und
 Zugriff auf die Ablage-Ordner. **Teamskanal als Ziel:** Ablage-URL darf leer bleiben – der Client nimmt
 `/teams/{t}/channels/{k}/filesFolder` (Drive + Ordner-Item, 1 Tag gecacht) und lädt per
-`/drives/{d}/items/{id}:/{name}:/content` hoch; der Dialog trägt den Ordner beim Auswählen des Kanals ein.
+`/drives/{d}/items/{id}:/{name}:/content` hoch; der Dialog trägt den Ordner beim Auswählen des Kanals ein. **Chat/Person ohne Ablage-URL:** Datei ins
+OneDrive des Bots (`/me/drive`, Ordner `Intranet-Anhaenge`, Scope `Files.ReadWrite`) und per `/invite` an alle
+Chat-Mitglieder (`/chats/{id}/members`, ohne Mail) bzw. die Person freigeben – so macht es Teams selbst.
 Einmalig in der Entra-App der Anmeldung: Umleitungs-URI `…/modules/ekkon/benachrichtigungen/microsoft/callback`
 und delegierte Berechtigungen `offline_access`, `Chat.ReadWrite`, `ChannelMessage.Send`, `Sites.ReadWrite.All`,
 `Team.ReadBasic.All`, `Channel.ReadBasic.All` (letztere für „Zugriffe anzeigen": `GraphAuskunft` listet Chats,

@@ -101,16 +101,11 @@ class NotificationController extends Controller
             'webhook_url.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
             'chat_id.required_without' => 'Entweder eine Webhook-URL (Workflow) oder eine Chat-ID (Graph) angeben.',
             'chat_id.regex' => 'Ziel: 19:…@thread.v2 (Chat), <Team-GUID>/19:…@thread.tacv2 (Kanal) oder die E-Mail-Adresse einer Person.',
-            'ablage_url.required_with' => 'Für den Graph-Weg wird der SharePoint-Ordner (Ablage-URL) gebraucht, in den Anhänge gelegt werden.',
             'ablage_url.regex' => 'Der SharePoint-Ordner muss eine Adresse auf …sharepoint.com sein (aus dem Browser kopieren).',
         ]);
 
         if (filled($daten['webhook_url'] ?? null) && $this->istConnectorUrl($daten['webhook_url'])) {
             return back()->withInput()->withErrors(['webhook_url' => self::CONNECTOR_HINWEIS]);
-        }
-
-        if ($fehler = $this->ablageFehlt((string) ($daten['chat_id'] ?? ''), (string) ($daten['ablage_url'] ?? ''))) {
-            return back()->withInput()->withErrors(['ablage_url' => $fehler]);
         }
 
         TeamsChannel::create($daten + ['aktiv' => true]);
@@ -123,20 +118,6 @@ class NotificationController extends Controller
     private function istConnectorUrl(string $url): bool
     {
         return str_contains($url, 'outlook.office.com');
-    }
-
-    /**
-     * Ein Graph-Ziel braucht einen Ablageort für Anhänge – außer ein Teamskanal:
-     * dessen Dateiordner kennt Graph selbst (filesFolder).
-     */
-    private function ablageFehlt(string $chatId, string $ablage): ?string
-    {
-        $chatId = trim($chatId);
-        if ($chatId === '' || trim($ablage) !== '' || str_contains($chatId, '/')) {
-            return null;
-        }
-
-        return 'Für Chats und Personen wird ein SharePoint-Ordner (Ablage-URL) gebraucht, in den Anhänge gelegt werden – nur Teamskanäle bringen ihren Ordner selbst mit.';
     }
 
     /**
@@ -154,7 +135,6 @@ class NotificationController extends Controller
             'notiz' => ['nullable', 'string', 'max:255'],
         ], [
             'chat_id.regex' => 'Ziel: 19:…@thread.v2 (Chat), <Team-GUID>/19:…@thread.tacv2 (Kanal) oder die E-Mail-Adresse einer Person.',
-            'ablage_url.required_with' => 'Für den Graph-Weg wird der SharePoint-Ordner (Ablage-URL) gebraucht.',
             'ablage_url.regex' => 'Der SharePoint-Ordner muss eine Adresse auf …sharepoint.com sein (aus dem Browser kopieren).',
         ]);
 
@@ -167,10 +147,6 @@ class NotificationController extends Controller
         if ($chatId === '' && $neueUrl === '' && blank($channel->webhook_url)) {
             return back()->withInput()->withErrors(['chat_id' => 'Ohne Chat-ID braucht der Channel eine Webhook-URL – eins von beiden muss bleiben.']);
         }
-        if ($fehler = $this->ablageFehlt($chatId, (string) ($daten['ablage_url'] ?? ''))) {
-            return back()->withInput()->withErrors(['ablage_url' => $fehler]);
-        }
-
         $channel->name = $daten['name'];
         $channel->notiz = $daten['notiz'] ?? null;
         $channel->chat_id = $chatId !== '' ? $chatId : null;

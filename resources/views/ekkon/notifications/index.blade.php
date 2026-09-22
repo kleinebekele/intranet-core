@@ -293,7 +293,7 @@
                     @if ($graphMoeglich && ! $graphKonto)
                         <p class="mt-2 text-xs text-gray-500">
                             Vorher in der Entra-App: Umleitungs-URI <code>{{ $graphUmleitung }}</code> eintragen und die delegierten
-                            Berechtigungen <code>offline_access</code>, <code>Chat.ReadWrite</code>, <code>ChannelMessage.Send</code>, <code>Team.ReadBasic.All</code>, <code>Channel.ReadBasic.All</code>,
+                            Berechtigungen <code>offline_access</code>, <code>Chat.ReadWrite</code>, <code>ChannelMessage.Send</code>, <code>Files.ReadWrite</code>, <code>Team.ReadBasic.All</code>, <code>Channel.ReadBasic.All</code>,
                             <code>Sites.ReadWrite.All</code> mit Admin-Zustimmung ergänzen. Nachrichten erscheinen unter dem Namen des verbundenen Kontos.
                         </p>
                     @endif
@@ -409,7 +409,7 @@
                                                 </div>
                                                 <div class="md:col-span-2" x-show="weg !== 'workflow'">
                                                     <label class="block text-xs font-medium text-gray-600 mb-1">
-                                                        SharePoint-Ordner für Anhänge <span class="text-gray-400">(Adresse aus dem Browser)</span>
+                                                        SharePoint-Ordner für Anhänge <span class="text-gray-400">(optional: leer = Kanalordner bzw. OneDrive des Kontos mit Freigabe an die Mitglieder)</span>
                                                     </label>
                                                     <div class="flex gap-2">
                                                         <input name="ablage_url" value="{{ $channel->ablage_url }}" :disabled="weg === 'workflow'"
@@ -479,7 +479,7 @@
                     </div>
                     <div class="md:col-span-2" x-show="weg !== 'workflow'">
                         <label class="block text-xs font-medium text-gray-600 mb-1">
-                            SharePoint-Ordner für Anhänge <span class="text-gray-400">(Adresse aus dem Browser)</span>
+                            SharePoint-Ordner für Anhänge <span class="text-gray-400">(optional: leer = Kanalordner bzw. OneDrive des Kontos mit Freigabe an die Mitglieder)</span>
                         </label>
                         <div class="flex gap-2">
                             <input name="ablage_url" value="{{ old('ablage_url') }}" :disabled="weg === 'workflow'"
