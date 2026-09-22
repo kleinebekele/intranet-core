@@ -254,6 +254,21 @@ class NotificationController extends Controller
         return view('ekkon::notifications.zugriffe', $zugriffe + ['konto' => GraphKonto::aktuelles()]);
     }
 
+    /** Unterordner einer Bibliothek als JSON – die Zugriffe-Seite klappt damit Ebene für Ebene auf. */
+    public function graphOrdner(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
+    {
+        $daten = $request->validate([
+            'drive' => ['required', 'string', 'max:255'],
+            'pfad' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        try {
+            return response()->json(['ordner' => $auskunft->unterordner($daten['drive'], (string) ($daten['pfad'] ?? ''))]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['fehler' => $e->getMessage()], 502);
+        }
+    }
+
     public function graphTrennen(GraphKontoVerbindung $verbindung): RedirectResponse
     {
         $verbindung->trennen();

@@ -39,6 +39,44 @@ class GraphAuskunft
     }
 
     /**
+     * Unterordner eines Ordners in einer Bibliothek – für das Aufklappen auf
+     * der Zugriffe-Seite (per Fetch, Ebene für Ebene).
+     *
+     * @param  string  $pfad  Pfad im Drive, leer = Wurzel
+     * @return array<int, array{name: string, pfad: string, url: string}>
+     */
+    public function unterordner(string $driveId, string $pfad): array
+    {
+        $token = $this->verbindung->accessToken();
+        $pfad = trim($pfad, '/');
+        $adresse = $pfad === ''
+            ? self::GRAPH.'/drives/'.rawurlencode($driveId).'/root/children'
+            : self::GRAPH.'/drives/'.rawurlencode($driveId).'/root:/'.implode('/', array_map('rawurlencode', explode('/', $pfad))).':/children';
+
+        $res = Http::withToken($token)->timeout(self::TIMEOUT)->get($adresse, ['$select' => 'name,folder,webUrl', '$top' => 200]);
+        if ($res->failed()) {
+            throw new \RuntimeException('Ordner nicht lesbar: '.($res->json('error.message') ?: 'HTTP '.$res->status()));
+        }
+
+        $liste = [];
+        foreach ((array) $res->json('value', []) as $item) {
+            if (! isset($item['folder'])) {
+                continue;
+            }
+            $name = (string) ($item['name'] ?? '');
+            $liste[] = [
+                'name' => $name,
+                'pfad' => ($pfad === '' ? '' : $pfad.'/').$name,
+                'url' => rawurldecode((string) ($item['webUrl'] ?? '')),
+            ];
+        }
+
+        usort($liste, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return $liste;
+    }
+
+    /**
      * Chats des Kontos: Besprechungs- und Gruppenchats mit Titel, 1:1-Chats
      * mit dem Namen des Gegenübers. Neueste zuerst.
      *
@@ -139,7 +177,7 @@ class GraphAuskunft
             $d = Http::withToken($token)->timeout(self::TIMEOUT)->get(self::GRAPH.'/sites/'.$siteId.'/drives', ['$select' => 'id,name,webUrl']);
             if ($d->successful()) {
                 foreach ((array) $d->json('value', []) as $drive) {
-                    $bibliotheken[] = ['name' => (string) ($drive['name'] ?? ''), 'url' => rawurldecode((string) ($drive['webUrl'] ?? ''))];
+                    $bibliotheken[] = ['id' => (string) ($drive['id'] ?? ''), 'name' => (string) ($drive['name'] ?? ''), 'url' => rawurldecode((string) ($drive['webUrl'] ?? ''))];
                 }
             }
             $liste[] = [

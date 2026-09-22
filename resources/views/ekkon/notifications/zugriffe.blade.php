@@ -102,17 +102,37 @@
                             <div>
                                 <div class="font-medium text-gray-800">{{ $site['name'] }} <a href="{{ $site['url'] }}" target="_blank" rel="noopener" class="text-xs text-gray-400 hover:underline font-normal">{{ $site['url'] }}</a></div>
                                 <table class="min-w-full text-sm mt-1">
-                                    <tbody>
                                         @forelse ($site['bibliotheken'] as $bib)
-                                            <tr class="border-b last:border-0">
-                                                <td class="py-1.5 pr-4 pl-4">{{ $bib['name'] }}</td>
-                                                <td class="py-1.5 pr-4 font-mono text-xs text-gray-500 max-w-lg truncate" title="{{ $bib['url'] }}">{{ $bib['url'] }}</td>
-                                                <td class="py-1.5 pr-4"><button type="button" @click="kopiere({{ \Illuminate\Support\Js::from($bib['url']) }})" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">kopieren</button></td>
-                                            </tr>
+                                            {{-- Eine Bibliothek = ein aufklappbarer Baum. Flache Zeilenliste mit
+                                                 Tiefe statt echter Rekursion – Alpine kann Templates nicht
+                                                 verschachtelt wiederholen; so bleibt es eine x-for-Schleife. --}}
+                                            <tbody x-data="ordnerBaum({{ \Illuminate\Support\Js::from($bib['id']) }})">
+                                                <tr class="border-b">
+                                                    <td class="py-1.5 pr-4 pl-4">
+                                                        <button type="button" @click="umschalten(null)" class="text-gray-500 hover:text-gray-800 mr-1 w-4 inline-block" :title="wurzelOffen ? 'zuklappen' : 'Unterordner laden'" x-text="wurzelOffen ? '▾' : '▸'"></button>
+                                                        {{ $bib['name'] }}
+                                                        <span x-show="laedt === ''" class="text-xs text-gray-400">lädt …</span>
+                                                    </td>
+                                                    <td class="py-1.5 pr-4 font-mono text-xs text-gray-500 max-w-lg truncate" title="{{ $bib['url'] }}">{{ $bib['url'] }}</td>
+                                                    <td class="py-1.5 pr-4"><button type="button" @click="kopiere({{ \Illuminate\Support\Js::from($bib['url']) }})" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">kopieren</button></td>
+                                                </tr>
+                                                <template x-for="z in zeilen" :key="z.pfad">
+                                                    <tr class="border-b">
+                                                        <td class="py-1.5 pr-4" :style="'padding-left:' + (1 + z.tiefe * 1.25) + 'rem'">
+                                                            <button type="button" @click="umschalten(z)" class="text-gray-500 hover:text-gray-800 mr-1 w-4 inline-block" x-text="z.offen ? '▾' : '▸'"></button>
+                                                            <span x-text="z.name"></span>
+                                                            <span x-show="laedt === z.pfad" class="text-xs text-gray-400">lädt …</span>
+                                                            <span x-show="z.leer" class="text-xs text-gray-400">(keine Unterordner)</span>
+                                                        </td>
+                                                        <td class="py-1.5 pr-4 font-mono text-xs text-gray-500 max-w-lg truncate" :title="z.url" x-text="z.url"></td>
+                                                        <td class="py-1.5 pr-4"><button type="button" @click="kopiere(z.url)" class="text-indigo-700 hover:underline text-xs whitespace-nowrap">kopieren</button></td>
+                                                    </tr>
+                                                </template>
+                                                <tr x-show="fehler" x-cloak><td colspan="3" class="py-1.5 pl-4 text-xs text-red-700" x-text="fehler"></td></tr>
+                                            </tbody>
                                         @empty
-                                            <tr><td class="py-1.5 pl-4 text-xs text-gray-400 italic">Bibliotheken nicht lesbar</td></tr>
+                                            <tbody><tr><td class="py-1.5 pl-4 text-xs text-gray-400 italic">Bibliotheken nicht lesbar</td></tr></tbody>
                                         @endforelse
-                                    </tbody>
                                 </table>
                             </div>
                         @endforeach
@@ -121,4 +141,50 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Ordnerbaum einer Bibliothek: flache Zeilenliste mit Tiefe. Aufklappen
+        // holt die Unterordner per Fetch und fügt sie hinter der Zeile ein,
+        // Zuklappen entfernt alles Tiefere bis zur nächsten gleichrangigen Zeile.
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('ordnerBaum', (driveId) => ({
+                zeilen: [],
+                wurzelOffen: false,
+                laedt: null,
+                fehler: '',
+                async holen(pfad) {
+                    const url = @json(route('module.ekkon.notifications.graph.ordner')) + '?drive=' + encodeURIComponent(driveId) + '&pfad=' + encodeURIComponent(pfad);
+                    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    const j = await r.json().catch(() => ({}));
+                    if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
+                    return j.ordner || [];
+                },
+                async umschalten(z) {
+                    this.fehler = '';
+                    const tiefe = z ? z.tiefe + 1 : 0;
+                    const offen = z ? z.offen : this.wurzelOffen;
+                    if (offen) {
+                        // zuklappen: alles hinter der Zeile entfernen, das tiefer liegt
+                        const start = z ? this.zeilen.indexOf(z) + 1 : 0;
+                        let ende = start;
+                        while (ende < this.zeilen.length && this.zeilen[ende].tiefe >= tiefe) { ende++; }
+                        this.zeilen.splice(start, ende - start);
+                        if (z) { z.offen = false; } else { this.wurzelOffen = false; }
+                        return;
+                    }
+                    this.laedt = z ? z.pfad : '';
+                    try {
+                        const kinder = (await this.holen(z ? z.pfad : '')).map(k => ({ ...k, tiefe, offen: false, leer: false }));
+                        const start = z ? this.zeilen.indexOf(z) + 1 : 0;
+                        this.zeilen.splice(start, 0, ...kinder);
+                        if (z) { z.offen = true; z.leer = kinder.length === 0; } else { this.wurzelOffen = true; }
+                    } catch (e) {
+                        this.fehler = e.message;
+                    } finally {
+                        this.laedt = null;
+                    }
+                },
+            }));
+        });
+    </script>
 </x-app-layout>
