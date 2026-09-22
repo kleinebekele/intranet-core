@@ -58,6 +58,9 @@ class KiClient
 
     private const TIMEOUT = 90;
 
+    /** Herkunft der Wissensstücke des letzten Aufrufs (Diagnose in der Maske). @var array<int, string> */
+    private array $letzteQuellen = [];
+
     public function aktiv(): bool
     {
         // Modell kann auch aus der Spezialanwendung kommen.
@@ -175,6 +178,8 @@ class KiClient
             'text' => $text,
             'modell' => (string) ($res->json('model') ?: $this->modell()),
             'tokens' => (int) ($res->json('usage.total_tokens') ?? 0),
+            // Für die Verarbeitungsspalte: welches Wissen die KI bekam.
+            'wissen' => $this->letzteQuellen,
         ];
     }
 
@@ -302,6 +307,7 @@ class KiClient
      */
     private function wissenSuchen(string $frage, ?\App\Models\User $benutzer): string
     {
+        $this->letzteQuellen = [];
         if (trim($frage) === '') {
             return '';
         }
@@ -318,6 +324,7 @@ class KiClient
             }
             $zeichen += mb_strlen($text);
             $stuecke[] = '[Quelle: '.$quelle."]\n".$text;
+            $this->letzteQuellen[] = $quelle;
 
             return true;
         };

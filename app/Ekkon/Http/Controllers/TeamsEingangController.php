@@ -144,7 +144,9 @@ class TeamsEingangController extends Controller
             return back()->withErrors(['ki' => 'KI-Test fehlgeschlagen: '.$e->getMessage()]);
         }
 
-        return back()->with('status', 'KI antwortet ('.$a['modell'].'): '.mb_substr($a['text'], 0, 300));
+        $wissen = ($a['wissen'] ?? []) === [] ? 'kein Wissen mitgegeben' : count($a['wissen']).' Wissenstreffer: '.implode(' | ', $a['wissen']);
+
+        return back()->with('status', 'KI antwortet ('.$a['modell'].'; '.$wissen.'; Probefrage läuft ohne Benutzerkonto, also nur mit Wissen für alle): '.mb_substr($a['text'], 0, 300));
     }
 
     public function destroy(Request $request, TeamsNachricht $nachricht): RedirectResponse|JsonResponse

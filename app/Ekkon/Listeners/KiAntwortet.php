@@ -91,7 +91,11 @@ class KiAntwortet
 
         $n->update([
             'verarbeitet_am' => now(),
-            'verarbeitung' => 'KI '.$antwort['modell'].($antwort['tokens'] ? ' ('.$antwort['tokens'].' Tokens)' : ''),
+            // Diagnose gleich mit: erkannter Benutzer (bestimmt die Wissensfilter)
+            // und welches Wissen mitging – sonst rätselt man, warum die KI etwas nicht weiß.
+            'verarbeitung' => mb_substr('KI '.$antwort['modell'].($antwort['tokens'] ? ' ('.$antwort['tokens'].' Tokens)' : '')
+                .' · Absender: '.($benutzer ? $benutzer->name.' ('.$benutzer->roles->pluck('role_id')->implode(', ').')' : 'kein Intranet-Konto zur Microsoft-ID')
+                .' · Wissen: '.(($antwort['wissen'] ?? []) === [] ? 'keins' : count($antwort['wissen']).' Treffer – '.implode(' | ', $antwort['wissen'])), 0, 255),
             'antwort' => $antwort['text'],
         ]);
     }
