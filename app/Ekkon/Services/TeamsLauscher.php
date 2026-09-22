@@ -95,6 +95,10 @@ class TeamsLauscher
                 'titel' => $this->chatTitel($chat, $konto),
                 'zuletzt_gesehen_am' => $letzteAm,
             ]);
+
+            // Gelesen: Der Bot hat den Chat jetzt „gesehen" – so bleibt sein
+            // Teams-Postfach leer, wenn jemand mit seinem Konto hineinschaut.
+            (new TeamsGraphClient($this->verbindung))->alsGelesenMarkieren($chatId);
         }
 
         return ['chats' => count($chats), 'neu' => $neu, 'fehler' => $fehler];

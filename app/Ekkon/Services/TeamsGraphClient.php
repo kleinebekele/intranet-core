@@ -186,6 +186,31 @@ class TeamsGraphClient
     }
 
     /**
+     * Chat für das Bot-Konto als gelesen markieren – sonst stapeln sich in
+     * dessen Teams die ungelesenen Nachrichten. Kosmetik, Fehler nur im Log.
+     */
+    public function alsGelesenMarkieren(string $chatId): void
+    {
+        try {
+            $konto = \App\Ekkon\Models\GraphKonto::aktuelles();
+            $tenant = (string) config('services.microsoft.tenant');
+            if ($konto === null || $tenant === '' || str_contains($chatId, '/')) {
+                return;
+            }
+            $token = $this->verbindung->accessToken();
+            $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
+                ->post(self::GRAPH.'/chats/'.rawurlencode($chatId).'/markChatReadForUser', [
+                    'user' => ['id' => $konto->ms_id, 'tenantId' => $tenant],
+                ]);
+            if ($res->failed()) {
+                Log::info('Teams: Chat nicht als gelesen markiert', ['fehler' => $this->fehler('markChatReadForUser', $res)]);
+            }
+        } catch (Throwable $e) {
+            Log::info('Teams: Chat nicht als gelesen markiert', ['fehler' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Reaktion (Emoji) auf eine fremde Nachricht setzen oder entfernen – rein
      * kosmetisch („gesehen"), Fehler werden nur geloggt.
      */

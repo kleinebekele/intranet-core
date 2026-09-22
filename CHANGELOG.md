@@ -43,6 +43,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Modell (Liste vom Anbieter), Systemprompt, Ein/Aus, „in Gruppen nur bei @-Erwähnung"
   (neue Spalte `bot_erwaehnt`, Migration). Probefrage direkt in der Maske. Während die KI arbeitet,
   reagiert der Bot mit 👀 auf die Frage und postet „…", das anschließend durch die Antwort ersetzt wird.
+  Gelesene Chats markiert der Lauscher für das Bot-Konto als gelesen (`markChatReadForUser`).
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die
