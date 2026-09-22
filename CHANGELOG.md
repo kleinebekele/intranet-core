@@ -8,6 +8,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Neu
+- **Anleitungen für Ekkon** (`resources/hilfe/30–35`, nur `admin`): Aufgaben, Aufgabe im Detail,
+  Benachrichtigungen, Teams-Channels, Webhook-Eingang, Teams-Chat.
 - **Benachrichtigungen können eine Datei mitführen.** `benachrichtige(…, anhang: ['name', 'inhalt'])`
   legt sie einmal unter `storage/app/ekkon/anhaenge/` ab (Spalten `anhang_pfad`/`anhang_name`, neue
   Migration). Mail bekommt sie als Anhang (`VorlagenMailer::senden(…, anhaenge:)`), Teams Base64 im
