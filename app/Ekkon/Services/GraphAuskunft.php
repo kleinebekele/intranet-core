@@ -184,6 +184,74 @@ class GraphAuskunft
             $url = $res->json()['@odata.nextLink'] ?? null; // json('a.b') wuerde den Punkt als Pfad lesen
         }
 
+        // Gruppengebundene Sites (Teams) fehlen in der Suche häufig – über die
+        // Teams des Kontos nachholen (Team-ID = Gruppen-ID; braucht nur
+        // Team.ReadBasic.All + Sites.*, keine Verzeichnis-Berechtigung).
+        $gruppen = Http::withToken($token)->timeout(self::TIMEOUT)->get(self::GRAPH.'/me/joinedTeams');
+        if ($gruppen->successful()) {
+            foreach ((array) $gruppen->json('value', []) as $g) {
+                $site = Http::withToken($token)->timeout(self::TIMEOUT)
+                    ->get(self::GRAPH.'/groups/'.rawurlencode((string) $g['id']).'/sites/root', ['$select' => 'id,displayName,name,webUrl']);
+                if ($site->successful() && filled($site->json('id'))) {
+                    $liste[] = [
+                        'id' => (string) $site->json('id'),
+                        'name' => (string) ($site->json('displayName') ?: $site->json('name') ?: $g['displayName']),
+                        'url' => (string) $site->json('webUrl'),
+                    ];
+                }
+            }
+        } else {
+            $fehler[] = 'Gruppen-Sites: '.($gruppen->json('error.message') ?: 'HTTP '.$gruppen->status());
+        }
+
+        return $this->sitesBereinigen($liste);
+    }
+
+    /**
+     * Gezielte Site-Suche (Filtertext im Dialog) – findet auch, was die
+     * Sternchen-Suche verschweigt.
+     *
+     * @return array<int, array{id: string, name: string, url: string}>
+     */
+    public function sitesSuchen(string $text): array
+    {
+        $token = $this->verbindung->accessToken();
+        $res = Http::withToken($token)->timeout(self::TIMEOUT)
+            ->get(self::GRAPH.'/sites', ['search' => $text, '$select' => 'id,displayName,name,webUrl', '$top' => 50]);
+        if ($res->failed()) {
+            throw new \RuntimeException('Site-Suche: '.($res->json('error.message') ?: 'HTTP '.$res->status()));
+        }
+
+        $liste = [];
+        foreach ((array) $res->json('value', []) as $site) {
+            $liste[] = [
+                'id' => (string) ($site['id'] ?? ''),
+                'name' => (string) ($site['displayName'] ?? $site['name'] ?? ''),
+                'url' => (string) ($site['webUrl'] ?? ''),
+            ];
+        }
+
+        return $this->sitesBereinigen($liste);
+    }
+
+    /**
+     * Doppelte (gleiche ID oder Adresse) entfernen, sortieren.
+     *
+     * @param  array<int, array{id: string, name: string, url: string}>  $liste
+     * @return array<int, array{id: string, name: string, url: string}>
+     */
+    private function sitesBereinigen(array $liste): array
+    {
+        $gesehen = [];
+        $liste = array_values(array_filter($liste, function (array $s) use (&$gesehen): bool {
+            $k = mb_strtolower(rtrim($s['url'], '/')) ?: $s['id'];
+            if ($k === '' || isset($gesehen[$k])) {
+                return false;
+            }
+            $gesehen[$k] = true;
+
+            return true;
+        }));
         usort($liste, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
 
         return $liste;

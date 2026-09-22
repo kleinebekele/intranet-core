@@ -237,6 +237,18 @@ class NotificationController extends Controller
             ->with('status', 'Microsoft-Konto verbunden: '.$konto->name.' ('.$konto->email.'). Nachrichten über Graph erscheinen unter diesem Namen.');
     }
 
+    /** Gezielte Site-Suche für den Dialog (Filtertext) – findet, was die Übersicht verschweigt. */
+    public function graphSitesSuchen(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
+    {
+        $daten = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
+
+        try {
+            return response()->json(['sites' => $auskunft->sitesSuchen($daten['q'])]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['fehler' => $e->getMessage()], 502);
+        }
+    }
+
     /** Bibliotheken einer Site als JSON – der Dialog holt sie beim Aufklappen. */
     public function graphBibliotheken(Request $request, \App\Ekkon\Services\GraphAuskunft $auskunft): JsonResponse
     {

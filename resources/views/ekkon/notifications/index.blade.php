@@ -35,6 +35,24 @@
                     this.auswahl.offen = false;
                 },
                 passt(text) { const s = this.auswahl.suche.trim().toLowerCase(); return s === '' || (text || '').toLowerCase().includes(s); },
+                async sitesSuchen() {
+                    const q = this.auswahl.suche.trim();
+                    if (q.length < 2 || ! this.auswahl.daten) { return; }
+                    this.auswahl.ordnerLaedt = 'suche'; this.auswahl.fehler = '';
+                    try {
+                        const url = {{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.sites')) }} + '?q=' + encodeURIComponent(q);
+                        const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                        const j = await r.json().catch(() => ({}));
+                        if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
+                        const bekannt = new Set(this.auswahl.daten.sites.map(s => s.url.toLowerCase()));
+                        let neu = 0;
+                        for (const s of (j.sites || [])) { if (! bekannt.has(s.url.toLowerCase())) { this.auswahl.daten.sites.push(s); neu++; } }
+                        this.auswahl.daten.sites.sort((a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base' }));
+                        if ((j.sites || []).length === 0) { this.auswahl.fehler = 'SharePoint-Suche: nichts gefunden zu „' + q + '".'; }
+                        else if (neu === 0) { this.auswahl.fehler = 'SharePoint-Suche: nur schon bekannte Sites.'; }
+                    } catch (e) { this.auswahl.fehler = e.message; }
+                    this.auswahl.ordnerLaedt = '';
+                },
                 async bibliothekenLaden(siteId) {
                     if (this.auswahl.bibs[siteId]) { delete this.auswahl.bibs[siteId]; return; }
                     this.auswahl.ordnerLaedt = 'site|' + siteId;
@@ -670,8 +688,13 @@
                         <h4 class="font-semibold text-gray-800" x-text="auswahl.art === 'ziel' ? 'Chat oder Kanal wählen' : 'SharePoint-Ordner wählen'"></h4>
                         <button type="button" @click="auswahl.offen = false" class="text-gray-400 hover:text-gray-700 text-xl leading-none" aria-label="Schließen">&times;</button>
                     </div>
-                    <div class="px-5 py-3 border-b">
-                        <input type="search" x-model="auswahl.suche" placeholder="filtern …" class="w-full rounded-md border-gray-300 text-sm">
+                    <div class="px-5 py-3 border-b flex gap-2 items-center">
+                        <input type="search" x-model="auswahl.suche" placeholder="filtern …" class="w-full rounded-md border-gray-300 text-sm"
+                               @keydown.enter.prevent="if (auswahl.art === 'ablage') sitesSuchen()">
+                        <button type="button" x-show="auswahl.art === 'ablage'" @click="sitesSuchen()" :disabled="auswahl.suche.trim().length < 2 || auswahl.ordnerLaedt === 'suche'"
+                                class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                title="Fehlt eine Site in der Liste: gezielt bei SharePoint danach suchen"
+                                x-text="auswahl.ordnerLaedt === 'suche' ? 'sucht …' : 'bei SharePoint suchen'"></button>
                     </div>
                     <div class="px-5 py-4 overflow-y-auto text-sm space-y-5">
                         <p x-show="auswahl.laedt" class="text-gray-500">Zugriffe des Kontos werden geladen …</p>
@@ -712,7 +735,7 @@
                         <template x-if="auswahl.daten && auswahl.art === 'ablage'">
                             <div class="space-y-5">
                                 <template x-for="s in auswahl.daten.sites" :key="s.id">
-                                    <div x-show="passt(s.name)">
+                                    <div x-show="passt(s.name + ' ' + s.url)">
                                         <div class="font-medium text-gray-700 mb-1">
                                             <button type="button" @click="bibliothekenLaden(s.id)" class="text-gray-500 hover:text-gray-800 w-4 inline-block" x-text="auswahl.bibs[s.id] ? '▾' : '▸'"></button>
                                             <span x-text="s.name"></span>
