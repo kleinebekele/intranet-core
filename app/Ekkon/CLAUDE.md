@@ -115,9 +115,11 @@ channel when a webhook request is received" bearbeiten):
 
 Soll im Kanal **nur der Link** statt der ganzen Karte stehen (Sally-Daily): den Block „Attachments is
 null" samt Post-Card entfernen; im Ja-Zweig nach „Datei erstellen" **Teams → „Nachricht in einem Chat
-oder Kanal posten"** mit `triggerBody()?['titel']` + Link aus „Datei erstellen"; im Nein-Zweig dieselbe
-Aktion mit `triggerBody()?['text']`. Der Umschlag trägt `titel` und `text` dafür flach neben
-`attachments`.
+oder Kanal posten"** mit `triggerBody()?['titel']` + Link; im Nein-Zweig dieselbe Aktion mit
+`triggerBody()?['text']`. Der Umschlag trägt `titel` und `text` dafür flach neben `attachments`.
+„Datei erstellen" liefert **keinen** Link, nur `body/Path` – der Link wird gebaut, `?web=1` öffnet
+die Datei in Word Online statt sie herunterzuladen (so läuft es seit 22.09.2026 im Daily-Kanal):
+`concat('<a href="SITE/', replace(outputs('Datei_erstellen')?['body/Path'], ' ', '%20'), '?web=1">Zusammenfassung als Word-Dokument</a>')`
 
 Erster Nutzer: `SallyZusammenfassung` (RAV, `module-ekkon-jtl`) baut die Zusammenfassung per PhpWord
 als `.docx` (`Support/SallyWordDokument`).
