@@ -195,6 +195,12 @@ Modell (Liste per „Modelle laden"), Systemprompt, Schalter „aktiv", „Grupp
 Benutzerkonten keinen Tipp-Indikator → 👀-Reaktion (`setReaction`) + Platzhalter „…", der per
 `PATCH …/messages/{id}` durch die Antwort ersetzt wird. Der Aufruf läuft im Lauscher-Prozess
 (blockiert dessen Schleife bis zu 90 s) – bei viel Verkehr auf eine Queue umstellen.
+**Spezialanwendung (Custom GPT):** per API nicht direkt befragbar (OpenAPI-Spec geprüft 22.09.2026: kein Feld
+in /chat/completions, /responses, /anthropic/v1/messages). `KiClient` übernimmt stattdessen `instructions`
++ `modelId` (UUID → Modell-Kennung über /models/all) aus `GET /custom-gpts/{id}` (10 min Cache) und holt
+Kontextwissen per `POST /document-folders/{id}/search` (6 Treffer, max. 12k Zeichen) in den Systemprompt.
+Einstellungen `ekkon.ki.spezialanwendung` / `ekkon.ki.ordner`; beide müssen im Dashboard für den Key
+freigegeben sein (Custom-GPT-/Ordnerberechtigungen, Enterprise).
 
 ## Sicherheitsschalter
 

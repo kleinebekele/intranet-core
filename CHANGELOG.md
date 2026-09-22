@@ -46,6 +46,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   (neue Spalte `bot_erwaehnt`, Migration). Probefrage direkt in der Maske. Während die KI arbeitet,
   reagiert der Bot mit 👀 auf die Frage und postet „…", das anschließend durch die Antwort ersetzt wird.
   Gelesene Chats markiert der Lauscher für das Bot-Konto als gelesen (`markChatReadForUser`).
+  **Spezialanwendung und Dokumentenordner:** In der KI-Maske lässt sich eine DeutschlandGPT-Spezialanwendung
+  wählen (Anweisungen + Modell werden übernommen; die Chat-API kann sie nicht direkt befragen) und ein
+  Dokumentenordner, der vor jeder Antwort semantisch durchsucht wird (Treffer gehen als Wissen mit).
+  Beides muss im DeutschlandGPT-Dashboard für den API-Schlüssel freigegeben sein.
 - **Ekkon ist fester Bestandteil des Cores.** Task-System, Benachrichtigungen und Webhook-Eingang
   liegen jetzt unter `app/Ekkon/` statt im Paket `do1emu/module-ekkon` (Anleitung: `EKKON.md`).
   Für den Betrieb ändert sich nichts: Tabellen `ekkon_*`, Task-Keys, Menüpunkte, Rechte, die

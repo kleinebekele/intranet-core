@@ -34,6 +34,8 @@ class TeamsEingangController extends Controller
                 'url' => $ki->url(),
                 'schluessel_da' => $ki->schluessel() !== '',
                 'modell' => $ki->modell(),
+                'spezialanwendung' => $ki->spezialanwendung(),
+                'ordner' => $ki->ordner(),
                 'system' => $ki->systemPrompt(),
                 'gruppen_nur_erwaehnt' => $ki->gruppenNurBeiErwaehnung(),
             ],
@@ -84,6 +86,9 @@ class TeamsEingangController extends Controller
             $ki->schluesselSpeichern(trim($daten['schluessel']));
         }
         Setting::set(KiClient::MODELL, trim((string) ($daten['modell'] ?? '')));
+        Setting::set(KiClient::SPEZIALANWENDUNG, trim((string) $request->input('spezialanwendung', '')));
+        Setting::set(KiClient::ORDNER, trim((string) $request->input('ordner', '')));
+        \Illuminate\Support\Facades\Cache::forget('ekkon-ki-spezialanwendung-'.trim((string) $request->input('spezialanwendung', '')));
         Setting::set(KiClient::SYSTEM, trim((string) ($daten['system'] ?? '')) ?: KiClient::STANDARD_SYSTEM);
         Setting::set(KiClient::AKTIV, $request->boolean('aktiv') ? '1' : '0');
         Setting::set(KiClient::GRUPPEN_NUR_ERWAEHNT, $request->boolean('gruppen_nur_erwaehnt') ? '1' : '0');
@@ -100,6 +105,26 @@ class TeamsEingangController extends Controller
     {
         try {
             return response()->json(['modelle' => (new KiClient)->modelle()]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['fehler' => $e->getMessage()], 502);
+        }
+    }
+
+    /** Spezialanwendungen des API-Keys – JSON für die Auswahl. */
+    public function kiSpezialanwendungen(): JsonResponse
+    {
+        try {
+            return response()->json(['spezialanwendungen' => (new KiClient)->spezialanwendungen()]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['fehler' => $e->getMessage()], 502);
+        }
+    }
+
+    /** Dokumentenordner des API-Keys – JSON für die Auswahl. */
+    public function kiOrdner(): JsonResponse
+    {
+        try {
+            return response()->json(['ordner' => (new KiClient)->dokumentenordner()]);
         } catch (\RuntimeException $e) {
             return response()->json(['fehler' => $e->getMessage()], 502);
         }

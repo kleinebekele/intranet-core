@@ -57,6 +57,20 @@
             <div class="bg-white shadow-sm sm:rounded-lg p-4 sm:p-6"
                  x-data="{
                     modelle: [],
+                    listen: { spezialanwendungen: null, ordner: null },
+                    listenFehler: '',
+                    listeLaedt: '',
+                    async listeLaden(was) {
+                        this.listeLaedt = was; this.listenFehler = '';
+                        const urls = { spezialanwendungen: {{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.spezialanwendungen')) }}, ordner: {{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.ordner')) }} };
+                        try {
+                            const r = await fetch(urls[was], { headers: { 'Accept': 'application/json' } });
+                            const j = await r.json().catch(() => ({}));
+                            if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
+                            this.listen[was] = j[was] || [];
+                        } catch (e) { this.listenFehler = e.message; }
+                        this.listeLaedt = '';
+                    },
                     modellFehler: '',
                     laedt: false,
                     async modelleLaden() {
@@ -117,6 +131,50 @@
                         </div>
                         <p class="text-xs text-gray-500 mt-1" x-show="modelle.length > 0">Liste geladen (<span x-text="modelle.length"></span>) – ins Feld klicken zeigt die Auswahl.</p>
                         <p class="text-xs text-red-700 mt-1" x-show="modellFehler" x-text="modellFehler"></p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">
+                            Spezialanwendung <span class="text-gray-400">(übernimmt deren Anweisungen und Modell; leer = eigener Systemprompt)</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <select name="spezialanwendung" class="w-full rounded-md border-gray-300 text-sm">
+                                <option value="">– keine –</option>
+                                @if ($ki['spezialanwendung'] !== '')
+                                    <option value="{{ $ki['spezialanwendung'] }}" selected x-show="! listen.spezialanwendungen">{{ $ki['spezialanwendung'] }} (gespeichert)</option>
+                                @endif
+                                <template x-for="s in (listen.spezialanwendungen || [])" :key="s.id">
+                                    <option :value="s.id" :selected="s.id === {{ \Illuminate\Support\Js::from($ki['spezialanwendung']) }}" x-text="s.name + (s.beschreibung ? ' – ' + s.beschreibung.slice(0, 60) : '')"></option>
+                                </template>
+                            </select>
+                            <button type="button" @click="listeLaden('spezialanwendungen')" :disabled="listeLaedt !== ''"
+                                    class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    x-text="listeLaedt === 'spezialanwendungen' ? 'lädt …' : 'Liste laden'"></button>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">
+                            Dokumentenordner als Wissen <span class="text-gray-400">(wird vor jeder Antwort durchsucht; leer = kein Kontextwissen)</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <select name="ordner" class="w-full rounded-md border-gray-300 text-sm">
+                                <option value="">– keiner –</option>
+                                @if ($ki['ordner'] !== '')
+                                    <option value="{{ $ki['ordner'] }}" selected x-show="! listen.ordner">{{ $ki['ordner'] }} (gespeichert)</option>
+                                @endif
+                                <template x-for="o in (listen.ordner || [])" :key="o.id">
+                                    <option :value="o.id" :selected="o.id === {{ \Illuminate\Support\Js::from($ki['ordner']) }}" x-text="o.name + ' (' + o.dateien + ' Dateien)'"></option>
+                                </template>
+                            </select>
+                            <button type="button" @click="listeLaden('ordner')" :disabled="listeLaedt !== ''"
+                                    class="whitespace-nowrap rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                    x-text="listeLaedt === 'ordner' ? 'lädt …' : 'Liste laden'"></button>
+                        </div>
+                        <p class="text-xs text-red-700 mt-1" x-show="listenFehler" x-text="listenFehler"></p>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Hinweis: Die Chat-API kann eine Spezialanwendung nicht direkt befragen. Das Intranet übernimmt deshalb ihre
+                            Anweisungen und ihr Modell; ihr Kontextwissen bildest du über einen Dokumentenordner mit denselben Dateien nach.
+                            Beides muss im DeutschlandGPT-Dashboard für diesen API-Schlüssel freigegeben sein.
+                        </p>
                     </div>
                     <div class="md:col-span-2 flex flex-col gap-2 text-sm pb-2">
                         <label class="inline-flex items-center gap-2">

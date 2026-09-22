@@ -52,6 +52,8 @@ Route::middleware(['web', 'auth'])
                 Route::get('/', [TeamsEingangController::class, 'index'])->name('index');
                 Route::post('/ki', [TeamsEingangController::class, 'kiSpeichern'])->name('ki.speichern');
                 Route::get('/ki/modelle', [TeamsEingangController::class, 'kiModelle'])->name('ki.modelle');
+                Route::get('/ki/spezialanwendungen', [TeamsEingangController::class, 'kiSpezialanwendungen'])->name('ki.spezialanwendungen');
+                Route::get('/ki/ordner', [TeamsEingangController::class, 'kiOrdner'])->name('ki.ordner');
                 Route::post('/ki/test', [TeamsEingangController::class, 'kiTest'])->name('ki.test');
                 Route::post('/{nachricht}/antworten', [TeamsEingangController::class, 'antworten'])->name('antworten');
                 Route::delete('/{nachricht}', [TeamsEingangController::class, 'destroy'])->name('destroy');
