@@ -50,32 +50,23 @@ class TeamsGraphClient
     }
 
     /**
-     * Datei im OneDrive des Bots allen Mitgliedern eines Chats freigeben –
-     * sonst zeigt die Dateikarte ihnen „kein Zugriff".
+     * Datei im OneDrive des Bots für die ganze Organisation freigeben
+     * („Jeder in der Organisation mit dem Link kann bearbeiten") – so wie Teams
+     * es beim Teilen im Chat macht. Damit sieht jeder Chat-Teilnehmer die
+     * Dateikarte und öffnet sie in Teams, ohne Einzelfreigaben.
      *
      * @param  array{id: string, driveId: string}  $anhang
      */
-    private function freigebenAnChat(string $token, array $anhang, string $chatId): void
+    private function organisationsLink(string $token, array $anhang): void
     {
-        $res = Http::withToken($token)->timeout(self::TIMEOUT)->get(self::GRAPH.'/chats/'.rawurlencode($chatId).'/members');
+        $res = Http::withToken($token)->timeout(self::TIMEOUT)->asJson()
+            ->post(self::GRAPH.'/drives/'.$anhang['driveId'].'/items/'.$anhang['id'].'/createLink', [
+                'type' => 'edit',
+                'scope' => 'organization',
+            ]);
+
         if ($res->failed()) {
-            throw new \RuntimeException($this->fehler('Chat-Mitglieder nicht lesbar', $res));
-        }
-
-        $konto = \App\Ekkon\Models\GraphKonto::aktuelles();
-        $mails = [];
-        foreach ((array) $res->json('value', []) as $m) {
-            $mail = strtolower(trim((string) ($m['email'] ?? '')));
-            if ($mail !== '' && $mail !== strtolower((string) ($konto?->email ?? ''))) {
-                $mails[] = $mail;
-            }
-        }
-        if ($mails === []) {
-            return;
-        }
-
-        foreach (array_chunk(array_unique($mails), 20) as $teil) {
-            $this->freigeben($token, $anhang, $teil);
+            throw new \RuntimeException($this->fehler('Organisationslink konnte nicht erstellt werden', $res));
         }
     }
 
@@ -105,14 +96,15 @@ class TeamsGraphClient
             $anhang = null;
             if ($datei !== null && ($datei['inhalt'] ?? '') !== '') {
                 $anhang = $this->hochladen($token, $channel, (string) $datei['name'], (string) $datei['inhalt']);
-                // Freigabe: Eine Person hat auf den Ablageort meist keinen Zugriff;
-                // liegt die Datei im OneDrive des Bots (keine Ablage-URL, kein
-                // Kanal), müssen alle Chat-Mitglieder sie ausdrücklich bekommen.
+                // Freigabe: Liegt die Datei im OneDrive des Bots (keine Ablage-URL,
+                // kein Kanal), bekommt sie einen Organisationslink – wie beim Teilen
+                // in Teams. Bei eigener Ablage hat eine einzelne Person dort meist
+                // keinen Zugriff und wird ausdrücklich eingeladen.
                 $ohneAblage = trim((string) $channel->ablage_url) === '' && ! str_contains((string) $channel->chat_id, '/');
-                if ($person !== null) {
+                if ($ohneAblage) {
+                    $this->organisationsLink($token, $anhang);
+                } elseif ($person !== null) {
                     $this->freigeben($token, $anhang, $person);
-                } elseif ($ohneAblage) {
-                    $this->freigebenAnChat($token, $anhang, $ziel);
                 }
             }
 
