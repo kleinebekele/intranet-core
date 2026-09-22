@@ -111,7 +111,13 @@ channel when a webhook request is received" bearbeiten):
    (`outputs('Datei_erstellen')?['body/{Link}']`) ergänzen. Die Datei ist im Reiter **Dateien** des
    Kanals sichtbar.
 5. Grüner HTTP-Status beweist nichts (s. `TeamsWebhookClient`): Nach dem Umbau eine echte Meldung
-   auslösen und im Kanal nachsehen.
+   auslösen und im Kanal nachsehen (Benachrichtigungen → „nochmal senden").
+
+Soll im Kanal **nur der Link** statt der ganzen Karte stehen (Sally-Daily): den Block „Attachments is
+null" samt Post-Card entfernen; im Ja-Zweig nach „Datei erstellen" **Teams → „Nachricht in einem Chat
+oder Kanal posten"** mit `triggerBody()?['titel']` + Link aus „Datei erstellen"; im Nein-Zweig dieselbe
+Aktion mit `triggerBody()?['text']`. Der Umschlag trägt `titel` und `text` dafür flach neben
+`attachments`.
 
 Erster Nutzer: `SallyZusammenfassung` (RAV, `module-ekkon-jtl`) baut die Zusammenfassung per PhpWord
 als `.docx` (`Support/SallyWordDokument`).

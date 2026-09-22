@@ -118,6 +118,12 @@ class TeamsWebhookClient
 
         return [
             'type' => 'message',
+            // Titel und Text zusätzlich flach im Umschlag: Ein Workflow, der die
+            // Nachricht selbst zusammensetzt (z. B. Datei ablegen und nur den Link
+            // posten), greift sie so als triggerBody()?['titel'] / ['text'] ab,
+            // statt sich durch die Adaptive Card zu hangeln.
+            'titel' => $titel,
+            'text' => $text,
             'attachments' => [
                 [
                     'contentType' => 'application/vnd.microsoft.card.adaptive',
