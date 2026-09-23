@@ -80,6 +80,16 @@
                                class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                                 <i class='bx bx-group'></i>
                             </a>
+                            @if ($role->role_id !== 'admin')
+                                <a href="{{ route('admin.roles.sichtbarkeit', $role) }}" title="Sichtbarkeit"
+                                   class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+                                    <i class='bx bx-show'></i>
+                                </a>
+                            @else
+                                <span class="p-1.5 text-gray-300" title="Administratoren sehen ohnehin alles">
+                                    <i class='bx bx-show'></i>
+                                </span>
+                            @endif
                             {{-- Rollen, die ein Abgleich pflegt oder ein Modul mitbringt, gehören
                                  nicht dem Panel: nur ansehen, nichts ändern. --}}
                             @if ($role->istVerwaltet() || $role->stammtAusManifest())

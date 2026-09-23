@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Module;
+use App\Models\ModuleMenuItem;
 use App\Models\Role;
 use App\Models\User;
 use App\Modules\Support\ModuleRegistry;
@@ -248,6 +249,94 @@ class RoleController extends Controller
 
         return redirect()->route('admin.roles.mitglieder', $role)
             ->with('status', "{$user->name} wurde aus \"{$role->name}\" entfernt.");
+    }
+
+    /**
+     * Sichtbarkeit von der Rolle aus: welche Unterseiten welcher Module sieht
+     * sie? Dieselbe Zuordnung wie unter Verwaltung → Module, nur andersherum.
+     * Module, denen die Rolle fremd ist (sie gehört einem anderen Modul),
+     * erscheinen nur mit den Punkten, an denen sie schon hängt – zum Entfernen.
+     */
+    public function sichtbarkeit(Role $role): View|RedirectResponse
+    {
+        if ($role->role_id === 'admin') {
+            return redirect()->route('admin.roles.index')
+                ->withErrors(['role' => 'Administratoren sehen ohnehin alles.']);
+        }
+
+        $module = $this->sichtbarkeitsModule($role);
+
+        return view('admin.roles.sichtbarkeit', compact('role', 'module'));
+    }
+
+    public function sichtbarkeitSpeichern(Request $request, Role $role): RedirectResponse
+    {
+        abort_if($role->role_id === 'admin', 404);
+
+        $data = $request->validate([
+            'items' => ['array'],
+            'items.*' => ['integer'],
+        ]);
+        $gewaehlt = collect($data['items'] ?? [])->map(fn ($id) => (int) $id);
+
+        $vorher = [];
+        $nachher = [];
+        foreach ($this->sichtbarkeitsModule($role) as $eintrag) {
+            foreach ($eintrag['items'] as $item) {
+                $hatte = $item->roles->contains('role_id', $role->role_id);
+                $soll = $gewaehlt->contains($item->id);
+                $bezeichnung = $eintrag['modul']->name.' → '.$item->label;
+
+                if ($hatte) {
+                    $vorher[] = $bezeichnung;
+                }
+                if ($soll) {
+                    $nachher[] = $bezeichnung;
+                }
+                if ($soll && ! $hatte) {
+                    $item->roles()->attach($role->role_id);
+                } elseif (! $soll && $hatte) {
+                    $item->roles()->detach($role->role_id);
+                }
+            }
+        }
+
+        if ($vorher !== $nachher) {
+            Audit::schreiben('rolle.sichtbarkeit', null, ziel: 'Rolle '.$role->role_id, daten: [
+                'neu' => array_values(array_diff($nachher, $vorher)),
+                'entfernt' => array_values(array_diff($vorher, $nachher)),
+            ]);
+        }
+
+        return redirect()->route('admin.roles.sichtbarkeit', $role)
+            ->with('status', "Sichtbarkeit von \"{$role->name}\" gespeichert.");
+    }
+
+    /**
+     * Module in Navigationsreihenfolge, je mit den Unterpunkten, die sich für
+     * diese Rolle setzen lassen. Module ohne solchen Punkt fallen weg.
+     *
+     * @return Collection<int, array{modul: Module, items: Collection<int, ModuleMenuItem>, fremd: bool}>
+     */
+    private function sichtbarkeitsModule(Role $role): Collection
+    {
+        return Module::whereIn('key', app(ModuleRegistry::class)->keys())
+            ->with('menuItems.roles')
+            ->orderBy('position')
+            ->get()
+            ->map(function (Module $modul) use ($role) {
+                $fremd = $role->auswahlgruppeFuer($modul->key) === 'fremd';
+
+                return [
+                    'modul' => $modul,
+                    'items' => $modul->menuItems->filter(
+                        fn (ModuleMenuItem $item) => ! $fremd || $item->roles->contains('role_id', $role->role_id),
+                    )->values(),
+                    'fremd' => $fremd,
+                ];
+            })
+            ->filter(fn (array $eintrag) => $eintrag['items']->isNotEmpty())
+            ->values();
     }
 
     /** Alle Benutzer-Zuweisungen einer (Nicht-System-)Rolle aufheben. */

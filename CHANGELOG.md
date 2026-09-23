@@ -13,6 +13,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   (Migration): `modules:sync` lässt solche Zuordnungen stehen, meldet das Modul die Rolle selbst
   an, übernimmt es sie. Handzugeordnete Rollen bleiben im Panel bearbeit- und löschbar,
   `modules:uninstall --mit-daten` löscht sie nicht.
+- **Sichtbarkeit von der Rolle aus** (`admin/roles/{role}/sichtbarkeit`, Knopf in der Rollenliste):
+  je Modul die Unterseiten zum Anhaken, dieselbe Zuordnung wie unter „Module". Module, denen die
+  Rolle fremd ist, zeigen nur bestehende Zuordnungen zum Entfernen.
 - **Anleitungen für Ekkon** (`resources/hilfe/30–35`, nur `admin`): Aufgaben, Aufgabe im Detail,
   Benachrichtigungen, Teams-Channels, Webhook-Eingang, Teams-Chat.
 - **Benachrichtigungen können eine Datei mitführen.** `benachrichtige(…, anhang: ['name', 'inhalt'])`

@@ -73,6 +73,8 @@ Route::middleware('auth')->group(function () {
         Route::get('roles/{role}/mitglieder', [RoleController::class, 'mitglieder'])->name('roles.mitglieder');
         Route::post('roles/{role}/mitglieder', [RoleController::class, 'mitgliederHinzufuegen'])->name('roles.mitglieder.store');
         Route::delete('roles/{role}/mitglieder/{user}', [RoleController::class, 'mitgliedEntfernen'])->name('roles.mitglieder.destroy');
+        Route::get('roles/{role}/sichtbarkeit', [RoleController::class, 'sichtbarkeit'])->name('roles.sichtbarkeit');
+        Route::put('roles/{role}/sichtbarkeit', [RoleController::class, 'sichtbarkeitSpeichern'])->name('roles.sichtbarkeit.update');
 
         // Benutzer-Verwaltung (CRUD) + Passwort-Reset-Link.
         Route::resource('users', UserController::class)->except(['show']);
