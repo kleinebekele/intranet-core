@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Module;
 use App\Models\Role;
 use App\Models\User;
+use App\Modules\Support\ModuleRegistry;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -34,7 +38,7 @@ class RoleController extends Controller
 
     public function create(): View
     {
-        return view('admin.roles.create');
+        return view('admin.roles.create', ['module' => $this->modulAuswahl()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -42,9 +46,11 @@ class RoleController extends Controller
         $data = $request->validate([
             'role_id' => ['required', 'string', 'max:64', 'alpha_dash', 'unique:roles,role_id'],
             'name' => ['required', 'string', 'max:255'],
+            'modul' => ['nullable', 'string', Rule::in($this->modulAuswahl()->keys())],
         ]);
 
-        Role::create($data);
+        $role = Role::create(['role_id' => $data['role_id'], 'name' => $data['name']]);
+        $this->modulZuordnen($role, $data['modul'] ?? null);
         Audit::schreiben('rolle.angelegt', "Rolle „{$data['name']}\" angelegt.", ziel: 'Rolle '.$data['role_id']);
 
         return redirect()->route('admin.roles.index')
@@ -57,7 +63,43 @@ class RoleController extends Controller
             return redirect()->route('admin.roles.index')->withErrors(['role' => $sperre]);
         }
 
-        return view('admin.roles.edit', compact('role'));
+        return view('admin.roles.edit', ['role' => $role, 'module' => $this->modulAuswahl()]);
+    }
+
+    /**
+     * Module, denen man eine Rolle von Hand zuordnen kann: alle installierten,
+     * auch abgeschaltete (die Rolle ruht dann mit ihrem Modul).
+     *
+     * @return Collection<string, Module> key => Modul, nach Name
+     */
+    private function modulAuswahl(): Collection
+    {
+        return Module::whereIn('key', app(ModuleRegistry::class)->keys())
+            ->orderBy('name')
+            ->get()
+            ->keyBy('key');
+    }
+
+    /**
+     * Handzuordnung setzen oder aufheben. `modul_von_hand` sorgt dafür, dass
+     * `modules:sync` die Zuordnung stehen lässt. Gibt zurück, ob sich etwas
+     * geändert hat.
+     */
+    private function modulZuordnen(Role $role, ?string $modul): bool
+    {
+        $modul = $modul !== '' ? $modul : null;
+        if ($role->modul === $modul) {
+            return false;
+        }
+
+        $role->forceFill([
+            'modul' => $modul,
+            'modul_von_hand' => $modul !== null,
+            'plattformweit' => false,
+        ])->save();
+        Role::aktivStandVergessen();
+
+        return true;
     }
 
     /**
@@ -70,7 +112,7 @@ class RoleController extends Controller
     {
         return match (true) {
             $role->istVerwaltet() => "Die Rolle \"{$role->name}\" pflegt der Abgleich „{$role->quelle}\" – sie lässt sich hier nicht bearbeiten.",
-            $role->gehoertZuModul() => "Die Rolle \"{$role->name}\" bringt das Modul „{$role->modul}\" mit – der Name kommt von dort und würde beim nächsten Abgleich zurückgesetzt.",
+            $role->stammtAusManifest() => "Die Rolle \"{$role->name}\" bringt das Modul „{$role->modul}\" mit – der Name kommt von dort und würde beim nächsten Abgleich zurückgesetzt.",
             default => null,
         };
     }
@@ -83,16 +125,27 @@ class RoleController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'modul' => ['nullable', 'string', Rule::in($this->modulAuswahl()->keys())],
         ]);
 
         $alt = $role->name;
-        $role->update($data);
+        $altesModul = $role->modul;
+        $role->update(['name' => $data['name']]);
         if ($alt !== $role->name) {
             Audit::schreiben('rolle.geaendert', "Umbenannt: „{$alt}\" → „{$role->name}\".", ziel: 'Rolle '.$role->role_id);
         }
 
+        // System-Rollen (admin, user) gehören immer dem Core.
+        if (! $role->isSystem() && $this->modulZuordnen($role, $data['modul'] ?? null)) {
+            Audit::schreiben(
+                'rolle.geaendert',
+                'Modul: „'.($altesModul ?? 'keins').'" → „'.($role->modul ?? 'keins').'".',
+                ziel: 'Rolle '.$role->role_id,
+            );
+        }
+
         return redirect()->route('admin.roles.index')
-            ->with('status', "Rolle \"{$role->role_id}\" wurde umbenannt.");
+            ->with('status', "Rolle \"{$role->role_id}\" wurde gespeichert.");
     }
 
     public function destroy(Role $role): RedirectResponse
@@ -101,7 +154,7 @@ class RoleController extends Controller
             return back()->withErrors(['role' => "Die System-Rolle \"{$role->role_id}\" kann nicht gelöscht werden."]);
         }
 
-        if ($role->gehoertZuModul()) {
+        if ($role->stammtAusManifest()) {
             return back()->withErrors(['role' => "Die Rolle \"{$role->name}\" bringt das Modul „{$role->modul}\" mit – sie verschwindet, wenn das Modul entfernt wird."]);
         }
 

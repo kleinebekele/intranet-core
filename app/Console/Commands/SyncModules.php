@@ -141,11 +141,14 @@ class SyncModules extends Command
             $eintrag->name = $rolle->name;
             $eintrag->forceFill([
                 'modul' => $manifest->key,
+                'modul_von_hand' => false,
                 'plattformweit' => $rolle->plattformweit,
             ])->save();
         }
 
+        // Von Hand zugeordnete Rollen meldet kein Manifest an – sie bleiben stehen.
         Role::where('modul', $manifest->key)
+            ->where('modul_von_hand', false)
             ->whereNotIn('role_id', $gesehen ?: ['__none__'])
             ->update(['modul' => null, 'plattformweit' => false]);
     }

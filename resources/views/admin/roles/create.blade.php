@@ -31,6 +31,8 @@
                 @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
+            @include('admin.roles._modulfeld', ['aktuell' => null])
+
             <div class="flex items-center gap-3 pt-2">
                 <button type="submit"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">

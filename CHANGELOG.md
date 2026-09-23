@@ -8,6 +8,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Neu
+- **Rollen von Hand einem Modul zuordnen.** Rolle anlegen/bearbeiten hat ein Feld „Modul"; die
+  Rolle ruht dann mit dem Modul und steht dort zur Auswahl. Neue Spalte `roles.modul_von_hand`
+  (Migration): `modules:sync` lässt solche Zuordnungen stehen, meldet das Modul die Rolle selbst
+  an, übernimmt es sie. Handzugeordnete Rollen bleiben im Panel bearbeit- und löschbar,
+  `modules:uninstall --mit-daten` löscht sie nicht.
 - **Anleitungen für Ekkon** (`resources/hilfe/30–35`, nur `admin`): Aufgaben, Aufgabe im Detail,
   Benachrichtigungen, Teams-Channels, Webhook-Eingang, Teams-Chat.
 - **Benachrichtigungen können eine Datei mitführen.** `benachrichtige(…, anhang: ['name', 'inhalt'])`

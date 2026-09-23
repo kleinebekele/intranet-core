@@ -104,12 +104,13 @@ class ModuleUninstaller
         // behalten ihre Mitglieder – ein erneut installiertes Modul übernimmt
         // sie beim Sync wieder. Mit Daten: weg damit, Zuweisungen inklusive.
         // Plattformweite Rollen (Lehrer, Schüler …) bleiben immer: an ihnen
-        // hängen auch andere Module.
+        // hängen auch andere Module. Von Hand zugeordnete Rollen hat das Modul
+        // nicht mitgebracht – sie bleiben und gelten danach als von Hand angelegt.
         $rollen = $vorschau['rollen'];
-        $geloescht = $mitDaten ? $rollen->where('plattformweit', false) : collect();
+        $geloescht = $mitDaten ? $rollen->where('plattformweit', false)->where('modul_von_hand', false) : collect();
 
         Role::whereIn('role_id', $geloescht->pluck('role_id'))->delete();
-        Role::where('modul', $key)->update(['modul' => null, 'plattformweit' => false]);
+        Role::where('modul', $key)->update(['modul' => null, 'modul_von_hand' => false, 'plattformweit' => false]);
         Role::aktivStandVergessen();
 
         $ekkonZeilen = $mitDaten ? app(ModulSpuren::class)->entfernen($key) : 0;

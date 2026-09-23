@@ -32,7 +32,7 @@ class Role extends Model
      */
     protected function casts(): array
     {
-        return ['is_system' => 'boolean', 'plattformweit' => 'boolean'];
+        return ['is_system' => 'boolean', 'plattformweit' => 'boolean', 'modul_von_hand' => 'boolean'];
     }
 
     /** System-Rollen (z. B. admin, user) sind fest und dürfen nicht gelöscht werden. */
@@ -51,12 +51,22 @@ class Role extends Model
     }
 
     /**
-     * Bringt ein Modul diese Rolle mit (Manifest → `modules:sync`)? `modul` wird
-     * wie `is_system` nur vom Core gesetzt, nie per Mass-Assignment.
+     * Gehört diese Rolle zu einem Modul – per Manifest (`modules:sync`) oder im
+     * Panel von Hand zugeordnet? `modul` wird wie `is_system` nie per
+     * Mass-Assignment gesetzt.
      */
     public function gehoertZuModul(): bool
     {
         return $this->modul !== null && $this->modul !== '';
+    }
+
+    /**
+     * Bringt das Modul die Rolle selbst mit (Manifest)? Dann kommen Name und
+     * Bestand von dort; eine von Hand zugeordnete Rolle bleibt im Panel pflegbar.
+     */
+    public function stammtAusManifest(): bool
+    {
+        return $this->gehoertZuModul() && ! $this->modul_von_hand;
     }
 
     /**

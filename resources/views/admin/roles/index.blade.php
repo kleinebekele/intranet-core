@@ -52,8 +52,9 @@
                                 {{ $role->name }}
                                 @if ($role->gehoertZuModul())
                                     <span class="ml-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium align-middle {{ $role->istAktiv() ? 'bg-indigo-50 text-indigo-700' : 'bg-amber-50 text-amber-700' }}"
-                                          title="{{ $role->istAktiv() ? 'Diese Rolle bringt das Modul mit' : 'Das Modul ist deaktiviert oder nicht installiert – die Rolle gilt gerade nicht' }}">
+                                          title="{{ ! $role->istAktiv() ? 'Das Modul ist deaktiviert oder nicht installiert – die Rolle gilt gerade nicht' : ($role->modul_von_hand ? 'Von Hand diesem Modul zugeordnet' : 'Diese Rolle bringt das Modul mit') }}">
                                         <i class='bx bx-cube'></i> {{ $role->modul }}@if ($role->plattformweit) · plattformweit @endif
+                                        @if ($role->modul_von_hand) · von Hand @endif
                                         @unless ($role->istAktiv()) · inaktiv @endunless
                                     </span>
                                 @endif
@@ -81,7 +82,7 @@
                             </a>
                             {{-- Rollen, die ein Abgleich pflegt oder ein Modul mitbringt, gehören
                                  nicht dem Panel: nur ansehen, nichts ändern. --}}
-                            @if ($role->istVerwaltet() || $role->gehoertZuModul())
+                            @if ($role->istVerwaltet() || $role->stammtAusManifest())
                                 <span class="p-1.5 text-gray-300"
                                       title="{{ $role->istVerwaltet()
                                           ? 'Pflegt der Abgleich „'.$role->quelle.'“ – Name, Mitglieder und Bestand kommen von dort'
@@ -95,7 +96,7 @@
                             </a>
                             @endif
 
-                            @if (($role->istVerwaltet() && $role->users_count > 0) || ($role->gehoertZuModul() && $role->users_count === 0))
+                            @if (($role->istVerwaltet() && $role->users_count > 0) || ($role->stammtAusManifest() && $role->users_count === 0))
                                 {{-- Schloss steht schon oben. Modulrollen behalten „Alle
                                      Zuweisungen aufheben" – ihre Mitglieder pflegt man von Hand.
                                      Abgeglichene Rollen OHNE Mitglieder darf man löschen: der
