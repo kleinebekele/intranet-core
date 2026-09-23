@@ -37,7 +37,9 @@ class RoleController extends Controller
         $gruppen = $gruppen->only(['System', 'Von Hand angelegt'])
             ->merge($gruppen->except(['System', 'Von Hand angelegt']));
 
-        return view('admin.roles.index', compact('roles', 'gruppen'));
+        $modulNamen = Module::pluck('name', 'key');
+
+        return view('admin.roles.index', compact('roles', 'gruppen', 'modulNamen'));
     }
 
     public function create(): View

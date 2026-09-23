@@ -104,19 +104,23 @@
                                     <i class='bx bx-show'></i>
                                 </a>
                             @else
-                                <span class="p-1.5 text-gray-300" title="Administratoren sehen ohnehin alles">
-                                    <i class='bx bx-show'></i>
-                                </span>
+                                <x-schloss-tipp icon="bx-show">
+                                    Administratoren sehen ohnehin alle Seiten – eine Sichtbarkeit lässt sich hier nicht einstellen.
+                                </x-schloss-tipp>
                             @endif
                             {{-- Rollen, die ein Abgleich pflegt oder ein Modul mitbringt, gehören
                                  nicht dem Panel: nur ansehen, nichts ändern. --}}
                             @if ($role->istVerwaltet() || $role->stammtAusManifest())
-                                <span class="p-1.5 text-gray-300"
-                                      title="{{ $role->istVerwaltet()
-                                          ? 'Pflegt der Abgleich „'.$role->quelle.'“ – Name, Mitglieder und Bestand kommen von dort'
-                                          : 'Bringt das Modul „'.$role->modul.'“ mit – Name und Bestand kommen von dort' }}">
-                                    <i class='bx bx-lock-alt'></i>
-                                </span>
+                                <x-schloss-tipp>
+                                    @if ($role->istVerwaltet())
+                                        Diese Rolle legt der Abgleich „{{ $role->quelle }}“ an. Name und Mitglieder
+                                        kommen von dort und können hier nicht verändert werden.
+                                    @else
+                                        Systemrolle des Moduls „{{ $modulNamen[$role->modul] ?? $role->modul }}“. Name und Bestand
+                                        kommen aus dem Modul und können hier nicht verändert werden – Mitglieder und
+                                        Sichtbarkeit schon.
+                                    @endif
+                                </x-schloss-tipp>
                             @else
                             <a href="{{ route('admin.roles.edit', $role) }}" title="Bearbeiten"
                                class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
@@ -131,9 +135,10 @@
                                      Abgleich leert verwaiste Gruppen (alte Klassen), löscht sie
                                      aber nicht. --}}
                             @elseif ($role->isSystem() && ! $role->gehoertZuModul())
-                                <span title="System-Rolle – geschützt" class="p-1.5 text-gray-300">
-                                    <i class='bx bx-lock-alt'></i>
-                                </span>
+                                <x-schloss-tipp>
+                                    Feste System-Rolle der Plattform – sie kann nicht gelöscht und ihre Zuweisungen
+                                    können nicht gesammelt aufgehoben werden.
+                                </x-schloss-tipp>
                             @elseif ($role->users_count > 0)
                                 <button type="button" title="Alle Zuweisungen aufheben"
                                         @click="detachOpen = true; detachAction = '{{ route('admin.roles.detach-all', $role) }}'; detachRole = @js($role->name); detachCount = {{ $role->users_count }}"
