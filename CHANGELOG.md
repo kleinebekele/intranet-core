@@ -16,6 +16,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Sichtbarkeit von der Rolle aus** (`admin/roles/{role}/sichtbarkeit`, Knopf in der Rollenliste):
   je Modul die Unterseiten zum Anhaken, dieselbe Zuordnung wie unter „Module". Module, denen die
   Rolle fremd ist, zeigen nur bestehende Zuordnungen zum Entfernen.
+- **Rollenliste zum Aufklappen:** System-Rollen immer sichtbar, darunter die von Hand angelegten
+  (offen), dann je Modul und die abgeglichenen Gruppen (zugeklappt).
 - **Anleitungen für Ekkon** (`resources/hilfe/30–35`, nur `admin`): Aufgaben, Aufgabe im Detail,
   Benachrichtigungen, Teams-Channels, Webhook-Eingang, Teams-Chat.
 - **Benachrichtigungen können eine Datei mitführen.** `benachrichtige(…, anhang: ['name', 'inhalt'])`

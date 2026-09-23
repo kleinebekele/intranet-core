@@ -35,12 +35,30 @@
             </div>
         @else
             @foreach ($gruppen as $gruppenName => $rollenDerGruppe)
-            <h2 class="mb-2 {{ $loop->first ? '' : 'mt-8' }} flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
-                <i class='bx {{ $gruppenName === 'System' ? 'bx-lock-alt' : ($rollenDerGruppe->first()->gehoertZuModul() ? 'bx-cube' : 'bx-group') }}'></i>
-                {{ $gruppenName }}
-                <span class="font-normal text-gray-400">({{ $rollenDerGruppe->count() }})</span>
+            @php
+                // System immer sichtbar, von Hand angelegte offen, der Rest zugeklappt.
+                $klappbar = $gruppenName !== 'System';
+                $offen = ! $klappbar || $gruppenName === 'Von Hand angelegt';
+            @endphp
+            <div x-data="{ offen: {{ $offen ? 'true' : 'false' }} }" class="{{ $loop->first ? '' : 'mt-6' }}">
+            <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-gray-500">
+                @if ($klappbar)
+                    <button type="button" @click="offen = ! offen" :aria-expanded="offen"
+                            class="flex w-full items-center gap-2 rounded-lg py-1 text-left uppercase hover:text-gray-700">
+                        <i class='bx bx-chevron-right text-lg transition-transform' :class="offen && 'rotate-90'"></i>
+                        <i class='bx {{ $rollenDerGruppe->first()->gehoertZuModul() ? 'bx-cube' : 'bx-group' }}'></i>
+                        {{ $gruppenName }}
+                        <span class="font-normal text-gray-400">({{ $rollenDerGruppe->count() }})</span>
+                    </button>
+                @else
+                    <span class="flex items-center gap-2 py-1">
+                        <i class='bx bx-lock-alt'></i>
+                        {{ $gruppenName }}
+                        <span class="font-normal text-gray-400">({{ $rollenDerGruppe->count() }})</span>
+                    </span>
+                @endif
             </h2>
-            <ul class="space-y-3">
+            <ul class="space-y-3" x-show="offen" @unless ($offen) x-cloak @endunless>
                 @foreach ($rollenDerGruppe as $role)
                     <li class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4">
                         <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 text-xl">
@@ -137,6 +155,7 @@
                     </li>
                 @endforeach
             </ul>
+            </div>
             @endforeach
         @endif
 

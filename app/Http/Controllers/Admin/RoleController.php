@@ -31,8 +31,11 @@ class RoleController extends Controller
             ->orderBy('role_id')
             ->get();
 
-        // Feste Ordnung wie überall: System, je Modul, von Hand, abgeglichen.
+        // Gruppierung wie überall, hier aber die von Hand angelegten direkt unter
+        // System: an denen arbeitet man im Panel, der Rest ist zugeklappt.
         $gruppen = Role::nachHerkunft($roles);
+        $gruppen = $gruppen->only(['System', 'Von Hand angelegt'])
+            ->merge($gruppen->except(['System', 'Von Hand angelegt']));
 
         return view('admin.roles.index', compact('roles', 'gruppen'));
     }

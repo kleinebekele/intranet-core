@@ -95,11 +95,11 @@ class ModulRollenAuswahlTest extends TestCase
         $this->assertSame([], $punkt->roles()->pluck('roles.role_id')->all());
     }
 
-    public function test_rollen_stehen_gruppiert_system_zuerst_dann_je_modul(): void
+    public function test_rollen_stehen_gruppiert_system_zuerst_dann_von_hand_dann_je_modul(): void
     {
         $this->actingAs($this->admin)->get(route('admin.roles.index'))
             ->assertOk()
-            ->assertSeeInOrder(['System', 'Benutzer', 'Küche', 'Koch', 'Lehrer', 'Zeugnis', 'Zeugnis-Admin', 'Von Hand angelegt', 'Arbeitskreis Garten']);
+            ->assertSeeInOrder(['System', 'Benutzer', 'Von Hand angelegt', 'Arbeitskreis Garten', 'Küche', 'Koch', 'Lehrer', 'Zeugnis', 'Zeugnis-Admin']);
 
         // In der Modul-Auswahl: erst die Zeile „System", darunter „Modulrollen".
         $this->get(route('admin.modules.index'))
