@@ -7,6 +7,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Sicherheit
+- Abhängigkeiten angehoben: `league/commonmark` 2.8.2 → 2.10.3 (DoS/XSS in Attributes-/SmartPunct-Extension) und `guzzlehttp/guzzle` (Host-/Cookie-Domain-Prüfung), gemeldet von `composer audit` beim Deploy.
+
 ### Behoben
 - **Ekkon-Task pausieren brauchte zwei Klicks**, wenn der Task noch keine Zustandszeile hatte
   (`firstOrCreate` ohne `enabled` → erster Klick setzte enabled=true). Der Schalter bestimmt den
