@@ -7,6 +7,11 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Behoben
+- **Ekkon-Task pausieren brauchte zwei Klicks**, wenn der Task noch keine Zustandszeile hatte
+  (`firstOrCreate` ohne `enabled` → erster Klick setzte enabled=true). Der Schalter bestimmt den
+  Ist-Zustand jetzt ausdrücklich (keine Zeile = aktiv).
+
 ### Neu
 - **Rollen von Hand einem Modul zuordnen.** Rolle anlegen/bearbeiten hat ein Feld „Modul"; die
   Rolle ruht dann mit dem Modul und steht dort zur Auswahl. Neue Spalte `roles.modul_von_hand`

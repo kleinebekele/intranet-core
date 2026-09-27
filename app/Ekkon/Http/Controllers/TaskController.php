@@ -172,8 +172,14 @@ class TaskController extends Controller
     {
         $task = $this->findOrAbort($group, $name);
 
-        $state = TaskState::firstOrCreate(['task_key' => $task->key()]);
-        $state->update(['enabled' => ! $state->enabled]);
+        // ⚠️ Keine Zeile = aktiv. firstOrCreate() ohne 'enabled' liefert nach dem
+        // Anlegen ein Modell OHNE das Feld (der DB-Standard wird nicht zurückgelesen):
+        // `! null` = true → der erste Klick „pausierte" auf enabled=true, erst der
+        // zweite wirkte (Emanuel 2026-09-27). Deshalb den Ist-Zustand ausdrücklich bestimmen.
+        $state = TaskState::firstOrNew(['task_key' => $task->key()]);
+        $aktiv = $state->exists ? (bool) $state->enabled : true;
+        $state->enabled = ! $aktiv;
+        $state->save();
 
         return redirect()->back(fallback: route('module.ekkon.index'));
     }
