@@ -86,7 +86,7 @@
                     ];
                 @endphp
                 @foreach ($filter as $wert => $beschriftung)
-                    <a href="{{ route('admin.mail.index', array_filter(['status' => $wert, 'suche' => $suche, 'modul' => $modul, 'absender' => $absender])) }}"
+                    <a href="{{ route('admin.mail.index', array_filter(['status' => $wert, 'suche' => $suche, 'modul' => $modul, 'ausloeser' => $ausloeser, 'absender' => $absender])) }}"
                        @class([
                            'rounded-lg px-3 py-1.5 text-sm font-medium transition',
                            'bg-indigo-600 text-white' => $status === $wert,
@@ -122,36 +122,16 @@
                        class="w-full rounded-lg border-gray-300 pl-9 text-sm focus:border-indigo-500 focus:ring-indigo-500">
             </div>
 
-            {{-- Mehrfachauswahl; angeboten werden nur Module, die Mails im Log haben.
-                 Beim Schließen wird gefiltert, sofern sich etwas geändert hat. --}}
-            <div x-data="{ offen: false, geaendert: false }"
-                 @click.outside="if (offen) { offen = false; if (geaendert) $el.closest('form').submit() }"
-                 class="relative">
-                <button type="button" @click="offen = !offen"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                    @if ($modul === [])
-                        Alle Module
-                    @elseif (count($modul) === 1)
-                        {{ $modul[0] }}
-                    @else
-                        {{ count($modul) }} Module
-                    @endif
-                    <i class='bx bx-chevron-down text-base leading-none text-gray-400'></i>
-                </button>
-                <div x-show="offen" x-cloak
-                     class="absolute left-0 z-30 mt-1 max-h-72 w-60 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                    @forelse ($module as $m)
-                        <label class="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
-                            <input type="checkbox" name="modul[]" value="{{ $m }}" @checked(in_array($m, $modul, true))
-                                   @change="geaendert = true"
-                                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            {{ $m }}
-                        </label>
-                    @empty
-                        <div class="px-3 py-1.5 text-sm text-gray-400">Noch keine Mails im Log.</div>
-                    @endforelse
-                </div>
-            </div>
+            {{-- Angeboten wird nur, was wirklich Mails im Log hat. --}}
+            @include('admin.mail.partials.mehrfachauswahl', [
+                'name' => 'modul', 'optionen' => $module, 'gewaehlt' => $modul,
+                'alle' => 'Alle Module', 'mehrzahl' => 'Module',
+            ])
+
+            @include('admin.mail.partials.mehrfachauswahl', [
+                'name' => 'ausloeser', 'optionen' => $ausloeserListe, 'gewaehlt' => $ausloeser,
+                'alle' => 'Alle Auslöser', 'mehrzahl' => 'Auslöser',
+            ])
 
             <select name="absender" onchange="this.form.submit()"
                     class="rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -166,13 +146,13 @@
                 Filtern
             </button>
 
-            @if ($suche !== '' || $modul !== [] || $absender !== '')
+            @if ($suche !== '' || $modul !== [] || $ausloeser !== [] || $absender !== '')
                 <a href="{{ route('admin.mail.index', array_filter(['status' => $status])) }}"
                    class="text-sm text-gray-500 hover:text-gray-700">zurücksetzen</a>
             @endif
         </form>
 
-        @if ($mails->isEmpty() && ($status || $suche !== '' || $modul !== [] || $absender !== ''))
+        @if ($mails->isEmpty() && ($status || $suche !== '' || $modul !== [] || $ausloeser !== [] || $absender !== ''))
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
                 Keine Mails zu diesem Filter.
             </div>

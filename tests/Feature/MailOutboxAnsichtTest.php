@@ -79,6 +79,14 @@ class MailOutboxAnsichtTest extends TestCase
         $seite(['modul' => ['Core', 'Kantine']])->assertSee('Passwort zurücksetzen')->assertSee('Speiseplan')
             ->assertDontSee('Inforum September');
 
+        $this->mail(MailOutbox::VERSENDET, ['betreff' => 'Ausgabe Oktober', 'quelle' => 'Newsletter', 'modul' => null]);
+        $this->mail(MailOutbox::VERSENDET, ['betreff' => 'Code 123', 'quelle' => 'App\\Mail\\TwoFactorCodeMail']);
+
+        $seite(['ausloeser' => ['Newsletter']])->assertSee('Ausgabe Oktober')->assertDontSee('Code 123');
+        $seite(['ausloeser' => ['Newsletter', 'App\\Mail\\TwoFactorCodeMail']])->assertSee('Ausgabe Oktober')->assertSee('Code 123')
+            ->assertDontSee('Speiseplan');
+        $seite([])->assertSee('value="App\\Mail\\TwoFactorCodeMail"', false)->assertSee('TwoFactorCodeMail');
+
         // Auswahl zeigt nur Module mit Mails.
         $seite([])->assertSee('value="Kantine"', false)->assertDontSee('value="Wiki"', false);
         $seite(['absender' => $konto->mailerName()])->assertSee('Inforum September')->assertDontSee('Passwort zurücksetzen');

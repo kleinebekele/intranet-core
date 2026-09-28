@@ -40,6 +40,8 @@ class MailOutboxController
         // Mehrfachauswahl: ?modul[]=Core&modul[]=Newsletter
         $modul = collect((array) $request->query('modul', []))
             ->map(fn ($m) => trim((string) $m))->filter()->unique()->values()->all();
+        $ausloeser = collect((array) $request->query('ausloeser', []))
+            ->map(fn ($a) => trim((string) $a))->filter()->unique()->values()->all();
         $absender = (string) $request->query('absender', '');
 
         $konten = MailKonto::all()->keyBy(fn (MailKonto $k) => $k->mailerName());
@@ -57,6 +59,7 @@ class MailOutboxController
                     $w->orWhereNull('modul');
                 }
             }))
+            ->when($ausloeser !== [], fn ($q) => $q->whereIn('quelle', $ausloeser))
             // Absender = der Zugang, über den die Mail rausgeht: ein SMTP-Konto
             // oder der Standard-Mailer (leer bzw. ein Mailer aus config/mail.php).
             ->when($absender === self::STANDARD, fn ($q) => $q->where(fn ($w) => $w->whereNull('mailer')
@@ -73,7 +76,14 @@ class MailOutboxController
         $limit = (int) config('mail.outbox.stundenlimit', 0);
 
         $module = MailOutbox::query()->distinct()->pluck('modul')
-            ->map(fn ($m) => $m ?: 'Core')->unique()->sort()->values();
+            ->map(fn ($m) => $m ?: 'Core')->unique()->sort()
+            ->mapWithKeys(fn ($m) => [$m => $m])->all();
+
+        // Gespeichert ist mal ein sprechender Auslöser, mal ein Klassenname –
+        // angezeigt wird wie in der Tabelle der Kurzname.
+        $ausloeserListe = MailOutbox::query()->whereNotNull('quelle')->distinct()->pluck('quelle')
+            ->mapWithKeys(fn ($q) => [$q => class_basename($q)])
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)->all();
 
         $absenderListe = [self::STANDARD => 'Standard-Mailer ('.config('mail.from.address').')'];
         foreach ($konten as $name => $konto) {
@@ -86,6 +96,8 @@ class MailOutboxController
             'modul' => $modul,
             'absender' => $absender,
             'module' => $module,
+            'ausloeser' => $ausloeser,
+            'ausloeserListe' => $ausloeserListe,
             'absenderListe' => $absenderListe,
             'empfaenger' => $this->benutzerZuAdressen($mails->getCollection()),
             // Mailer-Name (konto-<id>) → Bezeichnung des SMTP-Absenders.
