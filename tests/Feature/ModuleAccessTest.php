@@ -88,6 +88,22 @@ class ModuleAccessTest extends TestCase
         $this->actingAs($this->userMitRolle())->post('/modules/tm/foo')->assertForbidden();
     }
 
+    public function test_menuepunkt_ohne_index_deckt_seine_unterseiten_ab(): void
+    {
+        Route::middleware(['web', 'auth'])->prefix('modules/tm')->name('module.tm.')->group(function (): void {
+            Route::get('/import', fn () => 'import')->name('import');
+            Route::post('/import/hochladen', fn () => 'hochgeladen')->name('import.upload');
+        });
+        $this->module->menuItems()->create(['key' => 'import', 'label' => 'Import', 'route_name' => 'module.tm.import', 'position' => 2]);
+        $this->item('module.tm.foo.index')->roles()->sync(['crew']);
+
+        // Crew sieht nur „Foo" – der Import gehört ihr nicht, auch nicht über die Modul-Stufe.
+        $this->actingAs($this->userMitRolle('crew'))->post('/modules/tm/import/hochladen')->assertForbidden();
+
+        $this->item('module.tm.import')->roles()->sync(['crew']);
+        $this->actingAs($this->userMitRolle('crew'))->post('/modules/tm/import/hochladen')->assertOk();
+    }
+
     public function test_basis_rolle_user_bedeutet_alle(): void
     {
         $this->item('module.tm.foo.index')->roles()->sync(['user']);

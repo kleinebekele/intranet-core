@@ -168,6 +168,12 @@ Route::middleware(['web', 'auth'])
 Die Menü-Punkte im Manifest müssen exakt auf diese Routen-Namen zeigen
 (`module.news.index`, `module.news.create`).
 
+**Welcher Menüpunkt ist für eine Route zuständig?** Der mit genau diesem Namen, sonst der
+spezifischste, dessen Route ein Präfix ist: `…orders.index` wie auch `…auftragsimport` decken
+`…auftragsimport.upload` ab. Der Modul-Start (`module.{key}` bzw. `module.{key}.index`) deckt
+nichts ab. Routen ohne zuständigen Menüpunkt bekommen die höchste Stufe, die der Benutzer
+irgendwo im Modul hat – Unterseiten also unter den Namen ihres Menüpunkts legen.
+
 ---
 
 ## 4. `composer.json` des Moduls

@@ -18,6 +18,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   (`firstOrCreate` ohne `enabled` → erster Klick setzte enabled=true). Der Schalter bestimmt den
   Ist-Zustand jetzt ausdrücklich (keine Zeile = aktiv).
 
+### Geändert
+- **Menüpunkte ohne `.index` decken ihre Unterseiten ab** (`EnsureModuleAccess`): `…auftragsimport`
+  gilt jetzt auch für `…auftragsimport.upload`, bei mehreren Treffern der spezifischste. Vorher
+  fielen solche Routen auf die höchste Stufe im ganzen Modul zurück (betraf u. a. Netzwerk
+  Typen/Standorte, Aftersales, Aftersales-Portal, JTL-Auftragsimport, OTTO, Kantinen-Terminal).
+
 ### Neu
 - **Sichtbarkeit einer Rolle im Modal** (Auge in der Rollenliste): Formular wird nachgeladen und
   ohne Seitenwechsel gespeichert; „Vorige"/„Nächste" blättert durch die Rollen in Listenreihenfolge

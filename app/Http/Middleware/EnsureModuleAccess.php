@@ -76,7 +76,11 @@ class EnsureModuleAccess
         return $next($request);
     }
 
-    /** Der Menüpunkt, der für diese Route zuständig ist (exakt vor Ressourcen-Präfix). */
+    /**
+     * Der Menüpunkt, der für diese Route zuständig ist: exakt, sonst der
+     * spezifischste, dessen Route ein Präfix ist – `…orders.index` wie auch
+     * `…auftragsimport` decken `…auftragsimport.upload` ab.
+     */
     private function responsibleItem(Module $module, string $routeName): ?ModuleMenuItem
     {
         foreach ($module->menuItems as $item) {
@@ -85,20 +89,22 @@ class EnsureModuleAccess
             }
         }
 
+        $treffer = null;
+        $laenge = 0;
+
         foreach ($module->menuItems as $item) {
-            if (! str_ends_with($item->route_name, '.index')) {
-                continue;
-            }
+            $base = str_ends_with($item->route_name, '.index')
+                ? substr($item->route_name, 0, -strlen('.index'))
+                : $item->route_name;
 
-            $base = substr($item->route_name, 0, -strlen('.index'));
-
-            // Nur echte Ressourcen (module.{key}.{resource}) decken ihre
-            // Unterseiten ab – nicht der Modul-Start (module.{key}.index).
-            if (substr_count($base, '.') >= 2 && str_starts_with($routeName, $base.'.')) {
-                return $item;
+            // Nur echte Unterbereiche (module.{key}.{bereich}) decken ihre
+            // Unterseiten ab – nicht der Modul-Start (module.{key}[.index]).
+            if (substr_count($base, '.') >= 2 && str_starts_with($routeName, $base.'.') && strlen($base) > $laenge) {
+                $treffer = $item;
+                $laenge = strlen($base);
             }
         }
 
-        return null;
+        return $treffer;
     }
 }
