@@ -20,6 +20,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Standard-Mailer), über den sie rausgeht.
 - **Maillog: Suche und Filter.** Freitextsuche über Betreff und Empfänger, Auswahl nach Modul
   und Absender (SMTP-Konto bzw. Standard-Mailer); der Status-Filter bleibt dabei erhalten.
+- **Maillog: Sortierung** – noch nicht versendete Mails oben, danach nach Versandzeit absteigend
+  (vorher nach Eingang).
 - **Maillog: Status „verworfen".** Knopf „Verwerfen" für gescheiterte Mails; `mail:aufraeumen`
   (täglich 03:40) verwirft Mails nach 10 Tagen auf „fehlgeschlagen" und löscht verworfene
   30 Tage nach Eingang. „Erneut" holt auch verworfene zurück. Neue Spalte

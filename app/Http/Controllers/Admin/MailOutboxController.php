@@ -56,6 +56,10 @@ class MailOutboxController
             ->when($absender === self::STANDARD, fn ($q) => $q->where(fn ($w) => $w->whereNull('mailer')
                 ->orWhere('mailer', 'not like', MailKonto::PRAEFIX.'%')))
             ->when($absender !== '' && $absender !== self::STANDARD, fn ($q) => $q->where('mailer', $absender))
+            // Noch nicht versendete (wartend, gescheitert, verworfen) oben, dann
+            // nach Versandzeit absteigend; bei Gleichstand die neuere zuerst.
+            ->orderByRaw('versendet_am IS NULL DESC')
+            ->orderByDesc('versendet_am')
             ->orderByDesc('id')
             ->paginate(50)
             ->withQueryString();

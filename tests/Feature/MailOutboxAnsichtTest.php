@@ -78,6 +78,23 @@ class MailOutboxAnsichtTest extends TestCase
         $seite(['absender' => 'standard'])->assertSee('Passwort zurücksetzen')->assertDontSee('Inforum September');
     }
 
+    public function test_sortierung_offene_oben_dann_versandzeit_absteigend(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+
+        // Eingangsreihenfolge bewusst anders als die Versandreihenfolge.
+        $this->mail(MailOutbox::VERSENDET, ['betreff' => 'Zweitneuester Versand', 'versendet_am' => now()->subHour()]);
+        $this->mail(MailOutbox::VERSENDET, ['betreff' => 'Neuester Versand', 'versendet_am' => now()]);
+        $this->mail(MailOutbox::FEHLGESCHLAGEN, ['betreff' => 'Offen gescheitert']);
+        $this->mail(MailOutbox::VERSENDET, ['betreff' => 'Aeltester Versand', 'versendet_am' => now()->subDay()]);
+        $this->mail(MailOutbox::WARTEND, ['betreff' => 'Offen wartend']);
+
+        $this->actingAs($admin)->get(route('admin.mail.index'))->assertOk()->assertSeeInOrder([
+            'Offen wartend', 'Offen gescheitert', 'Neuester Versand', 'Zweitneuester Versand', 'Aeltester Versand',
+        ]);
+    }
+
     public function test_verwerfen_von_hand(): void
     {
         $admin = User::factory()->create();
