@@ -27,25 +27,59 @@ class MailOutboxController
         MailOutbox::VERWORFEN,
     ];
 
+    /** Wert des Absender-Filters für „über den Standard-Mailer". */
+    private const STANDARD = 'standard';
+
     public function index(Request $request): View
     {
         $status = in_array($request->query('status'), self::FILTER, true)
             ? $request->query('status')
             : null;
 
+        $suche = trim((string) $request->query('suche', ''));
+        $modul = (string) $request->query('modul', '');
+        $absender = (string) $request->query('absender', '');
+
+        $konten = MailKonto::all()->keyBy(fn (MailKonto $k) => $k->mailerName());
+
         $mails = MailOutbox::query()
             ->when($status, fn ($q) => $q->where('status', $status))
+            ->when($suche !== '', function ($q) use ($suche) {
+                $muster = '%'.addcslashes($suche, '%_\\').'%';
+                $q->where(fn ($w) => $w->where('betreff', 'like', $muster)->orWhere('an', 'like', $muster));
+            })
+            // „Core" steht in alten Zeilen als NULL.
+            ->when($modul === 'Core', fn ($q) => $q->where(fn ($w) => $w->whereNull('modul')->orWhere('modul', 'Core')))
+            ->when($modul !== '' && $modul !== 'Core', fn ($q) => $q->where('modul', $modul))
+            // Absender = der Zugang, über den die Mail rausgeht: ein SMTP-Konto
+            // oder der Standard-Mailer (leer bzw. ein Mailer aus config/mail.php).
+            ->when($absender === self::STANDARD, fn ($q) => $q->where(fn ($w) => $w->whereNull('mailer')
+                ->orWhere('mailer', 'not like', MailKonto::PRAEFIX.'%')))
+            ->when($absender !== '' && $absender !== self::STANDARD, fn ($q) => $q->where('mailer', $absender))
             ->orderByDesc('id')
             ->paginate(50)
             ->withQueryString();
 
         $limit = (int) config('mail.outbox.stundenlimit', 0);
 
+        $module = MailOutbox::query()->distinct()->pluck('modul')
+            ->map(fn ($m) => $m ?: 'Core')->unique()->sort()->values();
+
+        $absenderListe = [self::STANDARD => 'Standard-Mailer ('.config('mail.from.address').')'];
+        foreach ($konten as $name => $konto) {
+            $absenderListe[$name] = "{$konto->bezeichnung} ({$konto->absender_mail})";
+        }
+
         return view('admin.mail.index', [
             'mails' => $mails,
+            'suche' => $suche,
+            'modul' => $modul,
+            'absender' => $absender,
+            'module' => $module,
+            'absenderListe' => $absenderListe,
             'empfaenger' => $this->benutzerZuAdressen($mails->getCollection()),
             // Mailer-Name (konto-<id>) → Bezeichnung des SMTP-Absenders.
-            'konten' => MailKonto::all()->mapWithKeys(fn (MailKonto $k) => [$k->mailerName() => $k->bezeichnung])->all(),
+            'konten' => $konten->map(fn (MailKonto $k) => $k->bezeichnung)->all(),
             'status' => $status,
             'aktiv' => (bool) config('mail.outbox.aktiv', true),
             'limit' => $limit,

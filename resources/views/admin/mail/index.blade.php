@@ -86,7 +86,7 @@
                     ];
                 @endphp
                 @foreach ($filter as $wert => $beschriftung)
-                    <a href="{{ route('admin.mail.index', $wert ? ['status' => $wert] : []) }}"
+                    <a href="{{ route('admin.mail.index', array_filter(['status' => $wert, 'suche' => $suche, 'modul' => $modul, 'absender' => $absender])) }}"
                        @class([
                            'rounded-lg px-3 py-1.5 text-sm font-medium transition',
                            'bg-indigo-600 text-white' => $status === $wert,
@@ -109,7 +109,51 @@
             </div>
         </div>
 
-        @if ($mails->isEmpty())
+        {{-- Suche + Auswahl; der Status-Filter oben bleibt dabei erhalten. --}}
+        <form method="GET" action="{{ route('admin.mail.index') }}"
+              class="mb-4 flex flex-wrap items-center gap-2">
+            @if ($status)
+                <input type="hidden" name="status" value="{{ $status }}">
+            @endif
+
+            <div class="relative min-w-[16rem] flex-1">
+                <i class='bx bx-search pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400'></i>
+                <input type="search" name="suche" value="{{ $suche }}" placeholder="Betreff oder Empfänger suchen …"
+                       class="w-full rounded-lg border-gray-300 pl-9 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+
+            <select name="modul" onchange="this.form.submit()"
+                    class="rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <option value="">Alle Module</option>
+                @foreach ($module as $m)
+                    <option value="{{ $m }}" @selected($modul === $m)>{{ $m }}</option>
+                @endforeach
+            </select>
+
+            <select name="absender" onchange="this.form.submit()"
+                    class="rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <option value="">Alle Absender</option>
+                @foreach ($absenderListe as $wert => $beschriftung)
+                    <option value="{{ $wert }}" @selected($absender === $wert)>{{ $beschriftung }}</option>
+                @endforeach
+            </select>
+
+            <button type="submit"
+                    class="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                Filtern
+            </button>
+
+            @if ($suche !== '' || $modul !== '' || $absender !== '')
+                <a href="{{ route('admin.mail.index', array_filter(['status' => $status])) }}"
+                   class="text-sm text-gray-500 hover:text-gray-700">zurücksetzen</a>
+            @endif
+        </form>
+
+        @if ($mails->isEmpty() && ($status || $suche !== '' || $modul !== '' || $absender !== ''))
+            <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
+                Keine Mails zu diesem Filter.
+            </div>
+        @elseif ($mails->isEmpty())
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
                 Keine Mails im Protokoll.
                 <div class="mt-1 text-sm text-gray-400">

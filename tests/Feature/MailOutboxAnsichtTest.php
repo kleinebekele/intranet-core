@@ -55,6 +55,29 @@ class MailOutboxAnsichtTest extends TestCase
         ]);
     }
 
+    public function test_suche_und_filter(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+
+        $konto = \App\Models\MailKonto::create([
+            'bezeichnung' => 'Newsletter', 'absender_mail' => 'news@example.org',
+            'host' => 'smtp.example.org', 'port' => 587, 'verschluesselung' => 'tls', 'aktiv' => true,
+        ]);
+
+        $this->mail(MailOutbox::VERSENDET, ['betreff' => 'Inforum September', 'modul' => 'Newsletter', 'mailer' => $konto->mailerName(), 'an' => ['eltern@example.org']]);
+        $this->mail(MailOutbox::VERSENDET, ['betreff' => 'Passwort zurücksetzen', 'modul' => null, 'an' => ['lehrer@example.org']]);
+
+        $seite = fn (array $filter) => $this->actingAs($admin)->get(route('admin.mail.index', $filter))->assertOk();
+
+        $seite(['suche' => 'inforum'])->assertSee('Inforum September')->assertDontSee('Passwort zurücksetzen');
+        $seite(['suche' => 'lehrer@'])->assertSee('Passwort zurücksetzen')->assertDontSee('Inforum September');
+        $seite(['modul' => 'Core'])->assertSee('Passwort zurücksetzen')->assertDontSee('Inforum September');
+        $seite(['modul' => 'Newsletter'])->assertSee('Inforum September')->assertDontSee('Passwort zurücksetzen');
+        $seite(['absender' => $konto->mailerName()])->assertSee('Inforum September')->assertDontSee('Passwort zurücksetzen');
+        $seite(['absender' => 'standard'])->assertSee('Passwort zurücksetzen')->assertDontSee('Inforum September');
+    }
+
     public function test_verwerfen_von_hand(): void
     {
         $admin = User::factory()->create();
