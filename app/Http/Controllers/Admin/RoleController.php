@@ -10,9 +10,11 @@ use App\Models\User;
 use App\Modules\Support\ModuleRegistry;
 use App\Modules\Support\Zugriffsstufe;
 use App\Support\Audit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -40,7 +42,17 @@ class RoleController extends Controller
 
         $modulNamen = Module::pluck('name', 'key');
 
-        return view('admin.roles.index', compact('roles', 'gruppen', 'modulNamen'));
+        // Blätterreihenfolge des Sichtbarkeits-Modals: wie angezeigt, ohne admin.
+        $sichtbarkeitsFolge = $gruppen->flatten(1)
+            ->reject(fn (Role $role) => $role->role_id === 'admin')
+            ->map(fn (Role $role) => [
+                'id' => $role->role_id,
+                'name' => $role->name,
+                'url' => route('admin.roles.sichtbarkeit', $role),
+            ])
+            ->values();
+
+        return view('admin.roles.index', compact('roles', 'gruppen', 'modulNamen', 'sichtbarkeitsFolge'));
     }
 
     public function create(): View
@@ -263,7 +275,7 @@ class RoleController extends Controller
      * Module, denen die Rolle fremd ist (sie gehört einem anderen Modul),
      * erscheinen nur mit den Punkten, an denen sie schon hängt – zum Entfernen.
      */
-    public function sichtbarkeit(Role $role): View|RedirectResponse
+    public function sichtbarkeit(Request $request, Role $role): View|RedirectResponse
     {
         if ($role->role_id === 'admin') {
             return redirect()->route('admin.roles.index')
@@ -272,18 +284,28 @@ class RoleController extends Controller
 
         $module = $this->sichtbarkeitsModule($role);
 
+        // Das Modal in der Rollenliste lädt nur das Formular nach.
+        if ($request->ajax()) {
+            return view('admin.roles._sichtbarkeit_formular', ['role' => $role, 'module' => $module, 'mitKnoepfen' => false]);
+        }
+
         return view('admin.roles.sichtbarkeit', compact('role', 'module'));
     }
 
-    public function sichtbarkeitSpeichern(Request $request, Role $role): RedirectResponse
+    public function sichtbarkeitSpeichern(Request $request, Role $role): RedirectResponse|JsonResponse
     {
         abort_if($role->role_id === 'admin', 404);
 
-        $data = $request->validate([
+        // Das Modal speichert per fetch und braucht Fehler als JSON – der Core
+        // rendert Ausnahmen nur unter api/* als JSON (bootstrap/app.php).
+        $pruefung = Validator::make($request->all(), [
             'stufen' => ['array'],
             'stufen.*' => ['nullable', Rule::enum(Zugriffsstufe::class)],
         ]);
-        $gewaehlt = collect($data['stufen'] ?? []);
+        if ($pruefung->fails() && $request->expectsJson()) {
+            return response()->json(['message' => $pruefung->errors()->first(), 'errors' => $pruefung->errors()], 422);
+        }
+        $gewaehlt = collect($pruefung->validate()['stufen'] ?? []);
 
         $vorher = [];
         $nachher = [];
@@ -320,8 +342,15 @@ class RoleController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.roles.sichtbarkeit', $role)
-            ->with('status', "Sichtbarkeit von \"{$role->name}\" gespeichert.");
+        $meldung = $vorher === $nachher
+            ? "Keine Änderung bei \"{$role->name}\"."
+            : "Sichtbarkeit von \"{$role->name}\" gespeichert.";
+
+        if ($request->expectsJson()) {
+            return response()->json(['status' => $meldung]);
+        }
+
+        return redirect()->route('admin.roles.sichtbarkeit', $role)->with('status', $meldung);
     }
 
     /**

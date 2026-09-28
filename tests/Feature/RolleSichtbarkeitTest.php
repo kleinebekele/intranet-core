@@ -87,6 +87,38 @@ class RolleSichtbarkeitTest extends TestCase
         $this->assertEqualsCanonicalizing(['user', 'ak-garten'], $start->roles()->pluck('roles.role_id')->all());
     }
 
+    public function test_modal_laedt_nur_das_formular_und_speichert_per_json(): void
+    {
+        $start = $this->punkt('kueche', 'Start');
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.roles.sichtbarkeit', 'ak-garten'), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertSee('name="stufen['.$start->id.']"', false)
+            ->assertSee('data-sichtbarkeit-formular', false)
+            ->assertDontSee('<html', false);
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.roles.sichtbarkeit.update', 'ak-garten'), ['stufen' => [$start->id => 'bearbeiten']])
+            ->assertOk()
+            ->assertJson(['status' => 'Sichtbarkeit von "Arbeitskreis Garten" gespeichert.']);
+
+        $this->assertSame('bearbeiten', $start->roles()->where('roles.role_id', 'ak-garten')->first()->pivot->stufe);
+
+        $this->actingAs($this->admin)
+            ->putJson(route('admin.roles.sichtbarkeit.update', 'ak-garten'), ['stufen' => [$start->id => 'nonsens']])
+            ->assertUnprocessable();
+    }
+
+    public function test_rollenliste_bringt_modal_mit_blaetterfolge_ohne_admin(): void
+    {
+        $html = $this->actingAs($this->admin)->get(route('admin.roles.index'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('sichtbarkeitsModal(', $html);
+        $this->assertStringContainsString('ak-garten', $html);
+        $this->assertDoesNotMatchRegularExpression('/\\\\u0022id\\\\u0022:\\\\u0022admin\\\\u0022/', $html);
+    }
+
     public function test_admin_hat_keine_sichtbarkeitsseite(): void
     {
         $this->actingAs($this->admin)

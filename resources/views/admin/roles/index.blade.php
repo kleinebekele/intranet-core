@@ -100,6 +100,7 @@
                             </a>
                             @if ($role->role_id !== 'admin')
                                 <a href="{{ route('admin.roles.sichtbarkeit', $role) }}" title="Sichtbarkeit"
+                                   @click.prevent="$dispatch('sichtbarkeit-oeffnen', @js($role->role_id))"
                                    class="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
                                     <i class='bx bx-show'></i>
                                 </a>
@@ -203,5 +204,178 @@
                 </div>
             </div>
         </div>
+
+        {{-- Sichtbarkeit als Modal: Formular per fetch nachladen und speichern,
+             ohne die Seite neu zu laden; mit Blättern zur vorigen/nächsten Rolle. --}}
+        <div x-data="sichtbarkeitsModal(@js($sichtbarkeitsFolge))"
+             @sichtbarkeit-oeffnen.window="oeffnen($event.detail)"
+             @keydown.escape.window="escape()">
+            <div x-show="offen" x-cloak class="fixed inset-0 z-50 flex p-2 sm:p-6">
+                <div class="fixed inset-0 bg-gray-900/40" @click="schliessen()"></div>
+
+                <div class="relative flex max-h-full w-full flex-col rounded-xl bg-gray-50 shadow-xl">
+                    <div class="flex flex-wrap items-center gap-3 rounded-t-xl border-b border-gray-200 bg-white px-4 py-3">
+                        <i class='bx bx-show text-xl text-indigo-600'></i>
+                        <div class="min-w-0 flex-1">
+                            <h3 class="truncate text-lg font-medium text-gray-800">
+                                Sichtbarkeit: <span x-text="rolle?.name"></span>
+                            </h3>
+                            <div class="text-xs text-gray-400">
+                                <code class="rounded bg-gray-100 px-1.5 py-0.5" x-text="rolle?.id"></code>
+                                · Rolle <span x-text="index + 1"></span> von <span x-text="folge.length"></span>
+                                · Lesen &lt; Bearbeiten &lt; Verwalten (anlegen/löschen)
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" @click="blaettern(-1)" :disabled="index <= 0 || laedt || speichert"
+                                    class="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                                    :title="dirty ? 'Speichern und zur vorigen Rolle' : 'Vorige Rolle'">
+                                <i class='bx bx-chevron-left text-lg'></i>
+                                <span x-text="dirty ? 'Speichern & zurück' : 'Vorige'"></span>
+                            </button>
+                            <button type="button" @click="blaettern(1)" :disabled="index >= folge.length - 1 || laedt || speichert"
+                                    class="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                                    :title="dirty ? 'Speichern und zur nächsten Rolle' : 'Nächste Rolle'">
+                                <span x-text="dirty ? 'Speichern & weiter' : 'Nächste'"></span>
+                                <i class='bx bx-chevron-right text-lg'></i>
+                            </button>
+                            <button type="button" @click="schliessen()" title="Schließen"
+                                    class="ml-1 rounded-lg p-2 text-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                                <i class='bx bx-x'></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative min-h-40 flex-1 overflow-y-auto p-4" x-ref="inhalt"
+                         @change="dirty = true" @submit.prevent="speichern()"></div>
+                    <div x-show="laedt" class="pointer-events-none absolute inset-x-0 top-24 flex justify-center">
+                        <span class="rounded-full bg-white px-3 py-1 text-sm text-gray-500 shadow">
+                            <i class='bx bx-loader-alt bx-spin'></i> lädt …
+                        </span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 rounded-b-xl border-t border-gray-200 bg-white px-4 py-3">
+                        <button type="button" @click="speichern()" :disabled="laedt || speichert"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40">
+                            <i class='bx text-base' :class="speichert ? 'bx-loader-alt bx-spin' : 'bx-save'"></i>
+                            Speichern
+                        </button>
+                        <span x-show="dirty" class="text-xs text-amber-600">Ungespeicherte Änderungen</span>
+                        <span x-show="meldung" x-transition.opacity x-text="meldung"
+                              class="text-sm" :class="fehler ? 'text-red-600' : 'text-green-700'"></span>
+                        <a :href="rolle?.url" class="ml-auto text-xs text-gray-400 hover:text-gray-600">Als eigene Seite öffnen</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    @push('scripts')
+        <script>
+            window.sichtbarkeitsModal = (folge) => ({
+                folge,
+                offen: false,
+                index: -1,
+                laedt: false,
+                speichert: false,
+                dirty: false,
+                meldung: '',
+                fehler: false,
+                fragt: false,
+                meldungsUhr: null,
+
+                get rolle() {
+                    return this.folge[this.index] ?? null;
+                },
+
+                oeffnen(id) {
+                    const i = this.folge.findIndex((r) => r.id === id);
+                    if (i < 0) return;
+                    this.offen = true;
+                    this.meldung = '';
+                    this.laden(i);
+                },
+
+                async laden(i) {
+                    this.index = i;
+                    this.dirty = false;
+                    this.laedt = true;
+                    try {
+                        const antwort = await fetch(this.rolle.url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+                        });
+                        if (!antwort.ok) throw new Error('HTTP ' + antwort.status);
+                        this.$refs.inhalt.innerHTML = await antwort.text();
+                        this.$refs.inhalt.scrollTop = 0;
+                    } catch (e) {
+                        this.$refs.inhalt.innerHTML = '';
+                        this.zeige('Laden fehlgeschlagen (' + e.message + ').', true);
+                    } finally {
+                        this.laedt = false;
+                    }
+                },
+
+                async speichern() {
+                    const formular = this.$refs.inhalt.querySelector('form[data-sichtbarkeit-formular]');
+                    if (!formular) return true;
+                    this.speichert = true;
+                    try {
+                        const antwort = await fetch(formular.action, {
+                            method: 'POST',
+                            body: new FormData(formular),
+                            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                        });
+                        const daten = await antwort.json().catch(() => ({}));
+                        if (!antwort.ok) throw new Error(daten.message || 'HTTP ' + antwort.status);
+                        this.dirty = false;
+                        this.zeige(daten.status || 'Gespeichert.');
+                        return true;
+                    } catch (e) {
+                        this.zeige('Speichern fehlgeschlagen: ' + e.message, true);
+                        return false;
+                    } finally {
+                        this.speichert = false;
+                    }
+                },
+
+                async blaettern(schritt) {
+                    const ziel = this.index + schritt;
+                    if (ziel < 0 || ziel >= this.folge.length) return;
+                    if (this.dirty && !(await this.speichern())) return;
+                    this.laden(ziel);
+                },
+
+                // Escape erst nach dem Tastendruck auswerten: sonst schließt der
+                // Core-Dialog die gerade geöffnete Rückfrage mit derselben Taste.
+                // Läuft die Rückfrage schon, gehört Escape ihr allein.
+                escape() {
+                    if (this.offen && !this.fragt) setTimeout(() => this.schliessen());
+                },
+
+                async schliessen() {
+                    if (this.fragt) return;
+                    if (this.dirty) {
+                        this.fragt = true;
+                        try {
+                            if (!(await window.bestaetige('Die Änderungen an dieser Rolle sind nicht gespeichert. Verwerfen?', { knopf: 'Verwerfen' }))) {
+                                return;
+                            }
+                        } finally {
+                            setTimeout(() => (this.fragt = false));
+                        }
+                    }
+                    this.offen = false;
+                    this.dirty = false;
+                    this.$refs.inhalt.innerHTML = '';
+                },
+
+                zeige(text, fehler = false) {
+                    this.meldung = text;
+                    this.fehler = fehler;
+                    clearTimeout(this.meldungsUhr);
+                    if (!fehler) this.meldungsUhr = setTimeout(() => (this.meldung = ''), 4000);
+                },
+            });
+        </script>
+    @endpush
 </x-app-layout>
