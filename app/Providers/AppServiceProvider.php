@@ -7,6 +7,7 @@ use App\Listeners\MailInDieOutbox;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\Setting;
 use App\Modules\Support\ModuleRegistry;
+use App\Modules\Support\Zugriffsstufe;
 use App\Support\Mailausloeser;
 use App\View\Composers\NavigationComposer;
 use Illuminate\Auth\Events\Lockout;
@@ -15,6 +16,7 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -80,6 +82,10 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        // Knöpfe nach Zugriffsstufe ausblenden: @darf('bearbeiten') … @enddarf
+        // (Stufe der aktuellen Modulseite, gesetzt von EnsureModuleAccess).
+        Blade::if('darf', fn (Zugriffsstufe|string $stufe) => Zugriffsstufe::darf($stufe));
 
         // Feed the left sidebar with the current navigation state.
         View::composer('layouts.sidebar', NavigationComposer::class);

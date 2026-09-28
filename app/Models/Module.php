@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Modules\Support\Zugriffsstufe;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -56,6 +57,24 @@ class Module extends Model
 
         return $this->menuItems->contains(
             fn (ModuleMenuItem $item) => $item->isVisibleTo($user),
+        );
+    }
+
+    /**
+     * Höchste Stufe des Benutzers über alle Unterpunkte – gilt für Routen
+     * ohne eigenen Menüpunkt (technische Endpunkte). null = gar kein Zugang.
+     */
+    public function stufeFuer(?User $user): ?Zugriffsstufe
+    {
+        if ($user?->is_admin) {
+            return Zugriffsstufe::Verwalten;
+        }
+        if ($this->admins_only) {
+            return null;
+        }
+
+        return Zugriffsstufe::hoechste(
+            $this->menuItems->map(fn (ModuleMenuItem $item) => $item->stufeFuer($user)),
         );
     }
 

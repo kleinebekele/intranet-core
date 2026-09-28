@@ -42,18 +42,22 @@ class RolleSichtbarkeitTest extends TestCase
         return Module::where('key', $modul)->first()->menuItems()->where('label', $label)->first();
     }
 
-    public function test_haekchen_setzen_und_entfernen(): void
+    public function test_stufe_setzen_aendern_und_entfernen(): void
     {
         $start = $this->punkt('kueche', 'Start');
         $plan = $this->punkt('kueche', 'Speiseplan');
         $plan->roles()->attach('ak-garten');
 
         $this->actingAs($this->admin)
-            ->put(route('admin.roles.sichtbarkeit.update', 'ak-garten'), ['items' => [$start->id]])
+            ->put(route('admin.roles.sichtbarkeit.update', 'ak-garten'), ['stufen' => [$start->id => 'lesen', $plan->id => '']])
             ->assertRedirect(route('admin.roles.sichtbarkeit', 'ak-garten'));
 
-        $this->assertTrue($start->roles()->where('roles.role_id', 'ak-garten')->exists());
+        $this->assertSame('lesen', $start->roles()->where('roles.role_id', 'ak-garten')->first()->pivot->stufe);
         $this->assertFalse($plan->roles()->where('roles.role_id', 'ak-garten')->exists());
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.roles.sichtbarkeit.update', 'ak-garten'), ['stufen' => [$start->id => 'verwalten']]);
+        $this->assertSame('verwalten', $start->roles()->where('roles.role_id', 'ak-garten')->first()->pivot->stufe);
     }
 
     public function test_fremdes_modul_wird_nicht_angeboten_und_nicht_gesetzt(): void
@@ -64,10 +68,10 @@ class RolleSichtbarkeitTest extends TestCase
             ->get(route('admin.roles.sichtbarkeit', 'kueche-koch'))
             ->assertOk()
             ->assertSee('Speiseplan')
-            ->assertDontSee('name="items[]" value="'.$zeugnis->id.'"', false);
+            ->assertDontSee('name="stufen['.$zeugnis->id.']"', false);
 
         $this->actingAs($this->admin)
-            ->put(route('admin.roles.sichtbarkeit.update', 'kueche-koch'), ['items' => [$zeugnis->id]]);
+            ->put(route('admin.roles.sichtbarkeit.update', 'kueche-koch'), ['stufen' => [$zeugnis->id => 'verwalten']]);
 
         $this->assertFalse($zeugnis->roles()->where('roles.role_id', 'kueche-koch')->exists());
     }
@@ -78,7 +82,7 @@ class RolleSichtbarkeitTest extends TestCase
         $start->roles()->attach('user');
 
         $this->actingAs($this->admin)
-            ->put(route('admin.roles.sichtbarkeit.update', 'ak-garten'), ['items' => [$start->id]]);
+            ->put(route('admin.roles.sichtbarkeit.update', 'ak-garten'), ['stufen' => [$start->id => 'bearbeiten']]);
 
         $this->assertEqualsCanonicalizing(['user', 'ak-garten'], $start->roles()->pluck('roles.role_id')->all());
     }

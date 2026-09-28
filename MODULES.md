@@ -68,6 +68,48 @@ Role::aktiv()->get()                                 // Rollenlisten (Auswahlfel
 `roles.modul` (wem gehört die Rolle) ist nicht `roles.quelle` (wer pflegt die Mitglieder –
 ein Abgleich). Beides kann zugleich gesetzt sein.
 
+### Zugriffsstufen: lesen, bearbeiten, verwalten
+
+Jede Zuordnung Menüpunkt ↔ Rolle trägt eine Stufe; jede schließt die darunter ein:
+
+| Stufe | darf |
+|---|---|
+| `lesen` | Seiten aufrufen, PDFs/CSV ziehen |
+| `bearbeiten` | Vorhandenes ändern, Arbeitsschritte (abhaken, freigeben, pushen …) |
+| `verwalten` | zusätzlich anlegen und löschen |
+
+Der Core setzt das für jede Route `module.{key}.*` durch – das Modul muss dafür nichts tun.
+Welche Stufe eine Anfrage braucht, ergibt sich aus Anfrageart und Routenname:
+
+| Anfrage | Stufe |
+|---|---|
+| GET `*.create` | verwalten |
+| GET `*.edit` | bearbeiten |
+| übrige GET | lesen |
+| POST `*.store` | verwalten |
+| übrige POST, PUT, PATCH | bearbeiten |
+| DELETE | verwalten |
+
+Passt die Regel nicht, gibt das Manifest die Stufe vor (Routenname mit oder ohne `module.{key}.`):
+
+```php
+->lesend('servings.lookup', 'servings.terminal.search')          // POST, der nur sucht
+->stufe(Zugriffsstufe::Verwalten, 'seasons.import')               // POST, der anlegt
+```
+
+⚠️ **Ein GET darf nie etwas ändern** – sonst kommt jemand mit `lesen` durch. Umschalt-Links
+gehören in ein Formular mit POST.
+
+Knöpfe, die der Benutzer nicht nutzen darf, blendet die View aus (Stufe der aktuellen Seite):
+
+```blade
+@darf('verwalten') <a href="{{ route('module.kantine.dishes.create') }}">Neues Gericht</a> @enddarf
+@darf('bearbeiten') <a href="{{ route('module.kantine.dishes.edit', $dish) }}">Bearbeiten</a> @enddarf
+```
+
+Im Controller: `Zugriffsstufe::darf('bearbeiten')` (bzw. `Zugriffsstufe::aktuell()`). Ohne
+`@darf` bleibt es sicher – der Klick endet in einer 403 „Dafür reichen deine Rechte nicht“.
+
 ---
 
 ## 2. Pflicht-Ordnerstruktur

@@ -8,6 +8,7 @@ use App\Models\ModuleMenuItem;
 use App\Models\Role;
 use App\Models\User;
 use App\Modules\Support\ModuleRegistry;
+use App\Modules\Support\Zugriffsstufe;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -279,27 +280,33 @@ class RoleController extends Controller
         abort_if($role->role_id === 'admin', 404);
 
         $data = $request->validate([
-            'items' => ['array'],
-            'items.*' => ['integer'],
+            'stufen' => ['array'],
+            'stufen.*' => ['nullable', Rule::enum(Zugriffsstufe::class)],
         ]);
-        $gewaehlt = collect($data['items'] ?? [])->map(fn ($id) => (int) $id);
+        $gewaehlt = collect($data['stufen'] ?? []);
 
         $vorher = [];
         $nachher = [];
         foreach ($this->sichtbarkeitsModule($role) as $eintrag) {
             foreach ($eintrag['items'] as $item) {
-                $hatte = $item->roles->contains('role_id', $role->role_id);
-                $soll = $gewaehlt->contains($item->id);
+                $hatte = $item->roles->firstWhere('role_id', $role->role_id)?->pivot->stufe;
+                $soll = $gewaehlt->get($item->id) ?: null;
+                // Fremdes Modul: bestehende Zuordnung nur behalten oder entfernen.
+                if ($eintrag['fremd'] && $soll !== null) {
+                    $soll = $hatte;
+                }
                 $bezeichnung = $eintrag['modul']->name.' → '.$item->label;
 
                 if ($hatte) {
-                    $vorher[] = $bezeichnung;
+                    $vorher[] = "{$bezeichnung} ({$hatte})";
                 }
                 if ($soll) {
-                    $nachher[] = $bezeichnung;
+                    $nachher[] = "{$bezeichnung} ({$soll})";
                 }
                 if ($soll && ! $hatte) {
-                    $item->roles()->attach($role->role_id);
+                    $item->roles()->attach($role->role_id, ['stufe' => $soll]);
+                } elseif ($soll && $soll !== $hatte) {
+                    $item->roles()->updateExistingPivot($role->role_id, ['stufe' => $soll]);
                 } elseif (! $soll && $hatte) {
                     $item->roles()->detach($role->role_id);
                 }

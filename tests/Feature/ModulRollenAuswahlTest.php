@@ -61,10 +61,10 @@ class ModulRollenAuswahlTest extends TestCase
         $html = $this->actingAs($this->admin)->get(route('admin.modules.index'))->assertOk()->getContent();
 
         $zeugnisPunkt = $this->punkt('zeugnis')->id;
-        $this->assertStringContainsString('name="item_roles['.$zeugnisPunkt.'][]" value="zeugnis-admin"', $html);
-        $this->assertStringContainsString('name="item_roles['.$zeugnisPunkt.'][]" value="lehrer"', $html);
-        $this->assertStringContainsString('name="item_roles['.$zeugnisPunkt.'][]" value="ak-garten"', $html);
-        $this->assertStringNotContainsString('name="item_roles['.$zeugnisPunkt.'][]" value="kueche-koch"', $html);
+        $this->assertStringContainsString('name="item_roles['.$zeugnisPunkt.'][zeugnis-admin]"', $html);
+        $this->assertStringContainsString('name="item_roles['.$zeugnisPunkt.'][lehrer]"', $html);
+        $this->assertStringContainsString('name="item_roles['.$zeugnisPunkt.'][ak-garten]"', $html);
+        $this->assertStringNotContainsString('name="item_roles['.$zeugnisPunkt.'][kueche-koch]"', $html);
     }
 
     public function test_fremde_rolle_laesst_sich_nicht_neu_zuordnen(): void
@@ -72,22 +72,30 @@ class ModulRollenAuswahlTest extends TestCase
         $punkt = $this->punkt('zeugnis');
 
         $this->actingAs($this->admin)->put(route('admin.modules.visibility', $punkt->module), [
-            'item_roles' => [$punkt->id => ['zeugnis-admin', 'kueche-koch']],
+            'item_roles' => [$punkt->id => ['zeugnis-admin' => 'lesen', 'kueche-koch' => 'verwalten']],
         ])->assertRedirect();
 
         $this->assertSame(['zeugnis-admin'], $punkt->roles()->pluck('roles.role_id')->all());
+        $this->assertSame('lesen', $punkt->roles()->first()->pivot->stufe);
     }
 
     public function test_altzuordnung_bleibt_bis_man_sie_entfernt(): void
     {
         $punkt = $this->punkt('zeugnis');
-        $punkt->roles()->attach('kueche-koch');
+        $punkt->roles()->attach('kueche-koch', ['stufe' => 'lesen']);
 
         $html = $this->actingAs($this->admin)->get(route('admin.modules.index'))->getContent();
-        $this->assertStringContainsString('name="item_roles['.$punkt->id.'][]" value="kueche-koch"', $html);
+        $this->assertStringContainsString('name="item_roles['.$punkt->id.'][kueche-koch]"', $html);
+
+        // Aufsteigen darf die fremde Rolle nicht – sie bleibt auf ihrer Stufe.
+        $this->put(route('admin.modules.visibility', $punkt->module), [
+            'item_roles' => [$punkt->id => ['kueche-koch' => 'verwalten']],
+        ]);
+        $this->assertSame(['kueche-koch'], $punkt->roles()->pluck('roles.role_id')->all());
+        $this->assertSame('lesen', $punkt->roles()->first()->pivot->stufe);
 
         $this->put(route('admin.modules.visibility', $punkt->module), [
-            'item_roles' => [$punkt->id => ['kueche-koch']],
+            'item_roles' => [$punkt->id => ['kueche-koch' => 'lesen']],
         ]);
         $this->assertSame(['kueche-koch'], $punkt->roles()->pluck('roles.role_id')->all());
 

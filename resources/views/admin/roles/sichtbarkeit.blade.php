@@ -18,7 +18,8 @@
                 <h2 class="text-lg font-medium text-gray-800">Sichtbarkeit: {{ $role->name }}</h2>
                 <div class="text-xs text-gray-400">
                     <code class="rounded bg-gray-100 px-1.5 py-0.5">{{ $role->role_id }}</code>
-                    &middot; Welche Unterseiten sehen Mitglieder dieser Rolle? Dieselbe Einstellung wie unter „Module", von der Rolle aus.
+                    &middot; Welche Unterseiten sehen Mitglieder dieser Rolle, und wie weit dürfen sie dort gehen?
+                    Lesen &lt; Bearbeiten &lt; Verwalten (anlegen/löschen). Dieselbe Einstellung wie unter „Module", von der Rolle aus.
                 </div>
             </div>
             <a href="{{ route('admin.roles.index') }}" class="text-sm text-gray-500 hover:text-gray-700">
@@ -69,24 +70,22 @@
                             </div>
                             <ul class="divide-y divide-gray-100">
                                 @foreach ($eintrag['items'] as $item)
-                                    <li>
-                                        <label class="flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-gray-50">
-                                            <input type="checkbox" name="items[]" value="{{ $item->id }}"
-                                                   @checked($item->roles->contains('role_id', $role->role_id))
-                                                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                            <span class="min-w-0 flex-1 text-sm text-gray-800">
-                                                @if ($item->group_label)
-                                                    <span class="text-gray-400">{{ $item->group_label }} ›</span>
-                                                @endif
-                                                {{ $item->label }}
-                                            </span>
+                                    <li class="flex items-center gap-3 px-4 py-2">
+                                        <span class="min-w-0 flex-1 text-sm text-gray-800">
+                                            @if ($item->group_label)
+                                                <span class="text-gray-400">{{ $item->group_label }} ›</span>
+                                            @endif
+                                            {{ $item->label }}
                                             @if ($item->admins_only)
-                                                <span class="inline-flex items-center gap-1 text-xs text-amber-600"
-                                                      title="Dieser Punkt ist nur für Admins – das Häkchen wirkt erst, wenn der Schalter unter „Module" aus ist">
+                                                <span class="ml-1 inline-flex items-center gap-1 text-xs text-amber-600"
+                                                      title="Dieser Punkt ist nur für Admins – die Auswahl wirkt erst, wenn der Schalter unter „Module" aus ist">
                                                     <i class='bx bx-lock-alt'></i> nur Admins
                                                 </span>
                                             @endif
-                                        </label>
+                                        </span>
+                                        <x-stufen-wahl :name="'stufen['.$item->id.']'"
+                                                       :stufe="$item->roles->firstWhere('role_id', $role->role_id)?->pivot->stufe"
+                                                       :nur-entfernen="$eintrag['fremd']" />
                                     </li>
                                 @endforeach
                             </ul>

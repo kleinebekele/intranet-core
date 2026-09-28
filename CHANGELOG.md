@@ -16,6 +16,13 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Ist-Zustand jetzt ausdrücklich (keine Zeile = aktiv).
 
 ### Neu
+- **Zugriffsstufen lesen / bearbeiten / verwalten** je Menüpunkt und Rolle (Spalte
+  `module_menu_item_role.stufe`, Migration; bestehende Zuordnungen werden `verwalten`, live ändert
+  sich nichts). `EnsureModuleAccess` prüft die Stufe für jede Modulroute nach Anfrageart und
+  Routenname (GET lesen, `*.edit`/PUT/PATCH/übrige POST bearbeiten, `*.create`/`*.store`/DELETE
+  verwalten); Abweichungen meldet das Manifest per `->lesend(...)` bzw. `->stufe(...)`. Views
+  blenden Knöpfe mit `@darf('bearbeiten')` aus. Auswahl mit vier Zuständen unter „Module" und auf
+  der Sichtbarkeitsseite der Rolle. Details: MODULES.md „Zugriffsstufen".
 - **Rollen von Hand einem Modul zuordnen.** Rolle anlegen/bearbeiten hat ein Feld „Modul"; die
   Rolle ruht dann mit dem Modul und steht dort zur Auswahl. Neue Spalte `roles.modul_von_hand`
   (Migration): `modules:sync` lässt solche Zuordnungen stehen, meldet das Modul die Rolle selbst

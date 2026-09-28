@@ -35,6 +35,13 @@ class ModuleManifest
      */
     public array $rollen = [];
 
+    /**
+     * Abweichende Zugriffsstufen je Route (siehe {@see stufe()}).
+     *
+     * @var array<string, Zugriffsstufe> voller Routenname => Stufe
+     */
+    public array $stufen = [];
+
     /** @param  MenuItem[]  $items */
     public function __construct(
         public string $key,
@@ -113,5 +120,32 @@ class ModuleManifest
         $this->rollen[] = new ModuleRole($roleId, $name, $plattformweit);
 
         return $this;
+    }
+
+    /**
+     * Welche Zugriffsstufe eine Route braucht, wenn die Regel aus der
+     * Anfrageart nicht passt (siehe {@see Zugriffsstufe::benoetigt()}) – etwa
+     * ein POST, der nur sucht, oder ein POST, der etwas anlegt, aber nicht
+     * `*.store` heißt.
+     *
+     * Routennamen dürfen ohne `module.{key}.` angegeben werden:
+     *   ->stufe(Zugriffsstufe::Lesen, 'servings.lookup', 'servings.terminal.search')
+     */
+    public function stufe(Zugriffsstufe|string $stufe, string ...$routeNames): static
+    {
+        $praefix = "module.{$this->key}.";
+
+        foreach ($routeNames as $routeName) {
+            $voll = str_starts_with($routeName, $praefix) ? $routeName : $praefix.$routeName;
+            $this->stufen[$voll] = Zugriffsstufe::aus($stufe);
+        }
+
+        return $this;
+    }
+
+    /** Kurzform für {@see stufe()} mit `lesen`: POST-Routen, die nichts ändern. */
+    public function lesend(string ...$routeNames): static
+    {
+        return $this->stufe(Zugriffsstufe::Lesen, ...$routeNames);
     }
 }

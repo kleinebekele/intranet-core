@@ -138,25 +138,22 @@
                                                                 <div class="flex flex-wrap items-center gap-1.5">
                                                                     <span class="w-24 shrink-0 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ $zeilenName }}</span>
                                                                     @foreach ($zeile as $role)
-                                                                        <label class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-sm text-gray-700 {{ $role->modul === $module->key ? 'border-indigo-200 bg-indigo-50' : 'border-gray-200 bg-white' }}"
-                                                                               @if ($role->plattformweit) title="Plattformweite Rolle aus dem Modul „{{ $role->modul }}“" @endif>
-                                                                            <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
-                                                                                   @checked($item->roles->contains('role_id', $role->role_id))
-                                                                                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                                        <x-stufen-wahl :name="'item_roles['.$item->id.']['.$role->role_id.']'"
+                                                                                       :stufe="$item->roles->firstWhere('role_id', $role->role_id)?->pivot->stufe"
+                                                                                       :hinweis="$role->plattformweit ? 'Plattformweite Rolle aus dem Modul „'.$role->modul.'“' : null">
                                                                             {{ $role->name }}
-                                                                        </label>
+                                                                        </x-stufen-wahl>
                                                                     @endforeach
                                                                 </div>
                                                             @endforeach
                                                             <div class="flex flex-wrap items-center gap-1.5">
                                                                 @foreach ($alt as $role)
-                                                                    <label class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-sm text-amber-800"
-                                                                           title="Rolle des Moduls „{{ $role->modul }}“ – besteht von früher, lässt sich hier nur noch entfernen">
-                                                                        <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}" checked
-                                                                               class="rounded border-amber-300 text-amber-600 focus:ring-amber-500">
-                                                                        {{ $role->name }}
-                                                                        <span class="text-xs text-amber-600">({{ $role->modul }})</span>
-                                                                    </label>
+                                                                    <x-stufen-wahl :name="'item_roles['.$item->id.']['.$role->role_id.']'"
+                                                                                   :stufe="$item->roles->firstWhere('role_id', $role->role_id)?->pivot->stufe"
+                                                                                   :nur-entfernen="true"
+                                                                                   :hinweis="'Rolle des Moduls „'.$role->modul.'“ – besteht von früher, lässt sich hier nur noch entfernen'">
+                                                                        {{ $role->name }} <span class="text-xs opacity-70">({{ $role->modul }})</span>
+                                                                    </x-stufen-wahl>
                                                                 @endforeach
                                                                 @if ($weitere->isNotEmpty())
                                                                     <button type="button" @click="weitere = ! weitere"
@@ -169,12 +166,10 @@
                                                             @if ($weitere->isNotEmpty())
                                                                 <div class="flex flex-wrap gap-1.5" x-show="weitere" x-cloak>
                                                                     @foreach ($weitere as $role)
-                                                                        <label class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-700">
-                                                                            <input type="checkbox" name="item_roles[{{ $item->id }}][]" value="{{ $role->role_id }}"
-                                                                                   @checked($item->roles->contains('role_id', $role->role_id))
-                                                                                   class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                                                        <x-stufen-wahl :name="'item_roles['.$item->id.']['.$role->role_id.']'"
+                                                                                       :stufe="$item->roles->firstWhere('role_id', $role->role_id)?->pivot->stufe">
                                                                             {{ $role->name }}
-                                                                        </label>
+                                                                        </x-stufen-wahl>
                                                                     @endforeach
                                                                 </div>
                                                             @endif
@@ -192,7 +187,7 @@
                                         <i class='bx bx-save text-base'></i>
                                         Sichtbarkeit speichern
                                     </button>
-                                    <span class="text-xs text-gray-400">Keine Auswahl = nur Administratoren · „Benutzer" = alle · gilt für Menü und Zugriff</span>
+                                    <span class="text-xs text-gray-400">Keine Auswahl = nur Administratoren · „Benutzer" = alle · Lesen &lt; Bearbeiten &lt; Verwalten (anlegen/löschen) · gilt für Menü und Zugriff</span>
                                 </div>
                             </form>
 

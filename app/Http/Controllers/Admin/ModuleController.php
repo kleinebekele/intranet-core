@@ -7,6 +7,7 @@ use App\Models\Module;
 use App\Models\ModuleMenuItem;
 use App\Models\Role;
 use App\Modules\Support\ModuleUninstaller;
+use App\Modules\Support\Zugriffsstufe;
 use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -115,8 +116,10 @@ class ModuleController extends Controller
 
     /**
      * Speichert, welche Rollen die Unterpunkte eines Moduls sehen dürfen
-     * (Navigation UND Zugriff). Leere Auswahl = nur Administratoren;
-     * "für alle" wählt man explizit über die Basis-Rolle `user`.
+     * (Navigation UND Zugriff) und mit welcher Stufe (lesen/bearbeiten/
+     * verwalten). Formular: item_roles[menüpunkt][rolle] = stufe, leer = keine.
+     * Leere Auswahl = nur Administratoren; "für alle" wählt man explizit über
+     * die Basis-Rolle `user`.
      */
     public function visibility(Request $request, Module $module): RedirectResponse
     {
@@ -126,7 +129,7 @@ class ModuleController extends Controller
             'item_admins_only.*' => ['boolean'],
             'item_roles' => ['array'],
             'item_roles.*' => ['array'],
-            'item_roles.*.*' => ['string', 'exists:roles,role_id'],
+            'item_roles.*.*' => ['nullable', Rule::enum(Zugriffsstufe::class)],
         ]);
 
         $module->admins_only = (bool) ($data['module_admins_only'] ?? false);
@@ -138,7 +141,8 @@ class ModuleController extends Controller
 
         // Rollen fremder Module lassen sich nicht neu zuordnen – auch nicht per
         // handgebautem Request. Eine bestehende Altzuordnung darf bleiben.
-        $fremd = Role::all()
+        $rollen = Role::all();
+        $fremd = $rollen
             ->filter(fn (Role $role) => $role->auswahlgruppeFuer($module->key) === 'fremd')
             ->pluck('role_id');
 
@@ -146,17 +150,23 @@ class ModuleController extends Controller
             $item->admins_only = (bool) ($itemAdminsOnly[$item->id] ?? false);
             $item->save();
 
-            $gewaehlt = collect($itemRoles[$item->id] ?? []);
-            $neuFremd = $gewaehlt->intersect($fremd)->diff($item->roles->pluck('role_id'));
-            $itemRoles[$item->id] = $gewaehlt->diff($neuFremd)->values()->all();
+            // Nur bekannte Rollen mit gewählter Stufe. Eine fremde Rolle darf
+            // bleiben oder gehen, aber weder neu dazukommen noch aufsteigen.
+            $gewaehlt = collect($itemRoles[$item->id] ?? [])
+                ->filter(fn ($stufe, $roleId) => $stufe && $rollen->contains('role_id', (string) $roleId))
+                ->map(fn ($stufe, $roleId) => $fremd->contains((string) $roleId)
+                    ? $item->roles->firstWhere('role_id', (string) $roleId)?->pivot->stufe
+                    : $stufe)
+                ->filter();
+            $itemRoles[$item->id] = $gewaehlt->all();
 
-            $item->roles()->sync($itemRoles[$item->id]);
+            $item->roles()->sync($gewaehlt->map(fn ($stufe) => ['stufe' => $stufe])->all());
         }
 
         Audit::schreiben('modul.sichtbarkeit', null, ziel: 'Modul '.$module->key, daten: [
             'nur_admins' => $module->admins_only,
             'unterpunkte' => $module->menuItems->mapWithKeys(fn ($item) => [
-                $item->label ?? $item->id => $item->admins_only ? 'nur Admins' : array_values($itemRoles[$item->id] ?? []),
+                $item->label ?? $item->id => $item->admins_only ? 'nur Admins' : ($itemRoles[$item->id] ?? []),
             ])->all(),
         ]);
 

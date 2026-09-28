@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use App\Models\Module;
 use App\Models\ModuleMenuItem;
+use App\Modules\Support\ModuleRegistry;
+use App\Modules\Support\Zugriffsstufe;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,9 +23,14 @@ use Symfony\Component\HttpFoundation\Response;
  *  - Route ohne eigenen Menüpunkt (technische Endpunkte) -> erreichbar,
  *    wenn der Benutzer irgendeinen Menüpunkt des Moduls sehen darf;
  *    feinere Prüfungen bleiben Sache des Moduls.
+ *  - Zusätzlich muss die Zugriffsstufe (lesen/bearbeiten/verwalten) für die
+ *    Anfrage reichen (siehe Zugriffsstufe::benoetigt). Die Stufe landet im
+ *    Request, damit Views per `@darf('bearbeiten')` Knöpfe ausblenden können.
  */
 class EnsureModuleAccess
 {
+    public function __construct(private ModuleRegistry $registry) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $routeName = $request->route()?->getName();
@@ -39,6 +46,8 @@ class EnsureModuleAccess
         }
 
         if ($user->is_admin) {
+            $request->attributes->set(Zugriffsstufe::ATTRIBUT, Zugriffsstufe::Verwalten);
+
             return $next($request);
         }
 
@@ -50,14 +59,19 @@ class EnsureModuleAccess
         }
 
         $item = $this->responsibleItem($module, $routeName);
+        $stufe = $item !== null ? $item->stufeFuer($user) : $module->stufeFuer($user);
 
-        if ($item !== null) {
-            abort_unless($item->isVisibleTo($user), 403);
+        abort_if($stufe === null, 403);
 
-            return $next($request);
-        }
+        // Lesen, bearbeiten, verwalten: reicht die Stufe für diese Anfrage?
+        $noetig = Zugriffsstufe::benoetigt($request->method(), $routeName, $this->registry->manifest($key));
+        abort_unless(
+            $stufe->reichtFuer($noetig),
+            403,
+            "Dafür reichen deine Rechte nicht: nötig ist „{$noetig->label()}“, du hast hier „{$stufe->label()}“.",
+        );
 
-        abort_unless($module->isVisibleTo($user), 403);
+        $request->attributes->set(Zugriffsstufe::ATTRIBUT, $stufe);
 
         return $next($request);
     }

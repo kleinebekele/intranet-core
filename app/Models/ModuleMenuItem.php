@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Modules\Support\Zugriffsstufe;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,35 +25,45 @@ class ModuleMenuItem extends Model
         return $this->belongsTo(Module::class);
     }
 
-    /** Rollen, die diesen Unterpunkt sehen dürfen (keine = nur Administratoren). */
+    /**
+     * Rollen, die diesen Unterpunkt sehen dürfen (keine = nur Administratoren),
+     * je mit ihrer Zugriffsstufe (`pivot->stufe`, siehe Zugriffsstufe).
+     */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'module_menu_item_role', 'module_menu_item_id', 'role_id', 'id', 'role_id');
+        return $this->belongsToMany(Role::class, 'module_menu_item_role', 'module_menu_item_id', 'role_id', 'id', 'role_id')
+            ->withPivot('stufe');
     }
 
     /**
-     * Darf der Benutzer diesen Unterpunkt sehen (Navigation UND Zugriff)?
-     *  - Admins sehen immer alles.
-     *  - `admins_only` -> nur Admins.
-     *  - Ohne zugewiesene Rollen -> nur Admins (sicherer Standard;
-     *    "für alle" drückt man explizit über die Basis-Rolle `user` aus).
-     *  - Sonst genügt eine übereinstimmende Rolle.
+     * Wie weit darf der Benutzer auf diesem Unterpunkt gehen? null = gar nicht.
+     *  - Admins: verwalten.
+     *  - `admins_only` oder ohne zugewiesene Rollen -> nur Admins (sicherer
+     *    Standard; "für alle" drückt man explizit über die Basis-Rolle `user` aus).
+     *  - Sonst die höchste Stufe unter den Rollen des Benutzers.
      */
-    public function isVisibleTo(?User $user): bool
+    public function stufeFuer(?User $user): ?Zugriffsstufe
     {
         if ($user?->is_admin) {
-            return true;
+            return Zugriffsstufe::Verwalten;
         }
         if ($this->admins_only || $this->roles->isEmpty() || ! $user) {
-            return false;
+            return null;
         }
 
         // Rollen eines deaktivierten Moduls zählen nicht – auch nicht hier,
         // falls sie einem fremden Menüpunkt zugeordnet sind.
-        return $user->roles->pluck('role_id')
-            ->intersect($this->roles->pluck('role_id'))
-            ->diff(Role::inaktiveSchluessel())
-            ->isNotEmpty();
+        $eigene = $user->roles->pluck('role_id')->diff(Role::inaktiveSchluessel());
+
+        return Zugriffsstufe::hoechste(
+            $this->roles->whereIn('role_id', $eigene)->map(fn (Role $role) => $role->pivot->stufe),
+        );
+    }
+
+    /** Darf der Benutzer diesen Unterpunkt sehen (Navigation UND Zugriff)? */
+    public function isVisibleTo(?User $user): bool
+    {
+        return $this->stufeFuer($user) !== null;
     }
 
     public function url(): ?string
