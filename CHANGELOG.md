@@ -16,6 +16,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ### Neu
 - **Maillog, Spalte „An":** Tooltip je Empfängeradresse mit dem Benutzer dahinter und all
   seinen Rollen; bekannte Adressen verlinken auf die Benutzerbearbeitung.
+- **Maillog, Spalte „Absender":** From-Adresse der Mail und der SMTP-Absender (bzw.
+  Standard-Mailer), über den sie rausgeht.
+- **Maillog: Status „verworfen".** Knopf „Verwerfen" für gescheiterte Mails; `mail:aufraeumen`
+  (täglich 03:40) verwirft Mails nach 10 Tagen auf „fehlgeschlagen" und löscht verworfene
+  30 Tage nach Eingang. „Erneut" holt auch verworfene zurück. Neue Spalte
+  `mail_outbox.verworfen_am`.
 
 ### Behoben
 - **Mail-Ausgangskorb: „421 too many connections" beim Newsletter.** Jede Mail über ein

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\MailKonto;
 use App\Models\MailOutbox;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +24,7 @@ class MailOutboxController
         MailOutbox::WARTEND,
         MailOutbox::VERSENDET,
         MailOutbox::FEHLGESCHLAGEN,
+        MailOutbox::VERWORFEN,
     ];
 
     public function index(Request $request): View
@@ -42,6 +44,8 @@ class MailOutboxController
         return view('admin.mail.index', [
             'mails' => $mails,
             'empfaenger' => $this->benutzerZuAdressen($mails->getCollection()),
+            // Mailer-Name (konto-<id>) → Bezeichnung des SMTP-Absenders.
+            'konten' => MailKonto::all()->mapWithKeys(fn (MailKonto $k) => [$k->mailerName() => $k->bezeichnung])->all(),
             'status' => $status,
             'aktiv' => (bool) config('mail.outbox.aktiv', true),
             'limit' => $limit,
@@ -53,6 +57,7 @@ class MailOutboxController
                 MailOutbox::WARTEND => MailOutbox::where('status', MailOutbox::WARTEND)->count(),
                 MailOutbox::VERSENDET => MailOutbox::where('status', MailOutbox::VERSENDET)->count(),
                 MailOutbox::FEHLGESCHLAGEN => MailOutbox::where('status', MailOutbox::FEHLGESCHLAGEN)->count(),
+                MailOutbox::VERWORFEN => MailOutbox::where('status', MailOutbox::VERWORFEN)->count(),
             ],
         ]);
     }
@@ -99,9 +104,22 @@ class MailOutboxController
             'status' => MailOutbox::WARTEND,
             'versuche' => 0,
             'naechster_versuch_am' => null,
+            'verworfen_am' => null,
             'fehler' => null,
         ]);
 
         return back()->with('status', "Mail #{$mail->id} steht wieder in der Warteschlange.");
+    }
+
+    /** Eine gescheiterte Mail abhaken – unwichtiger Fehler, kein neuer Versuch. */
+    public function verwerfen(MailOutbox $mail): RedirectResponse
+    {
+        if (! $mail->verwerfbar()) {
+            return back()->withErrors('Nur fehlgeschlagene Mails lassen sich verwerfen.');
+        }
+
+        $mail->verwerfen();
+
+        return back()->with('status', "Mail #{$mail->id} verworfen.");
     }
 }

@@ -64,7 +64,12 @@
                 <div class="mt-1 text-2xl font-semibold {{ $anzahl['fehlgeschlagen'] ? 'text-red-700' : 'text-gray-800' }}">
                     {{ $anzahl['fehlgeschlagen'] }}
                 </div>
-                <div class="mt-2 text-xs text-gray-400">Nach mehreren Versuchen aufgegeben</div>
+                <div class="mt-2 text-xs text-gray-400">
+                    Nach mehreren Versuchen aufgegeben
+                    @if ($anzahl['verworfen'])
+                        · {{ $anzahl['verworfen'] }} verworfen
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -77,6 +82,7 @@
                         'wartend' => 'Wartet',
                         'versendet' => 'Versendet',
                         'fehlgeschlagen' => 'Fehlgeschlagen',
+                        'verworfen' => 'Verworfen',
                     ];
                 @endphp
                 @foreach ($filter as $wert => $beschriftung)
@@ -117,6 +123,7 @@
                         <tr>
                             <th class="px-4 py-3">Status</th>
                             <th class="px-4 py-3">Betreff</th>
+                            <th class="px-4 py-3">Absender</th>
                             <th class="px-4 py-3">An</th>
                             <th class="px-4 py-3">Modul</th>
                             <th class="px-4 py-3">Auslöser</th>
@@ -133,6 +140,9 @@
                                         <span class="inline-flex rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">versendet</span>
                                     @elseif ($mail->status === 'fehlgeschlagen')
                                         <span class="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">fehlgeschlagen</span>
+                                    @elseif ($mail->status === 'verworfen')
+                                        <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-400 line-through">verworfen</span>
+                                        <span class="mt-1 block text-xs text-gray-400">{{ $mail->verworfen_am?->format('d.m.Y') }}</span>
                                     @else
                                         <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">wartet</span>
                                     @endif
@@ -154,6 +164,17 @@
                                             @endif
                                         </div>
                                     @endif
+                                </td>
+
+                                <td class="px-4 py-3 text-gray-600">
+                                    {{ $mail->absender() ?? '—' }}
+                                    <span class="mt-1 block text-xs text-gray-400">
+                                        @if ($mail->mailer && str_starts_with($mail->mailer, \App\Models\MailKonto::PRAEFIX))
+                                            über {{ $konten[$mail->mailer] ?? 'gelöschtes Konto ('.$mail->mailer.')' }}
+                                        @else
+                                            über Standard-Mailer
+                                        @endif
+                                    </span>
                                 </td>
 
                                 <td class="px-4 py-3 text-gray-600">
@@ -216,16 +237,28 @@
                                 </td>
 
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                                    @if ($mail->status === 'fehlgeschlagen')
-                                        <form method="POST" action="{{ route('admin.mail.erneut', $mail) }}">
-                                            @csrf
-                                            <button type="submit"
-                                                    class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                                                <i class='bx bx-revision text-sm leading-none'></i>
-                                                Erneut
-                                            </button>
-                                        </form>
-                                    @endif
+                                    <div class="flex justify-end gap-1.5">
+                                        @if (in_array($mail->status, ['fehlgeschlagen', 'verworfen'], true))
+                                            <form method="POST" action="{{ route('admin.mail.erneut', $mail) }}">
+                                                @csrf
+                                                <button type="submit"
+                                                        class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                                                    <i class='bx bx-revision text-sm leading-none'></i>
+                                                    Erneut
+                                                </button>
+                                            </form>
+                                        @endif
+                                        @if ($mail->verwerfbar())
+                                            <form method="POST" action="{{ route('admin.mail.verwerfen', $mail) }}">
+                                                @csrf
+                                                <button type="submit"
+                                                        class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50">
+                                                    <i class='bx bx-x text-sm leading-none'></i>
+                                                    Verwerfen
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -240,6 +273,11 @@
             „Versendet" heißt: der Mailserver hat die Nachricht angenommen. Ob sie im Postfach
             ankam, weiß die Plattform nicht – dafür braucht es Rückmeldungen des Mailproviders,
             die später über die gespeicherte Message-ID zugeordnet werden können.
+        </p>
+        <p class="mt-2 text-xs text-gray-400">
+            Fehlgeschlagene Mails werden nach {{ \App\Models\MailOutbox::VERWERFEN_NACH_TAGEN }} Tagen
+            automatisch verworfen, verworfene {{ \App\Models\MailOutbox::ENTFERNEN_NACH_TAGEN }} Tage nach
+            ihrem Eingang aus dem Log gelöscht.
         </p>
     </div>
 </x-app-layout>

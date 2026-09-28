@@ -22,6 +22,15 @@ class MailOutbox extends Model
 
     public const FEHLGESCHLAGEN = 'fehlgeschlagen';
 
+    /** Gescheitert und abgehakt – von Hand oder automatisch, siehe `mail:aufraeumen`. */
+    public const VERWORFEN = 'verworfen';
+
+    /** So lange darf eine Mail auf „fehlgeschlagen" stehen, dann wird sie verworfen. */
+    public const VERWERFEN_NACH_TAGEN = 10;
+
+    /** Verworfene Mails verschwinden so viele Tage nach ihrem Eingang aus dem Log. */
+    public const ENTFERNEN_NACH_TAGEN = 30;
+
     /**
      * Wartezeit in Minuten nach dem 1., 2., 3. … Fehlschlag. Ein Fehlschlag mehr
      * als Einträge hier = endgültig gescheitert. Die Abstände überbrücken eine
@@ -41,7 +50,39 @@ class MailOutbox extends Model
             'an' => 'array',
             'versendet_am' => 'datetime',
             'naechster_versuch_am' => 'datetime',
+            'verworfen_am' => 'datetime',
         ];
+    }
+
+    /**
+     * Absender aus dem From-Kopf der gespeicherten Nachricht, z. B.
+     * „Schulbüro <buero@example.org>" – null, wenn die Nachricht nicht lesbar ist.
+     */
+    public function absender(): ?string
+    {
+        try {
+            $from = $this->alsEmail()->getFrom()[0] ?? null;
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $from?->toString();
+    }
+
+    /** Darf man die Mail verwerfen? Nur, wenn sie gescheitert ist oder mit Fehler wartet. */
+    public function verwerfbar(): bool
+    {
+        return $this->status === self::FEHLGESCHLAGEN
+            || ($this->status === self::WARTEND && filled($this->fehler));
+    }
+
+    public function verwerfen(): void
+    {
+        $this->update([
+            'status' => self::VERWORFEN,
+            'verworfen_am' => now(),
+            'naechster_versuch_am' => null,
+        ]);
     }
 
     /**

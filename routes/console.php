@@ -16,6 +16,10 @@ Schedule::command('mail:ausliefern')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Maillog aufräumen: nach 10 Tagen auf „fehlgeschlagen" verwerfen, verworfene
+// 30 Tage nach Eingang löschen.
+Schedule::command('mail:aufraeumen')->dailyAt('03:40');
+
 // Audit-Log aufräumen: Einträge älter als AUDIT_AUFBEWAHRUNG_TAGE (0 = nie).
 Schedule::call(function () {
     $tage = (int) config('intranet.audit_aufbewahrung_tage');

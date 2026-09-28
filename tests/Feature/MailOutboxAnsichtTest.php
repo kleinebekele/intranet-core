@@ -39,6 +39,59 @@ class MailOutboxAnsichtTest extends TestCase
             ->assertSee(route('admin.users.edit', $eltern), false)
             ->assertSee('Erika Muster')
             ->assertSee('Eltern Klasse 3')
-            ->assertSee('Kein Benutzer mit dieser Adresse.');
+            ->assertSee('Kein Benutzer mit dieser Adresse.')
+            ->assertSee('a@example.org')
+            ->assertSee('über Standard-Mailer')
+            ->assertSee(route('admin.mail.verwerfen', MailOutbox::first()), false);
+    }
+
+    private function mail(string $status, array $werte = []): MailOutbox
+    {
+        return MailOutbox::create($werte + [
+            'status' => $status,
+            'betreff' => 'Test',
+            'an' => ['x@example.org'],
+            'nachricht' => MailOutbox::verpacken((new Email)->from('a@example.org')->to('x@example.org')->text('x')),
+        ]);
+    }
+
+    public function test_verwerfen_von_hand(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+
+        $gescheitert = $this->mail(MailOutbox::FEHLGESCHLAGEN, ['fehler' => '550 unbekannt']);
+        $versendet = $this->mail(MailOutbox::VERSENDET);
+
+        $this->actingAs($admin)->post(route('admin.mail.verwerfen', $gescheitert))->assertRedirect();
+        $this->actingAs($admin)->post(route('admin.mail.verwerfen', $versendet))->assertSessionHasErrors();
+
+        $this->assertSame(MailOutbox::VERWORFEN, $gescheitert->fresh()->status);
+        $this->assertNotNull($gescheitert->fresh()->verworfen_am);
+        $this->assertSame(MailOutbox::VERSENDET, $versendet->fresh()->status);
+
+        // Erneut holt sie zurück in die Warteschlange.
+        $this->actingAs($admin)->post(route('admin.mail.erneut', $gescheitert))->assertRedirect();
+        $this->assertSame(MailOutbox::WARTEND, $gescheitert->fresh()->status);
+        $this->assertNull($gescheitert->fresh()->verworfen_am);
+    }
+
+    public function test_aufraeumen_verwirft_nach_10_und_loescht_nach_30_tagen(): void
+    {
+        $this->travel(-31)->days();
+        $uralt = $this->mail(MailOutbox::FEHLGESCHLAGEN);
+        $alterVersand = $this->mail(MailOutbox::VERSENDET);
+        $this->travel(20)->days();
+        $elfTage = $this->mail(MailOutbox::FEHLGESCHLAGEN);
+        $this->travelBack();
+        $frisch = $this->mail(MailOutbox::FEHLGESCHLAGEN);
+
+        $this->artisan('mail:aufraeumen')->assertSuccessful();
+
+        // Über 30 Tage alt: erst verworfen, im selben Lauf gelöscht.
+        $this->assertNull($uralt->fresh());
+        $this->assertSame(MailOutbox::VERWORFEN, $elfTage->fresh()->status);
+        $this->assertSame(MailOutbox::FEHLGESCHLAGEN, $frisch->fresh()->status);
+        $this->assertNotNull($alterVersand->fresh());
     }
 }
