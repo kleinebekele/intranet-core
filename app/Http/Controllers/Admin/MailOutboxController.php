@@ -37,7 +37,9 @@ class MailOutboxController
             : null;
 
         $suche = trim((string) $request->query('suche', ''));
-        $modul = (string) $request->query('modul', '');
+        // Mehrfachauswahl: ?modul[]=Core&modul[]=Newsletter
+        $modul = collect((array) $request->query('modul', []))
+            ->map(fn ($m) => trim((string) $m))->filter()->unique()->values()->all();
         $absender = (string) $request->query('absender', '');
 
         $konten = MailKonto::all()->keyBy(fn (MailKonto $k) => $k->mailerName());
@@ -49,8 +51,12 @@ class MailOutboxController
                 $q->where(fn ($w) => $w->where('betreff', 'like', $muster)->orWhere('an', 'like', $muster));
             })
             // „Core" steht in alten Zeilen als NULL.
-            ->when($modul === 'Core', fn ($q) => $q->where(fn ($w) => $w->whereNull('modul')->orWhere('modul', 'Core')))
-            ->when($modul !== '' && $modul !== 'Core', fn ($q) => $q->where('modul', $modul))
+            ->when($modul !== [], fn ($q) => $q->where(function ($w) use ($modul) {
+                $w->whereIn('modul', $modul);
+                if (in_array('Core', $modul, true)) {
+                    $w->orWhereNull('modul');
+                }
+            }))
             // Absender = der Zugang, über den die Mail rausgeht: ein SMTP-Konto
             // oder der Standard-Mailer (leer bzw. ein Mailer aus config/mail.php).
             ->when($absender === self::STANDARD, fn ($q) => $q->where(fn ($w) => $w->whereNull('mailer')

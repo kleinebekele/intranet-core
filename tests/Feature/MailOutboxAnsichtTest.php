@@ -72,8 +72,15 @@ class MailOutboxAnsichtTest extends TestCase
 
         $seite(['suche' => 'inforum'])->assertSee('Inforum September')->assertDontSee('Passwort zurücksetzen');
         $seite(['suche' => 'lehrer@'])->assertSee('Passwort zurücksetzen')->assertDontSee('Inforum September');
-        $seite(['modul' => 'Core'])->assertSee('Passwort zurücksetzen')->assertDontSee('Inforum September');
-        $seite(['modul' => 'Newsletter'])->assertSee('Inforum September')->assertDontSee('Passwort zurücksetzen');
+        $this->mail(MailOutbox::VERSENDET, ['betreff' => 'Speiseplan', 'modul' => 'Kantine']);
+
+        $seite(['modul' => ['Core']])->assertSee('Passwort zurücksetzen')->assertDontSee('Inforum September');
+        $seite(['modul' => ['Newsletter']])->assertSee('Inforum September')->assertDontSee('Passwort zurücksetzen');
+        $seite(['modul' => ['Core', 'Kantine']])->assertSee('Passwort zurücksetzen')->assertSee('Speiseplan')
+            ->assertDontSee('Inforum September');
+
+        // Auswahl zeigt nur Module mit Mails.
+        $seite([])->assertSee('value="Kantine"', false)->assertDontSee('value="Wiki"', false);
         $seite(['absender' => $konto->mailerName()])->assertSee('Inforum September')->assertDontSee('Passwort zurücksetzen');
         $seite(['absender' => 'standard'])->assertSee('Passwort zurücksetzen')->assertDontSee('Inforum September');
     }
