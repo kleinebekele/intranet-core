@@ -22,8 +22,16 @@ class MailOutbox extends Model
 
     public const FEHLGESCHLAGEN = 'fehlgeschlagen';
 
+    /**
+     * Wartezeit in Minuten nach dem 1., 2., 3. … Fehlschlag. Ein Fehlschlag mehr
+     * als Einträge hier = endgültig gescheitert. Die Abstände überbrücken eine
+     * vorübergehende Sperre des Providers, statt die Versuche im Minutentakt
+     * zu verbrennen.
+     */
+    public const WARTEZEITEN = [5, 15, 60];
+
     /** Ab so vielen vergeblichen Versuchen gilt eine Mail als gescheitert. */
-    public const MAX_VERSUCHE = 3;
+    public const MAX_VERSUCHE = 4;
 
     protected $guarded = [];
 
@@ -32,13 +40,19 @@ class MailOutbox extends Model
         return [
             'an' => 'array',
             'versendet_am' => 'datetime',
+            'naechster_versuch_am' => 'datetime',
         ];
     }
 
-    /** Offene Posten, eilige zuerst, sonst in der Reihenfolge des Eingangs. */
+    /**
+     * Offene Posten, deren Wartezeit abgelaufen ist – eilige zuerst, sonst in
+     * der Reihenfolge des Eingangs.
+     */
     public function scopeAbzuarbeiten(Builder $query): Builder
     {
         return $query->where('status', self::WARTEND)
+            ->where(fn (Builder $q) => $q->whereNull('naechster_versuch_am')
+                ->orWhere('naechster_versuch_am', '<=', now()))
             ->orderByDesc('prioritaet')
             ->orderBy('id');
     }

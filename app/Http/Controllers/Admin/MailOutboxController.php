@@ -68,6 +68,7 @@ class MailOutboxController
         $mail->update([
             'status' => MailOutbox::WARTEND,
             'versuche' => 0,
+            'naechster_versuch_am' => null,
             'fehler' => null,
         ]);
 

@@ -24,8 +24,29 @@ class MailAusliefern extends Command
 
     protected $description = 'Verschickt wartende Mails aus dem Ausgangskorb im erlaubten Takt';
 
+    /**
+     * In diesem Lauf schon eingehängte SMTP-Konten. Jedes Konto wird nur EINMAL
+     * registriert, damit alle seine Mails über dieselbe Verbindung gehen –
+     * `registrieren()` baut den Mailer neu, und eine neue Verbindung je Mail
+     * führte beim Newsletter zu „421 too many connections".
+     *
+     * @var array<string, true>
+     */
+    private array $eingehaengt = [];
+
+    /**
+     * Mailer, deren Server in diesem Lauf mit 421 abgewiesen hat. Weitere Mails
+     * über ihn würden nur ebenfalls scheitern und Versuche verbrauchen – sie
+     * bleiben unangetastet für den nächsten Lauf.
+     *
+     * @var array<string, true>
+     */
+    private array $abgewiesen = [];
+
     public function handle(): int
     {
+        $this->eingehaengt = $this->abgewiesen = [];
+
         $rest = $this->restmenge();
 
         if ($rest === 0) {
@@ -46,13 +67,18 @@ class MailAusliefern extends Command
             return self::SUCCESS;
         }
 
-        $versendet = $gescheitert = 0;
+        $versendet = $gescheitert = $zurueckgestellt = 0;
 
         foreach ($wartende as $eintrag) {
-            $this->versenden($eintrag) ? $versendet++ : $gescheitert++;
+            match ($this->versenden($eintrag)) {
+                true => $versendet++,
+                false => $gescheitert++,
+                null => $zurueckgestellt++,
+            };
         }
 
-        $this->info("{$versendet} versendet, {$gescheitert} fehlgeschlagen.");
+        $this->info("{$versendet} versendet, {$gescheitert} fehlgeschlagen."
+            .($zurueckgestellt ? " {$zurueckgestellt} zurückgestellt (Server hat abgewiesen)." : ''));
 
         if ($offen = MailOutbox::where('status', MailOutbox::WARTEND)->count()) {
             $this->line("Noch {$offen} Mails im Ausgangskorb.");
@@ -83,8 +109,13 @@ class MailAusliefern extends Command
         return max(0, $limit - $letzteStunde);
     }
 
-    /** Eine einzelne Mail rausschicken und das Ergebnis festhalten. */
-    private function versenden(MailOutbox $eintrag): bool
+    /**
+     * Eine einzelne Mail rausschicken und das Ergebnis festhalten.
+     *
+     * @return bool|null true = versendet, false = gescheitert,
+     *                   null = nicht probiert (Server hat in diesem Lauf schon abgewiesen)
+     */
+    private function versenden(MailOutbox $eintrag): ?bool
     {
         // Zweiter Riegel gegen künstliche Adressen: Zeilen, die vor dieser
         // Prüfung in den Korb gelangt sind, dürfen nicht doch noch rausgehen.
@@ -119,7 +150,14 @@ class MailAusliefern extends Command
                 return false;
             }
 
-            $mailer = $konto->registrieren();
+            if (! isset($this->eingehaengt[$mailer])) {
+                $konto->registrieren();
+                $this->eingehaengt[$mailer] = true;
+            }
+        }
+
+        if (isset($this->abgewiesen[$mailer ?? ''])) {
+            return null;
         }
 
         try {
@@ -134,6 +172,7 @@ class MailAusliefern extends Command
                 'versendet_am' => now(),
                 'message_id' => $gesendet?->getMessageId(),
                 'versuche' => $eintrag->versuche + 1,
+                'naechster_versuch_am' => null,
                 'fehler' => null,
             ]);
 
@@ -141,10 +180,20 @@ class MailAusliefern extends Command
         } catch (\Throwable $e) {
             $versuche = $eintrag->versuche + 1;
             $endgueltig = $versuche >= MailOutbox::MAX_VERSUCHE;
+            $warten = MailOutbox::WARTEZEITEN[$versuche - 1] ?? MailOutbox::WARTEZEITEN[array_key_last(MailOutbox::WARTEZEITEN)];
+
+            // 421 = Server nimmt gerade gar nichts an (Sperre, Überlast). Das
+            // betrifft nicht diese Mail, sondern die Verbindung – also für den
+            // Rest des Laufs die Finger von diesem Mailer lassen.
+            if ((int) $e->getCode() === 421) {
+                $this->abgewiesen[$mailer ?? ''] = true;
+                Mail::purge($mailer);
+            }
 
             $eintrag->update([
                 'status' => $endgueltig ? MailOutbox::FEHLGESCHLAGEN : MailOutbox::WARTEND,
                 'versuche' => $versuche,
+                'naechster_versuch_am' => $endgueltig ? null : now()->addMinutes($warten),
                 'fehler' => $e->getMessage(),
             ]);
 

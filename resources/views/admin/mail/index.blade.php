@@ -149,6 +149,9 @@
                                             @if ($mail->versuche > 1)
                                                 <span class="text-gray-400">({{ $mail->versuche }} Versuche)</span>
                                             @endif
+                                            @if ($mail->status === \App\Models\MailOutbox::WARTEND && $mail->naechster_versuch_am?->isFuture())
+                                                <span class="block text-gray-500">nächster Versuch {{ $mail->naechster_versuch_am->format('H:i') }} Uhr</span>
+                                            @endif
                                         </div>
                                     @endif
                                 </td>

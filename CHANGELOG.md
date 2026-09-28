@@ -14,6 +14,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - Abhängigkeiten angehoben: `league/commonmark` 2.8.2 → 2.10.3 (DoS/XSS in Attributes-/SmartPunct-Extension) und `guzzlehttp/guzzle` (Host-/Cookie-Domain-Prüfung), gemeldet von `composer audit` beim Deploy.
 
 ### Behoben
+- **Mail-Ausgangskorb: „421 too many connections" beim Newsletter.** Jede Mail über ein
+  SMTP-Konto baute einen neuen Mailer und damit eine neue Verbindung; jetzt wird jedes Konto
+  einmal je Lauf eingehängt. Weist der Server mit 421 ab, bleiben die übrigen Mails dieses
+  Mailers für den nächsten Lauf liegen, statt ebenfalls Versuche zu verbrauchen. Gescheiterte
+  Mails warten 5 / 15 / 60 Minuten bis zum nächsten Versuch (neue Spalte
+  `mail_outbox.naechster_versuch_am`, Anzeige im Maillog) statt im Minutentakt aufzugeben.
 - **Ekkon-Task pausieren brauchte zwei Klicks**, wenn der Task noch keine Zustandszeile hatte
   (`firstOrCreate` ohne `enabled` → erster Klick setzte enabled=true). Der Schalter bestimmt den
   Ist-Zustand jetzt ausdrücklich (keine Zeile = aktiv).
