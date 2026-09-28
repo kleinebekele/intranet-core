@@ -118,6 +118,30 @@ class ZugriffsstufeTest extends TestCase
             ->assertDontSee('[knopf-neu]');
     }
 
+    public function test_darf_route_prueft_genau_die_zielroute(): void
+    {
+        Route::middleware(['web', 'auth'])->prefix('modules/tm')->name('module.tm.')->group(function (): void {
+            Route::get('/gerichte-knoepfe', fn () => Blade::render(
+                "@darfRoute('module.tm.dishes.edit')[bearbeiten]@enddarfRoute "
+                ."@darfRoute('module.tm.dishes.destroy')[loeschen]@enddarfRoute "
+                ."@darfRoute('module.tm.dishes.lookup')[suchen]@enddarfRoute "
+                ."@darfRoute('module.tm.gibtsnicht')[phantom]@enddarfRoute"
+            ))->name('dishes.knoepfe');
+        });
+        Route::getRoutes()->refreshNameLookups();
+
+        $this->actingAs($this->mitStufe('bearbeiten'))->get('/modules/tm/gerichte-knoepfe')
+            ->assertOk()
+            ->assertSee('[bearbeiten]')
+            ->assertSee('[suchen]')
+            ->assertDontSee('[loeschen]')
+            ->assertDontSee('[phantom]');
+
+        $this->actingAs($this->mitStufe('lesen'))->get('/modules/tm/gerichte-knoepfe')
+            ->assertSee('[suchen]')
+            ->assertDontSee('[bearbeiten]');
+    }
+
     public function test_admin_darf_alles(): void
     {
         $this->assertNotContains(403, $this->ergebnisse(User::where('is_admin', true)->first()));

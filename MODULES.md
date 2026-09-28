@@ -107,7 +107,17 @@ Knöpfe, die der Benutzer nicht nutzen darf, blendet die View aus (Stufe der akt
 @darf('bearbeiten') <a href="{{ route('module.kantine.dishes.edit', $dish) }}">Bearbeiten</a> @enddarf
 ```
 
-Im Controller: `Zugriffsstufe::darf('bearbeiten')` (bzw. `Zugriffsstufe::aktuell()`). Ohne
+**Besser, wenn der Knopf auf eine bestimmte Route zielt:** `@darfRoute` prüft genau diese Route –
+mit ihrer Anfrageart, der Vorgabe aus dem Manifest und dem Menüpunkt, der für sie zuständig ist:
+
+```blade
+@darfRoute('module.kantine.dishes.destroy')
+    <form method="POST" action="{{ route('module.kantine.dishes.destroy', $dish) }}">…</form>
+@enddarfRoute
+```
+
+Im Controller: `Zugriffsstufe::darf('bearbeiten')` (bzw. `Zugriffsstufe::aktuell()`) oder
+`app(Modulzugriff::class)->darfRoute('module.…')`. Ohne
 `@darf` bleibt es sicher – der Klick endet in einer 403 „Dafür reichen deine Rechte nicht“.
 
 ---

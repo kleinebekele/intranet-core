@@ -7,6 +7,7 @@ use App\Listeners\MailInDieOutbox;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\Setting;
 use App\Modules\Support\ModuleRegistry;
+use App\Modules\Support\Modulzugriff;
 use App\Modules\Support\Zugriffsstufe;
 use App\Support\Mailausloeser;
 use App\View\Composers\NavigationComposer;
@@ -86,6 +87,8 @@ class AppServiceProvider extends ServiceProvider
         // Knöpfe nach Zugriffsstufe ausblenden: @darf('bearbeiten') … @enddarf
         // (Stufe der aktuellen Modulseite, gesetzt von EnsureModuleAccess).
         Blade::if('darf', fn (Zugriffsstufe|string $stufe) => Zugriffsstufe::darf($stufe));
+        // Genauer: ginge ein Aufruf GENAU dieser Route durch? @darfRoute('module.x.dishes.destroy') … @enddarfRoute
+        Blade::if('darfRoute', fn (string $routeName) => app(Modulzugriff::class)->darfRoute($routeName));
 
         // Feed the left sidebar with the current navigation state.
         View::composer('layouts.sidebar', NavigationComposer::class);

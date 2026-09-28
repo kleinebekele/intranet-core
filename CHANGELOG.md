@@ -25,6 +25,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Typen/Standorte, Aftersales, Aftersales-Portal, JTL-Auftragsimport, OTTO, Kantinen-Terminal).
 
 ### Neu
+- **`@darfRoute('module.…')`** blendet Knöpfe aus, deren Zielroute der Benutzer nicht aufrufen
+  dürfte (Anfrageart, Manifest-Vorgabe und zuständiger Menüpunkt wie in der Middleware). Die
+  Regeln liegen dafür jetzt in `App\Modules\Support\Modulzugriff`; `EnsureModuleAccess` nutzt sie.
 - **Sichtbarkeit einer Rolle im Modal** (Auge in der Rollenliste): Formular wird nachgeladen und
   ohne Seitenwechsel gespeichert; „Vorige"/„Nächste" blättert durch die Rollen in Listenreihenfolge
   (bei Änderungen „Speichern & weiter"), Schließen fragt bei ungespeicherten Änderungen nach.
