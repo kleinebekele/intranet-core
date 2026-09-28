@@ -16,6 +16,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Ist-Zustand jetzt ausdrücklich (keine Zeile = aktiv).
 
 ### Neu
+- **Sichtbarkeit einer Rolle im Modal** (Auge in der Rollenliste): Formular wird nachgeladen und
+  ohne Seitenwechsel gespeichert; „Vorige"/„Nächste" blättert durch die Rollen in Listenreihenfolge
+  (bei Änderungen „Speichern & weiter"), Schließen fragt bei ungespeicherten Änderungen nach.
 - **Zugriffsstufen lesen / bearbeiten / verwalten** je Menüpunkt und Rolle (Spalte
   `module_menu_item_role.stufe`, Migration; bestehende Zuordnungen werden `verwalten`, live ändert
   sich nichts). `EnsureModuleAccess` prüft die Stufe für jede Modulroute nach Anfrageart und
