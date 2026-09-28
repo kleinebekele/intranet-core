@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\MailOutbox;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
@@ -38,6 +41,7 @@ class MailOutboxController
 
         return view('admin.mail.index', [
             'mails' => $mails,
+            'empfaenger' => $this->benutzerZuAdressen($mails->getCollection()),
             'status' => $status,
             'aktiv' => (bool) config('mail.outbox.aktiv', true),
             'limit' => $limit,
@@ -51,6 +55,32 @@ class MailOutboxController
                 MailOutbox::FEHLGESCHLAGEN => MailOutbox::where('status', MailOutbox::FEHLGESCHLAGEN)->count(),
             ],
         ]);
+    }
+
+    /**
+     * Die Benutzer hinter den Empfängeradressen dieser Seite, für den Tooltip
+     * in der Spalte „An". Schlüssel ist die Adresse in Kleinbuchstaben.
+     *
+     * @param  Collection<int, MailOutbox>  $mails
+     * @return array<string, User>
+     */
+    private function benutzerZuAdressen(Collection $mails): array
+    {
+        $adressen = $mails->flatMap(fn (MailOutbox $m) => (array) $m->an)
+            ->map(fn ($a) => mb_strtolower(trim((string) $a)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($adressen->isEmpty()) {
+            return [];
+        }
+
+        return User::with(['roles' => fn ($q) => $q->orderBy('name')])
+            ->whereIn(DB::raw('LOWER(email)'), $adressen->all())
+            ->get()
+            ->keyBy(fn (User $u) => mb_strtolower($u->email))
+            ->all();
     }
 
     /**

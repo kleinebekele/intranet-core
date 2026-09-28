@@ -13,6 +13,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ### Sicherheit
 - Abhängigkeiten angehoben: `league/commonmark` 2.8.2 → 2.10.3 (DoS/XSS in Attributes-/SmartPunct-Extension) und `guzzlehttp/guzzle` (Host-/Cookie-Domain-Prüfung), gemeldet von `composer audit` beim Deploy.
 
+### Neu
+- **Maillog, Spalte „An":** Tooltip je Empfängeradresse mit dem Benutzer dahinter und all
+  seinen Rollen; bekannte Adressen verlinken auf die Benutzerbearbeitung.
+
 ### Behoben
 - **Mail-Ausgangskorb: „421 too many connections" beim Newsletter.** Jede Mail über ein
   SMTP-Konto baute einen neuen Mailer und damit eine neue Verbindung; jetzt wird jedes Konto

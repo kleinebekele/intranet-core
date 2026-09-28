@@ -157,7 +157,44 @@
                                 </td>
 
                                 <td class="px-4 py-3 text-gray-600">
-                                    {{ implode(', ', $mail->an ?? []) ?: '—' }}
+                                    @forelse ((array) $mail->an as $adresse)
+                                        @php
+                                            $benutzer = $empfaenger[mb_strtolower(trim((string) $adresse))] ?? null;
+                                        @endphp
+                                        {{-- Tooltip mit fester Position: die Tabelle scrollt waagerecht
+                                             und würde ein absolut gesetztes Kästchen abschneiden. --}}
+                                        <span x-data="{ offen: false, x: 0, y: 0 }"
+                                              @mouseenter="const r = $el.getBoundingClientRect(); x = Math.min(r.left, window.innerWidth - 300); y = r.bottom + 6; offen = true"
+                                              @mouseleave="offen = false"
+                                              class="inline">
+                                            @if ($benutzer)
+                                                <a href="{{ route('admin.users.edit', $benutzer) }}"
+                                                   class="cursor-help border-b border-dotted border-gray-400 hover:text-indigo-600">{{ $adresse }}</a>
+                                            @else
+                                                <span class="cursor-help">{{ $adresse }}</span>
+                                            @endif{{ $loop->last ? '' : ',' }}
+                                            <span x-show="offen" x-cloak role="tooltip"
+                                                  :style="`left: ${x}px; top: ${y}px`"
+                                                  class="pointer-events-none fixed z-50 block w-72 rounded-lg bg-gray-800 px-3 py-2 text-left text-xs leading-snug text-white shadow-lg">
+                                                @if ($benutzer)
+                                                    <span class="block font-semibold">{{ $benutzer->name }}</span>
+                                                    @if ($benutzer->roles->isEmpty())
+                                                        <span class="mt-1 block text-gray-400">keine Rollen</span>
+                                                    @else
+                                                        <span class="mt-1.5 flex flex-wrap gap-1">
+                                                            @foreach ($benutzer->roles as $rolle)
+                                                                <span class="rounded bg-gray-700 px-1.5 py-0.5">{{ $rolle->name }}</span>
+                                                            @endforeach
+                                                        </span>
+                                                    @endif
+                                                @else
+                                                    <span class="text-gray-300">Kein Benutzer mit dieser Adresse.</span>
+                                                @endif
+                                            </span>
+                                        </span>
+                                    @empty
+                                        —
+                                    @endforelse
                                 </td>
 
                                 <td class="px-4 py-3 whitespace-nowrap">
