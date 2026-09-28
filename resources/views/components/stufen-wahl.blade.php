@@ -14,9 +14,9 @@
        class="inline-flex items-center gap-1 rounded-lg border py-0.5 pl-2.5 pr-0.5 text-sm transition-colors"
        :class="{
            'border-gray-200 bg-white text-gray-500': s === '',
-           'border-sky-200 bg-sky-50 text-sky-800': s === 'lesen',
-           'border-amber-200 bg-amber-50 text-amber-800': s === 'bearbeiten',
-           'border-indigo-200 bg-indigo-50 text-indigo-800': s === 'verwalten',
+           'border-sky-300 bg-sky-100 text-sky-900': s === 'lesen',
+           'border-amber-300 bg-amber-100 text-amber-900': s === 'bearbeiten',
+           'border-indigo-300 bg-indigo-100 text-indigo-900': s === 'verwalten',
        }">
     <span>{{ $slot }}</span>
     <select name="{{ $name }}" x-model="s"
