@@ -110,6 +110,20 @@ class MailOutboxAnsichtTest extends TestCase
         ]);
     }
 
+    public function test_verworfene_nur_unter_verworfen(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+
+        $this->mail(MailOutbox::VERWORFEN, ['betreff' => 'Abgehakte Mail']);
+        $this->mail(MailOutbox::FEHLGESCHLAGEN, ['betreff' => 'Offene Mail']);
+
+        $this->actingAs($admin)->get(route('admin.mail.index'))
+            ->assertSee('Offene Mail')->assertDontSee('Abgehakte Mail');
+        $this->actingAs($admin)->get(route('admin.mail.index', ['status' => 'verworfen']))
+            ->assertSee('Abgehakte Mail')->assertDontSee('Offene Mail');
+    }
+
     public function test_verwerfen_von_hand(): void
     {
         $admin = User::factory()->create();

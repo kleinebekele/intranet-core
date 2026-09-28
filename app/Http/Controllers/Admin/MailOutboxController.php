@@ -47,7 +47,10 @@ class MailOutboxController
         $konten = MailKonto::all()->keyBy(fn (MailKonto $k) => $k->mailerName());
 
         $mails = MailOutbox::query()
-            ->when($status, fn ($q) => $q->where('status', $status))
+            // „Alle" heißt: alles außer Verworfenem – das ist abgehakt und steht
+            // nur unter seinem eigenen Reiter.
+            ->when($status, fn ($q) => $q->where('status', $status),
+                fn ($q) => $q->where('status', '!=', MailOutbox::VERWORFEN))
             ->when($suche !== '', function ($q) use ($suche) {
                 $muster = '%'.addcslashes($suche, '%_\\').'%';
                 $q->where(fn ($w) => $w->where('betreff', 'like', $muster)->orWhere('an', 'like', $muster));

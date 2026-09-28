@@ -24,7 +24,8 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   (vorher nach Eingang).
 - **Maillog: Status „verworfen".** Knopf „Verwerfen" für gescheiterte Mails; `mail:aufraeumen`
   (täglich 03:40) verwirft Mails nach 10 Tagen auf „fehlgeschlagen" und löscht verworfene
-  30 Tage nach Eingang. „Erneut" holt auch verworfene zurück. Neue Spalte
+  30 Tage nach Eingang. „Erneut" holt auch verworfene zurück. Verworfene stehen nur unter
+  ihrem eigenen Reiter, nicht unter „Alle". Neue Spalte
   `mail_outbox.verworfen_am`.
 
 ### Behoben
