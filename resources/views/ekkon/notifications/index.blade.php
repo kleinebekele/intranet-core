@@ -89,12 +89,31 @@
                     $gruppen = $routes->groupBy('meldungsart');
                     // Unten nur anbieten, was noch KEIN Ziel hat – sonst sieht man nicht, was schon steht.
                     $artenOhneZiel = array_diff_key($meldungsarten, $gruppen->all());
+                    // Je Modul ein Reiter (Emanuel 2026-09-28) - die Liste wurde zu lang.
+                    $jeModul = [];
+                    foreach ($gruppen as $art => $ziele) {
+                        $jeModul[$meldungsartModule[$art] ?? 'Verwaist'][$art] = $ziele;
+                    }
+                    uksort($jeModul, fn ($x, $y) => [$x === 'System', $x === 'Verwaist', $x] <=> [$y === 'System', $y === 'Verwaist', $y]);
+                    $ersterModul = (string) (array_key_first($jeModul) ?? '');
                 @endphp
 
                 @if ($gruppen->isEmpty())
                     <p class="text-sm text-gray-500 mb-4 italic">Noch keine Route – gemeldet wird also noch nichts.</p>
                 @else
-                    <div class="overflow-x-auto">
+                    <div x-data="{ modul: (() => { try { const m = localStorage.getItem('ekkon-routen-modul'); return {{ \Illuminate\Support\Js::from(array_keys($jeModul)) }}.includes(m) ? m : {{ \Illuminate\Support\Js::from($ersterModul) }}; } catch (e) { return {{ \Illuminate\Support\Js::from($ersterModul) }}; } })() }"
+                         x-init="$watch('modul', m => { try { localStorage.setItem('ekkon-routen-modul', m); } catch (e) {} })">
+                    <div class="flex flex-wrap gap-1 border-b border-gray-200 mb-3">
+                        @foreach ($jeModul as $modulName => $artenGruppen)
+                            <button type="button" @click="modul = {{ \Illuminate\Support\Js::from($modulName) }}"
+                                    :class="modul === {{ \Illuminate\Support\Js::from($modulName) }} ? 'border-indigo-500 text-indigo-700 font-semibold' : 'border-transparent text-gray-500 hover:text-gray-800'"
+                                    class="-mb-px border-b-2 px-3 py-1.5 text-sm">
+                                {{ $modulName }} <span class="text-xs text-gray-400">({{ count($artenGruppen) }})</span>
+                            </button>
+                        @endforeach
+                    </div>
+                    @foreach ($jeModul as $modulName => $artenGruppen)
+                    <div class="overflow-x-auto" x-show="modul === {{ \Illuminate\Support\Js::from($modulName) }}" x-cloak>
                         <table class="min-w-full text-sm mb-4">
                             <thead class="text-left text-gray-500 border-b">
                                 <tr>
@@ -105,7 +124,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($gruppen as $art => $ziele)
+                                @foreach ($artenGruppen as $art => $ziele)
                                     <tr class="bg-gray-50 border-t">
                                         <td colspan="4" class="pt-3 pb-1 pr-4">
                                             <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -161,6 +180,8 @@
                                 @endforeach
                             </tbody>
                         </table>
+                    </div>
+                    @endforeach
                     </div>
                 @endif
 
