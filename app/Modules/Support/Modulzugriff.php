@@ -74,9 +74,10 @@ class Modulzugriff
     }
 
     /**
-     * Der Menüpunkt, der für diese Route zuständig ist: exakt, sonst der
-     * spezifischste, dessen Route ein Präfix ist – `…orders.index` wie auch
-     * `…auftragsimport` decken `…auftragsimport.upload` ab.
+     * Der Menüpunkt, der für diese Route zuständig ist: exakt, sonst eine
+     * Zuordnung aus dem Manifest (`->gehoertZu()`), sonst der spezifischste,
+     * dessen Route ein Präfix ist – `…orders.index` wie auch `…auftragsimport`
+     * decken `…auftragsimport.upload` ab.
      */
     public function zustaendigerMenuepunkt(Module $module, string $routeName): ?ModuleMenuItem
     {
@@ -84,6 +85,21 @@ class Modulzugriff
             if ($item->route_name === $routeName) {
                 return $item;
             }
+        }
+
+        $zugeordnet = null;
+        $laenge = 0;
+        foreach ($this->registry->manifest($module->key)?->zuordnungen ?? [] as $bereich => $itemKey) {
+            if (($routeName === $bereich || str_starts_with($routeName, $bereich.'.')) && strlen($bereich) > $laenge) {
+                $zugeordnet = $itemKey;
+                $laenge = strlen($bereich);
+            }
+        }
+        if ($zugeordnet !== null) {
+            // Unbekannter Key (Menüpunkt umbenannt) → lieber gar kein Zugang
+            // als das Modul-Maximum.
+            return $module->menuItems->firstWhere('key', $zugeordnet)
+                ?? (new ModuleMenuItem(['key' => $zugeordnet, 'route_name' => $routeName]))->setRelation('roles', collect());
         }
 
         $treffer = null;

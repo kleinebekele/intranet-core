@@ -182,7 +182,10 @@ Die Menü-Punkte im Manifest müssen exakt auf diese Routen-Namen zeigen
 spezifischste, dessen Route ein Präfix ist: `…orders.index` wie auch `…auftragsimport` decken
 `…auftragsimport.upload` ab. Der Modul-Start (`module.{key}` bzw. `module.{key}.index`) deckt
 nichts ab. Routen ohne zuständigen Menüpunkt bekommen die höchste Stufe, die der Benutzer
-irgendwo im Modul hat – Unterseiten also unter den Namen ihres Menüpunkts legen.
+irgendwo im Modul hat – Unterseiten also unter den Namen ihres Menüpunkts legen. Geht das nicht
+(ein Bereich wird auf der Seite eines anderen Menüpunkts gepflegt), ordnet das Manifest ihn zu:
+`->gehoertZu('seasons', 'menu-templates')` → `module.{key}.menu-templates.*` folgt dem Menüpunkt
+`seasons`.
 
 ---
 

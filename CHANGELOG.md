@@ -25,6 +25,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   Typen/Standorte, Aftersales, Aftersales-Portal, JTL-Auftragsimport, OTTO, Kantinen-Terminal).
 
 ### Neu
+- **`ModuleManifest::gehoertZu(menüpunkt, bereich …)`** ordnet Routenbereiche einem Menüpunkt zu,
+  deren Name nicht darunter liegt (z. B. Kantine `menu-templates.*` → Saisons). Sonst bekämen sie
+  die höchste Stufe, die der Benutzer irgendwo im Modul hat. Unbekannter Menüpunkt = kein Zugang.
 - **`@darfRoute('module.…')`** blendet Knöpfe aus, deren Zielroute der Benutzer nicht aufrufen
   dürfte (Anfrageart, Manifest-Vorgabe und zuständiger Menüpunkt wie in der Middleware). Die
   Regeln liegen dafür jetzt in `App\Modules\Support\Modulzugriff`; `EnsureModuleAccess` nutzt sie.

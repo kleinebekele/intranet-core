@@ -142,6 +142,31 @@ class ZugriffsstufeTest extends TestCase
             ->assertDontSee('[bearbeiten]');
     }
 
+    public function test_zugeordneter_bereich_folgt_seinem_menuepunkt_statt_dem_modul_maximum(): void
+    {
+        Route::middleware(['web', 'auth'])->prefix('modules/tm')->name('module.tm.')->group(function (): void {
+            Route::get('/start', fn () => 'start')->name('start');
+            Route::post('/vorlagen/ausrollen', fn () => 'ausgerollt')->name('vorlagen.push');
+        });
+        Route::getRoutes()->refreshNameLookups();
+
+        $registry = $this->app->make(ModuleRegistry::class);
+        $registry->manifest('tm')->item('start', 'Start', 'module.tm.start')->gehoertZu('dishes', 'vorlagen');
+        $start = $this->punkt->module->menuItems()->create(['key' => 'start', 'label' => 'Start', 'route_name' => 'module.tm.start', 'position' => 1]);
+
+        // Nur lesen auf „Gerichte", aber verwalten auf „Start": ohne Zuordnung
+        // hätte das Modul-Maximum (verwalten) das Ausrollen erlaubt.
+        $user = $this->mitStufe('lesen');
+        Role::forceCreate(['role_id' => 'alle', 'name' => 'Alle']);
+        $start->roles()->attach('alle', ['stufe' => 'verwalten']);
+        $user->roles()->attach('alle');
+
+        $this->actingAs($user->fresh())->post('/modules/tm/vorlagen/ausrollen')->assertForbidden();
+
+        $this->punkt->roles()->updateExistingPivot('crew', ['stufe' => 'bearbeiten']);
+        $this->actingAs($user->fresh())->post('/modules/tm/vorlagen/ausrollen')->assertOk();
+    }
+
     public function test_admin_darf_alles(): void
     {
         $this->assertNotContains(403, $this->ergebnisse(User::where('is_admin', true)->first()));

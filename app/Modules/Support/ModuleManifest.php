@@ -42,6 +42,14 @@ class ModuleManifest
      */
     public array $stufen = [];
 
+    /**
+     * Routenbereiche, die zu einem Menüpunkt gehören, obwohl ihr Name nicht
+     * darunter liegt (siehe {@see gehoertZu()}).
+     *
+     * @var array<string, string> voller Routen-Präfix => Menüpunkt-Key
+     */
+    public array $zuordnungen = [];
+
     /** @param  MenuItem[]  $items */
     public function __construct(
         public string $key,
@@ -138,6 +146,26 @@ class ModuleManifest
         foreach ($routeNames as $routeName) {
             $voll = str_starts_with($routeName, $praefix) ? $routeName : $praefix.$routeName;
             $this->stufen[$voll] = Zugriffsstufe::aus($stufe);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Routenbereiche einem Menüpunkt zuordnen, wenn ihr Name nicht unter dessen
+     * Route liegt – etwa `menu-templates.*`, die auf der Saison-Seite gepflegt
+     * werden. Ohne Zuordnung bekäme so ein Bereich die höchste Stufe, die der
+     * Benutzer irgendwo im Modul hat.
+     *
+     *   ->gehoertZu('seasons', 'menu-templates')   // module.{key}.menu-templates.* → Menüpunkt „seasons"
+     */
+    public function gehoertZu(string $menuepunktKey, string ...$routenBereiche): static
+    {
+        $praefix = "module.{$this->key}.";
+
+        foreach ($routenBereiche as $bereich) {
+            $voll = str_starts_with($bereich, $praefix) ? $bereich : $praefix.$bereich;
+            $this->zuordnungen[rtrim($voll, '.')] = $menuepunktKey;
         }
 
         return $this;
