@@ -46,6 +46,8 @@ class AuditEintrag extends Model
         'zweifaktor.deaktiviert' => '2FA deaktiviert',
         'zweifaktor.totp' => 'TOTP eingerichtet',
         'zweifaktor.totp_entfernt' => 'TOTP entfernt',
+        'passkey.angelegt' => 'Passkey angelegt',
+        'passkey.entfernt' => 'Passkey entfernt',
         'profil.geaendert' => 'Profil geändert',
         'benutzer.angelegt' => 'Benutzer angelegt',
         'benutzer.geaendert' => 'Benutzer geändert',

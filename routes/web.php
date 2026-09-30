@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SeoController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
+use App\Http\Controllers\PasskeyController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
@@ -43,6 +44,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('profile.two-factor.confirm');
     Route::get('/profile/two-factor/cancel', [TwoFactorController::class, 'cancel'])->name('profile.two-factor.cancel');
     Route::delete('/profile/two-factor/totp', [TwoFactorController::class, 'removeTotp'])->name('profile.two-factor.remove-totp');
+
+    // Passkeys (Face ID, Windows Hello, Sicherheitsschlüssel) im eigenen Profil.
+    Route::post('/profile/passkeys/optionen', [PasskeyController::class, 'optionen'])
+        ->middleware('throttle:10,1')->name('profile.passkeys.optionen');
+    Route::post('/profile/passkeys', [PasskeyController::class, 'speichern'])->name('profile.passkeys.speichern');
+    Route::delete('/profile/passkeys/{passkey}', [PasskeyController::class, 'entfernen'])->name('profile.passkeys.entfernen');
 
     // Admin panel: arrange the module navigation.
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {

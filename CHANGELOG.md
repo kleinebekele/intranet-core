@@ -14,6 +14,12 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - Abhängigkeiten angehoben: `league/commonmark` 2.8.2 → 2.10.3 (DoS/XSS in Attributes-/SmartPunct-Extension) und `guzzlehttp/guzzle` (Host-/Cookie-Domain-Prüfung), gemeldet von `composer audit` beim Deploy.
 
 ### Neu
+- **Anmeldung mit Passkey** (Face ID, Touch ID, Windows Hello, Sicherheitsschlüssel). Knopf
+  „Mit Passkey anmelden" auf der Anmeldeseite, zusätzlich im Vorschlagsmenü des E-Mail-Felds.
+  Ein Passkey ersetzt Passwort und 2FA-Code. Anlegen/Entfernen im Profil (Anlegen verlangt das
+  aktuelle Passwort), beides im Audit-Log. Gesperrte und reine Microsoft-Konten kommen damit
+  nicht herein. Prüfung ohne Fremdpaket per OpenSSL (ES256/RS256, attestation „none");
+  Relying Party = Host aus `APP_URL`, braucht https. Neue Tabelle `passkeys`.
 - **Maillog, Spalte „An":** Tooltip je Empfängeradresse mit dem Benutzer dahinter und all
   seinen Rollen; bekannte Adressen verlinken auf die Benutzerbearbeitung.
 - **Maillog, Spalte „Absender":** From-Adresse der Mail und der SMTP-Absender (bzw.

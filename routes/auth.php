@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\MicrosoftLoginController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasskeyLoginController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
@@ -33,7 +34,16 @@ Route::middleware('guest')->group(function () {
     Route::get('auth/microsoft/callback', [MicrosoftLoginController::class, 'callback'])
         ->name('auth.microsoft.callback');
 
-    Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+    // Anmeldung mit Passkey (Face ID, Windows Hello, Sicherheitsschlüssel).
+    Route::post('auth/passkey/optionen', [PasskeyLoginController::class, 'optionen'])
+        ->middleware('throttle:30,1')
+        ->name('auth.passkey.optionen');
+
+    Route::post('auth/passkey', [PasskeyLoginController::class, 'anmelden'])
+        ->middleware('throttle:10,1')
+        ->name('auth.passkey.anmelden');
+
+    Route::get('forgot-password',[PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])

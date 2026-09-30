@@ -15,7 +15,7 @@ use Illuminate\Auth\Events\Registered;
  * wann er sich zuletzt angemeldet hat.
  *
  * Hängt an Laravels Auth-Ereignissen statt an den Controllern: So zählt jeder
- * Weg – Passwort, Microsoft, Registrierung und das Dauer-Cookie („angemeldet
+ * Weg – Passwort, Microsoft, Passkey, Registrierung und das Dauer-Cookie („angemeldet
  * bleiben"), das eine Sitzung ohne Anmeldemaske eröffnet.
  *
  * Fehlgeschlagene Passwort-Anmeldungen schreibt LoginRequest selbst; dort ist
@@ -76,6 +76,7 @@ class AnmeldungenProtokollieren
     private const WEGE = [
         'passwort' => 'Mit Passwort.',
         'microsoft' => 'Über Microsoft.',
+        'passkey' => 'Mit Passkey.',
         'registrierung' => 'Direkt nach der Registrierung.',
         'cookie' => 'Angemeldet geblieben (Dauer-Cookie).',
         'system' => 'Durch das System.',
@@ -95,6 +96,7 @@ class AnmeldungenProtokollieren
         return match (true) {
             $name === 'login' || $pfad === 'login' => 'passwort',
             str_starts_with($name, 'auth.microsoft.') => 'microsoft',
+            $name === 'auth.passkey.anmelden' => 'passkey',
             $name === 'register' || $pfad === 'register' => 'registrierung',
             $event->remember => 'cookie',
             default => 'system',

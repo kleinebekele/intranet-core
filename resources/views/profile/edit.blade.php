@@ -25,6 +25,16 @@
                 </div>
             </div>
 
+            {{-- Konten, die nur über Microsoft hereinkommen, brauchen (und
+                 dürfen) keinen Passkey: Die Anmeldung soll an Microsoft hängen. --}}
+            @unless ($user->nurUeberMicrosoft() && app(\App\Support\Microsoft\MicrosoftSso::class)->aktiv())
+                <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                    <div class="max-w-xl">
+                        @include('profile.partials.passkeys-form', ['user' => $user])
+                    </div>
+                </div>
+            @endunless
+
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div class="max-w-xl">
                     @include('profile.partials.delete-user-form')
