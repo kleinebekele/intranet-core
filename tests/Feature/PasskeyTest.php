@@ -272,6 +272,52 @@ class PasskeyTest extends TestCase
         $this->assertModelMissing($passkey);
     }
 
+    public function test_nach_passwort_anmeldung_wird_einmal_nachgefragt(): void
+    {
+        $user = User::factory()->create();
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect('/dashboard');
+
+        $this->get('/dashboard')->assertSee('Künftig ohne Passwort anmelden?');
+        $this->get('/dashboard')->assertDontSee('Künftig ohne Passwort anmelden?');
+    }
+
+    public function test_direkt_nach_der_anmeldung_ist_kein_zweites_passwort_noetig(): void
+    {
+        $user = User::factory()->create();
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+
+        $this->postJson('/profile/passkeys/optionen')->assertOk();
+
+        $this->travel(20)->minutes();
+        $this->postJson('/profile/passkeys/optionen')->assertStatus(422);
+    }
+
+    public function test_nicht_mehr_fragen_blendet_das_angebot_dauerhaft_aus(): void
+    {
+        $user = User::factory()->create();
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+
+        $this->postJson('/profile/passkeys/angebot-aus')->assertOk();
+        $this->assertNotNull($user->fresh()->passkey_angebot_aus_am);
+
+        auth()->logout();
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+        $this->get('/dashboard')->assertDontSee('Künftig ohne Passwort anmelden?');
+
+        // Im Profil geht es weiterhin.
+        $this->get('/profile')->assertSee('Passkey auf diesem Gerät anlegen');
+    }
+
+    public function test_wer_schon_einen_passkey_hat_wird_nicht_gefragt(): void
+    {
+        $user = User::factory()->create();
+        $this->passkeyFuer($user);
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+        $this->get('/dashboard')->assertDontSee('Künftig ohne Passwort anmelden?');
+    }
+
     public function test_anmeldeseite_und_profil_zeigen_passkeys(): void
     {
         $this->get('/login')->assertOk()->assertSee('Mit Passkey anmelden')->assertSee('username webauthn', false);

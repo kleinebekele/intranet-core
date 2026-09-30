@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Passkey;
 use App\Support\Audit;
-use App\Support\Microsoft\MicrosoftSso;
 use App\Support\PasskeyFehler;
 use App\Support\Passkeys;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +15,8 @@ use Illuminate\Support\Facades\Hash;
  * Passkeys im eigenen Profil anlegen und entfernen.
  *
  * Anlegen verlangt das aktuelle Passwort: Wer nur eine fremde Sitzung erwischt
- * hat, soll sich darüber keinen dauerhaften Zugang einrichten können.
+ * hat, soll sich darüber keinen dauerhaften Zugang einrichten können. Ausnahme
+ * sind die ersten Minuten nach der Passwort-Anmeldung (Angebot nach dem Login).
  */
 class PasskeyController extends Controller
 {
@@ -26,11 +26,13 @@ class PasskeyController extends Controller
     public function optionen(Request $request): JsonResponse
     {
         // Wie auf der Anmeldeseite: Microsoft-Konten melden sich nur dort an.
-        abort_if($request->user()->nurUeberMicrosoft() && app(MicrosoftSso::class)->aktiv(), 403);
+        abort_unless($this->passkeys->erlaubt($request->user()), 403);
 
+        // Direkt nach der Passwort-Anmeldung (Angebot) nicht erneut fragen.
         // Von Hand statt validate(): Das würde außerhalb von api/* per
         // Redirect antworten, das Skript braucht aber JSON.
-        if (! Hash::check((string) $request->input('password'), $request->user()->password)) {
+        if (! $this->passkeys->passwortFrisch($request)
+            && ! Hash::check((string) $request->input('password'), $request->user()->password)) {
             return response()->json(['meldung' => 'Das Passwort stimmt nicht.'], 422);
         }
 
@@ -50,6 +52,14 @@ class PasskeyController extends Controller
 
         Audit::schreiben('passkey.angelegt', $passkey->name, $request->user());
         $request->session()->flash('status', 'Passkey angelegt ('.$passkey->name.') – ab jetzt kannst du dich damit anmelden.');
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** "Nicht mehr fragen": das Angebot nach dem Login dauerhaft ausblenden. */
+    public function angebotAus(Request $request): JsonResponse
+    {
+        $request->user()->forceFill(['passkey_angebot_aus_am' => now()])->save();
 
         return response()->json(['ok' => true]);
     }

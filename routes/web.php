@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/passkeys/optionen', [PasskeyController::class, 'optionen'])
         ->middleware('throttle:10,1')->name('profile.passkeys.optionen');
     Route::post('/profile/passkeys', [PasskeyController::class, 'speichern'])->name('profile.passkeys.speichern');
+    Route::post('/profile/passkeys/angebot-aus', [PasskeyController::class, 'angebotAus'])->name('profile.passkeys.angebot-aus');
     Route::delete('/profile/passkeys/{passkey}', [PasskeyController::class, 'entfernen'])->name('profile.passkeys.entfernen');
 
     // Admin panel: arrange the module navigation.

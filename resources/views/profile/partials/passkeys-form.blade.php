@@ -72,7 +72,7 @@
                 });
                 const antwort = await Passkey.anlegen(optionen);
                 await Passkey.post(@json(route('profile.passkeys.speichern')), {
-                    name: document.getElementById('passkey_name').value,
+                    name: document.getElementById('passkey_name').value || Passkey.geraetename(),
                     antwort,
                 });
                 window.location.hash = 'passkeys';

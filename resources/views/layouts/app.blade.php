@@ -73,6 +73,7 @@
 
         @include('layouts.cookie-notice')
         @include('layouts.dialog')
+        @include('layouts.passkey-angebot')
 
         @stack('scripts')
     </body>

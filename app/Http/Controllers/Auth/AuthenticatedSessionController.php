@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Support\Passkeys;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,9 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        // Nach dem Passwort einmal anbieten, einen Passkey anzulegen.
+        app(Passkeys::class)->nachPasswortAnmeldung($request);
 
         // Braucht der Benutzer einen zweiten Faktor, fängt die
         // EnsureTwoFactorChallenge-Middleware die Ziel-Seite ab und leitet

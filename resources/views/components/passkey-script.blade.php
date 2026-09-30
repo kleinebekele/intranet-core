@@ -53,6 +53,17 @@
 
             verfuegbar: () => !!window.PublicKeyCredential && !!navigator.credentials,
 
+            /** Vorschlag für die Bezeichnung, damit die Liste im Profil lesbar bleibt. */
+            geraetename() {
+                const ua = navigator.userAgent;
+                if (/iPhone/.test(ua)) return 'iPhone';
+                if (/iPad/.test(ua)) return 'iPad';
+                if (/Android/.test(ua)) return 'Android';
+                if (/Windows/.test(ua)) return 'Windows-PC';
+                if (/Macintosh/.test(ua)) return 'Mac';
+                return '';
+            },
+
             async anlegen(o) {
                 o.challenge = zuPuffer(o.challenge);
                 o.user.id = zuPuffer(o.user.id);

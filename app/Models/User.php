@@ -36,6 +36,7 @@ class User extends Authenticatable
             'gesperrt_am' => 'datetime',
             'microsoft_angemeldet_am' => 'datetime',
             'zuletzt_angemeldet_am' => 'datetime',
+            'passkey_angebot_aus_am' => 'datetime',
         ];
     }
 

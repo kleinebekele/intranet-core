@@ -31,6 +31,14 @@ class Passkeys
 
     private const CHALLENGE_ANMELDEN = 'passkey.challenge.anmelden';
 
+    /** Merker: nach dieser Anmeldung einmal das Anlegen anbieten. */
+    private const ANGEBOT = 'passkey.angebot';
+
+    /** Zeitpunkt der Passwort-Anmeldung – so lange gilt das Passwort als frisch bestätigt. */
+    private const PASSWORT_BESTAETIGT = 'passkey.passwort_bestaetigt_am';
+
+    private const PASSWORT_FRISCH_SEKUNDEN = 15 * 60;
+
     /** Millisekunden, die das Gerät für die Bestätigung hat. */
     private const TIMEOUT = 120_000;
 
@@ -46,6 +54,46 @@ class Passkeys
     public function rpId(): string
     {
         return (string) parse_url((string) config('app.url'), PHP_URL_HOST);
+    }
+
+    /** Darf dieser Benutzer überhaupt Passkeys anlegen? Reine Microsoft-Konten nicht. */
+    public function erlaubt(User $user): bool
+    {
+        return ! ($user->nurUeberMicrosoft() && app(Microsoft\MicrosoftSso::class)->aktiv());
+    }
+
+    /**
+     * Gerade mit Passwort angemeldet: einmal das Anlegen anbieten. Das Passwort
+     * hat er eben eingegeben – ein paar Minuten lang fragen wir es beim Anlegen
+     * nicht noch einmal ab.
+     */
+    public function nachPasswortAnmeldung(Request $request): void
+    {
+        $request->session()->put(self::ANGEBOT, true);
+        $request->session()->put(self::PASSWORT_BESTAETIGT, now()->getTimestamp());
+    }
+
+    public function passwortFrisch(Request $request): bool
+    {
+        $zeit = $request->session()->get(self::PASSWORT_BESTAETIGT);
+
+        return is_int($zeit) && now()->getTimestamp() - $zeit < self::PASSWORT_FRISCH_SEKUNDEN;
+    }
+
+    /**
+     * Soll jetzt das Angebot erscheinen? Nur einmal direkt nach der
+     * Passwort-Anmeldung (der Merker wird dabei verbraucht), nur ohne
+     * vorhandenen Passkey und nicht nach "Nicht mehr fragen".
+     */
+    public function angebotZeigen(Request $request, ?User $user): bool
+    {
+        if ($user === null || ! $request->session()->pull(self::ANGEBOT)) {
+            return false;
+        }
+
+        return $user->passkey_angebot_aus_am === null
+            && $this->erlaubt($user)
+            && $user->passkeys()->doesntExist();
     }
 
     /** Optionen für navigator.credentials.create() – einen neuen Passkey anlegen. */

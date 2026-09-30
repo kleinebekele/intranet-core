@@ -20,6 +20,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
   aktuelle Passwort), beides im Audit-Log. Gesperrte und reine Microsoft-Konten kommen damit
   nicht herein. Prüfung ohne Fremdpaket per OpenSSL (ES256/RS256, attestation „none");
   Relying Party = Host aus `APP_URL`, braucht https. Neue Tabelle `passkeys`.
+- **Passkey-Angebot nach der Passwort-Anmeldung:** Wer noch keinen Passkey hat, wird einmal
+  pro Anmeldung gefragt („Jetzt einrichten" / „Später" / „Nicht mehr fragen"). In den ersten
+  15 Minuten nach der Anmeldung ist dafür kein erneutes Passwort nötig. „Nicht mehr fragen"
+  merkt sich `users.passkey_angebot_aus_am`; im Profil bleibt das Anlegen möglich.
 - **Maillog, Spalte „An":** Tooltip je Empfängeradresse mit dem Benutzer dahinter und all
   seinen Rollen; bekannte Adressen verlinken auf die Benutzerbearbeitung.
 - **Maillog, Spalte „Absender":** From-Adresse der Mail und der SMTP-Absender (bzw.
