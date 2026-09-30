@@ -90,6 +90,9 @@
 
             async anmelden(o, zusatz) {
                 o.challenge = zuPuffer(o.challenge);
+                if (o.allowCredentials) {
+                    o.allowCredentials = o.allowCredentials.map((c) => ({ ...c, id: zuPuffer(c.id) }));
+                }
 
                 const cred = await navigator.credentials.get({ publicKey: o, ...(zusatz || {}) });
                 const r = cred.response;
