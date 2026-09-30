@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Passkey;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 
 /**
  * Passkeys (WebAuthn) – Anmeldung per Face ID, Touch ID, Windows Hello oder
@@ -41,6 +42,12 @@ class Passkeys
     private const PASSWORT_BESTAETIGT = 'passkey.passwort_bestaetigt_am';
 
     private const PASSWORT_FRISCH_SEKUNDEN = 15 * 60;
+
+    /** Merker: Vor der Passwort-Anmeldung scheiterte ein unpassender Passkey. */
+    private const PASST_NICHT = 'passkey.passt_nicht';
+
+    /** Cookie: Auf diesem Gerät meldet sich dieses Konto per Passkey an. */
+    public const COOKIE = 'passkey_konto';
 
     /** Millisekunden, die das Gerät für die Bestätigung hat. */
     private const TIMEOUT = 120_000;
@@ -84,18 +91,68 @@ class Passkeys
     }
 
     /**
-     * Soll jetzt das Angebot erscheinen? Einmal direkt nach jeder
-     * Passwort-Anmeldung (der Merker wird dabei verbraucht), außer nach
-     * "Nicht mehr fragen". Auch wer schon einen Passkey hat, wird gefragt:
-     * Wer mit Passwort kommt, hat auf diesem Gerät offenbar keinen.
+     * Welches Angebot erscheint jetzt? Nur direkt nach einer Passwort-Anmeldung
+     * (der Merker wird dabei verbraucht):
+     *
+     * - "passt_nicht": Vorher scheiterte hier ein Passkey, der nicht passte
+     *   (gelöscht, anderes Konto). Dann immer fragen – er wollte ja einen nutzen.
+     * - "neu": sonst, wenn dieses Gerät noch keinen Passkey hat (Cookie), er
+     *   nicht "Nicht mehr fragen" gewählt hat und keine Woche Pause läuft.
      */
-    public function angebotZeigen(Request $request, ?User $user): bool
+    public function angebot(Request $request, ?User $user): ?string
     {
-        if ($user === null || ! $request->session()->pull(self::ANGEBOT)) {
-            return false;
+        if ($user === null || ! $request->session()->pull(self::ANGEBOT) || ! $this->erlaubt($user)) {
+            return null;
         }
 
-        return $user->passkey_angebot_aus_am === null && $this->erlaubt($user);
+        if ($request->session()->pull(self::PASST_NICHT)) {
+            return 'passt_nicht';
+        }
+
+        if ($user->passkey_angebot_aus_am !== null
+            || $user->passkey_angebot_pause_bis?->isFuture()
+            || $this->geraetHatPasskey($request, $user)) {
+            return null;
+        }
+
+        return 'neu';
+    }
+
+    /** Ein Passkey passte nicht – nach der Passwort-Anmeldung Ersatz anbieten. */
+    public function passteNicht(Request $request): void
+    {
+        $request->session()->put(self::PASST_NICHT, true);
+    }
+
+    /**
+     * Cookie "dieses Gerät meldet sich per Passkey an" – mit der E-Mail-Adresse,
+     * damit die Anmeldeseite gleich den Passkey anbietet. Laravel verschlüsselt
+     * Cookies; lesbar ist die Adresse nur für uns.
+     */
+    public function geraetMerken(User $user): void
+    {
+        Cookie::queue(self::COOKIE, $user->email, 60 * 24 * 400);
+    }
+
+    public function geraetVergessen(): void
+    {
+        Cookie::queue(Cookie::forget(self::COOKIE));
+    }
+
+    /** Wer sich auf diesem Gerät zuletzt per Passkey angemeldet hat (sofern noch gültig). */
+    public function gemerkterBenutzer(Request $request): ?User
+    {
+        $email = $request->cookie(self::COOKIE);
+
+        return is_string($email) ? $this->benutzerMitPasskey($email) : null;
+    }
+
+    private function geraetHatPasskey(Request $request, User $user): bool
+    {
+        $email = $request->cookie(self::COOKIE);
+
+        return is_string($email) && mb_strtolower($email) === mb_strtolower($user->email)
+            && $user->passkeys()->exists();
     }
 
     /** Optionen für navigator.credentials.create() – einen neuen Passkey anlegen. */
@@ -257,12 +314,12 @@ class Passkeys
         $passkey = Passkey::query()->with('user')->where('credential_id', $id)->first();
 
         if ($passkey === null) {
-            throw new PasskeyFehler('Dieser Passkey ist hier nicht (mehr) hinterlegt.');
+            throw new PasskeyFehler('Dieser Passkey ist hier nicht (mehr) hinterlegt.', PasskeyFehler::PASST_NICHT);
         }
 
         // Knopf zur eingegebenen Adresse: Es muss auch deren Passkey sein.
         if ($fuer !== null && (int) $fuer !== $passkey->user_id) {
-            throw new PasskeyFehler('Dieser Passkey gehört nicht zur eingegebenen E-Mail-Adresse.');
+            throw new PasskeyFehler('Dieser Passkey gehört nicht zur eingegebenen E-Mail-Adresse.', PasskeyFehler::PASST_NICHT);
         }
 
         // Liefert das Gerät den Benutzer mit, muss er zum Passkey passen.

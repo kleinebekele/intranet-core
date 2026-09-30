@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Passkey;
 use App\Models\User;
+use App\Support\Passkeys;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use OpenSSLAsymmetricKey;
@@ -316,6 +317,89 @@ class PasskeyTest extends TestCase
 
         $this->post('/login', ['email' => $user->email, 'password' => 'password']);
         $this->get('/dashboard')->assertSee('Auf diesem Gerät ohne Passwort anmelden?');
+    }
+
+    public function test_spaeter_laesst_eine_woche_in_ruhe(): void
+    {
+        $user = User::factory()->create();
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+        $this->postJson('/profile/passkeys/angebot-spaeter')->assertOk();
+
+        auth()->logout();
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+        $this->get('/dashboard')->assertDontSee('Auf diesem Gerät ohne Passwort anmelden?');
+
+        auth()->logout();
+        $this->travel(8)->days();
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+        $this->get('/dashboard')->assertSee('Auf diesem Gerät ohne Passwort anmelden?');
+    }
+
+    public function test_passkey_anmeldung_merkt_das_geraet(): void
+    {
+        $user = User::factory()->create();
+        $this->passkeyFuer($user);
+
+        $this->postJson('/auth/passkey', ['antwort' => $this->anmeldeAntwort($this->challengeHolen())])
+            ->assertOk()
+            ->assertCookie(Passkeys::COOKIE, $user->email);
+    }
+
+    public function test_bekanntes_geraet_bietet_passkey_direkt_an_und_fragt_nicht(): void
+    {
+        $user = User::factory()->create();
+        $this->passkeyFuer($user);
+
+        $this->withCookie(Passkeys::COOKIE, $user->email)->get('/login')
+            ->assertSee('passkey-gemerkt-knopf', false)
+            ->assertSee($user->email)
+            ->assertSee('Mit E-Mail und Passwort anmelden');
+
+        $this->withCookie(Passkeys::COOKIE, $user->email)
+            ->post('/login', ['email' => $user->email, 'password' => 'password']);
+        $this->withCookie(Passkeys::COOKIE, $user->email)
+            ->get('/dashboard')->assertDontSee('Auf diesem Gerät ohne Passwort anmelden?');
+    }
+
+    public function test_unpassender_passkey_fuehrt_zum_ersatz_angebot(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['passkey_angebot_aus_am' => now()])->save();
+        $this->passkeyFuer($user, 'alt');
+
+        // Gerät bietet einen Passkey an, den es hier nicht (mehr) gibt.
+        $this->postJson('/auth/passkey', [
+            'antwort' => $this->anmeldeAntwort($this->challengeHolen(), ['credentialId' => 'geloescht']),
+        ])->assertStatus(422)->assertJsonPath('passt_nicht', true);
+
+        // Trotz "Nicht mehr fragen": Er wollte ja einen Passkey nutzen.
+        $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+        $this->get('/dashboard')
+            ->assertSee('Neuen Passkey für dieses Gerät anlegen?')
+            ->assertSee('Ersetzen');
+    }
+
+    public function test_ersetzen_entfernt_die_alten_passkeys(): void
+    {
+        $user = User::factory()->create();
+        $this->passkeyFuer($user, 'alt');
+
+        $optionen = $this->actingAs($user)
+            ->postJson('/profile/passkeys/optionen', ['password' => 'password'])->json();
+        $credentialId = random_bytes(16);
+
+        $this->postJson('/profile/passkeys', [
+            'ersetzen' => true,
+            'antwort' => [
+                'id' => self::b64($credentialId),
+                'clientDataJSON' => self::b64($this->clientData('webauthn.create', $optionen['challenge'])),
+                'authenticatorData' => self::b64($this->authData(0x45, 0, $credentialId)),
+                'publicKey' => self::b64($this->spki()),
+                'publicKeyAlgorithm' => -7,
+            ],
+        ])->assertOk()->assertCookie(Passkeys::COOKIE, $user->email);
+
+        $this->assertSame([self::b64($credentialId)], $user->passkeys()->pluck('credential_id')->all());
     }
 
     public function test_pruefen_meldet_nur_adressen_mit_passkey(): void

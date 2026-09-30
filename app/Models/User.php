@@ -37,6 +37,7 @@ class User extends Authenticatable
             'microsoft_angemeldet_am' => 'datetime',
             'zuletzt_angemeldet_am' => 'datetime',
             'passkey_angebot_aus_am' => 'datetime',
+            'passkey_angebot_pause_bis' => 'datetime',
         ];
     }
 

@@ -23,8 +23,15 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Passkey-Knopf nur bei passender Adresse:** Er erscheint unter dem E-Mail-Feld erst, wenn
   zur eingegebenen Adresse ein Passkey hinterlegt ist (`auth/passkey/pruefen`, gedrosselt);
   das Gerät bietet dann nur die Passkeys dieses Kontos an.
-- **Passkey-Angebot nach der Passwort-Anmeldung:** Jeder wird nach einer Passwort-Anmeldung
-  gefragt – auch wer schon einen Passkey auf einem anderen Gerät hat („Jetzt einrichten" / „Später" / „Nicht mehr fragen"). In den ersten
+- **Bekanntes Gerät:** Nach einer Passkey-Anmeldung (oder dem Anlegen) merkt sich das Gerät
+  das Konto im Cookie `passkey_konto`; die Anmeldeseite bietet dann direkt „Mit Passkey
+  anmelden als …" an, E-Mail und Passwort auf Klick.
+- **Unpassender Passkey** (gelöscht oder anderes Konto): Hinweis auf der Anmeldeseite, nach der
+  Passwort-Anmeldung Angebot „Hinzufügen" oder „Ersetzen" (entfernt die alten Passkeys) – auch
+  nach „Nicht mehr fragen".
+- **Passkey-Angebot nach der Passwort-Anmeldung:** Gefragt wird, wer auf diesem Gerät noch
+  keinen Passkey hat (Cookie) – auch mit Passkey auf einem anderen Gerät. „Später" = eine Woche
+  Ruhe (`users.passkey_angebot_pause_bis`) („Jetzt einrichten" / „Später" / „Nicht mehr fragen"). In den ersten
   15 Minuten nach der Anmeldung ist dafür kein erneutes Passwort nötig. „Nicht mehr fragen"
   merkt sich `users.passkey_angebot_aus_am`; im Profil bleibt das Anlegen möglich.
 - **Maillog, Spalte „An":** Tooltip je Empfängeradresse mit dem Benutzer dahinter und all

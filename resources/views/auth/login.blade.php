@@ -3,6 +3,13 @@
     // hinterlegt sind. Instanzen ohne Microsoft 365 sehen die Anmeldeseite
     // unverändert.
     $microsoft = app(\App\Support\Microsoft\MicrosoftSso::class)->aktiv();
+
+    // Hat sich auf diesem Gerät zuletzt jemand per Passkey angemeldet (Cookie),
+    // steht der Passkey vorn; E-Mail und Passwort gibt es auf Klick. Nach einem
+    // Fehlversuch mit Passwort gleich wieder das Formular zeigen.
+    $gemerkt = $errors->any() ? null : app(\App\Support\Passkeys::class)->gemerkterBenutzer(request());
+
+    $fingerabdruck = 'M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33';
 @endphp
 
 <x-guest-layout>
@@ -36,7 +43,32 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('login') }}">
+    {{-- Hinweise zur Passkey-Anmeldung (Abbruch, passt nicht …). --}}
+    <p id="passkey-fehler" class="mb-4 text-sm text-red-600" hidden></p>
+
+    @if ($gemerkt)
+        {{-- Bekanntes Gerät: der Passkey zuerst. Das Skript blendet diesen
+             Block ein (und das Formular aus), wenn der Browser Passkeys kann. --}}
+        <div id="passkey-gemerkt" hidden>
+            <button type="button" id="passkey-gemerkt-knopf" data-email="{{ $gemerkt->email }}"
+                    class="flex w-full items-center justify-center gap-3 rounded-md bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="{{ $fingerabdruck }}"/>
+                </svg>
+                Mit Passkey anmelden
+            </button>
+            <p class="mt-2 text-center text-sm text-gray-600">als <b>{{ $gemerkt->email }}</b></p>
+
+            <div class="mt-6 text-center">
+                <button type="button" id="passkey-formular-zeigen"
+                        class="text-sm text-gray-600 underline hover:text-gray-900">
+                    Mit E-Mail und Passwort anmelden
+                </button>
+            </div>
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('login') }}" id="login-formular">
         @csrf
 
         <!-- Email Address -->
@@ -52,11 +84,10 @@
                 <button type="button" id="passkey-knopf"
                         class="flex w-full items-center justify-center gap-3 rounded-md border border-indigo-300 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 shadow-sm transition hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a7.464 7.464 0 0 1-1.15 3.993m1.989 3.559A11.209 11.209 0 0 0 8.25 10.5a3.75 3.75 0 1 1 7.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 0 1-3.6 9.75m6.633-4.596a18.666 18.666 0 0 1-2.485 5.33"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $fingerabdruck }}"/>
                     </svg>
                     Mit Passkey anmelden (ohne Passwort)
                 </button>
-                <p id="passkey-fehler" class="mt-2 text-sm text-red-600" hidden></p>
             </div>
         </div>
 
@@ -100,10 +131,11 @@
                 return;
             }
 
-            const knopf = document.getElementById('passkey-knopf');
             const fehler = document.getElementById('passkey-fehler');
+            const formular = document.getElementById('login-formular');
             const bereich = document.getElementById('passkey-bereich');
             const email = document.getElementById('email');
+            const gemerkt = document.getElementById('passkey-gemerkt');
             let laufend = null;
             let geprueft = null;
 
@@ -112,7 +144,15 @@
                 fehler.hidden = !text;
             };
 
-            // Knopf nur zeigen, wenn zur eingegebenen Adresse ein Passkey gehört.
+            const formularZeigen = () => {
+                if (gemerkt) {
+                    gemerkt.hidden = true;
+                }
+                formular.hidden = false;
+                email.focus();
+            };
+
+            // Knopf unter dem E-Mail-Feld nur, wenn zur Adresse ein Passkey gehört.
             const pruefen = async () => {
                 const adresse = email.value.trim();
                 if (adresse === geprueft) {
@@ -141,24 +181,35 @@
             setTimeout(pruefen, 300);
 
             const anmelden = async (zusatz, adresse) => {
-                const optionen = await Passkey.post(@json(route('auth.passkey.optionen')), { email: adresse || null });
-                const antwort = await Passkey.anmelden(optionen, zusatz);
-                const ergebnis = await Passkey.post(@json(route('auth.passkey.anmelden')), {
-                    antwort,
-                    remember: document.getElementById('remember_me').checked,
-                });
-                window.location.href = ergebnis.weiter;
+                try {
+                    const optionen = await Passkey.post(@json(route('auth.passkey.optionen')), { email: adresse || null });
+                    const antwort = await Passkey.anmelden(optionen, zusatz);
+                    const ergebnis = await Passkey.post(@json(route('auth.passkey.anmelden')), {
+                        antwort,
+                        remember: document.getElementById('remember_me').checked,
+                    });
+                    window.location.href = ergebnis.weiter;
+                } catch (e) {
+                    // Passkey passt nicht: zum Passwort-Formular, danach bietet
+                    // das Intranet an, einen neuen anzulegen.
+                    if (e.daten && e.daten.passt_nicht) {
+                        formularZeigen();
+                        if (adresse) {
+                            email.value = adresse;
+                        }
+                    }
+                    throw e;
+                }
             };
 
-            // Knopf: das Gerät fragt aktiv nach Face ID, Windows Hello & Co.
-            knopf.addEventListener('click', async () => {
+            const knopfAnmeldung = (knopf, adresse) => async () => {
                 laufend?.abort();
                 laufend = null;
                 zeigeFehler('');
                 knopf.disabled = true;
 
                 try {
-                    await anmelden(null, email.value.trim());
+                    await anmelden(null, adresse());
                 } catch (e) {
                     zeigeFehler(Passkey.abgebrochen(e)
                         ? 'Abgebrochen. Liegt der Passkey auf einem anderen Gerät, kannst du im Fenster auch das Handy wählen.'
@@ -166,7 +217,19 @@
                 } finally {
                     knopf.disabled = false;
                 }
-            });
+            };
+
+            const knopf = document.getElementById('passkey-knopf');
+            knopf.addEventListener('click', knopfAnmeldung(knopf, () => email.value.trim()));
+
+            if (gemerkt) {
+                const gemerktKnopf = document.getElementById('passkey-gemerkt-knopf');
+                gemerktKnopf.addEventListener('click', knopfAnmeldung(gemerktKnopf, () => gemerktKnopf.dataset.email));
+                document.getElementById('passkey-formular-zeigen').addEventListener('click', formularZeigen);
+                formular.hidden = true;
+                gemerkt.hidden = false;
+                gemerktKnopf.focus();
+            }
 
             // Nebenbei: Passkeys im Vorschlagsmenü des E-Mail-Felds anbieten
             // (Autofill). Läuft still im Hintergrund, bis jemand einen wählt.

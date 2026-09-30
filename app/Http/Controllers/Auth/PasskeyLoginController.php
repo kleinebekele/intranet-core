@@ -56,7 +56,20 @@ class PasskeyLoginController extends Controller
         } catch (PasskeyFehler $fehler) {
             Audit::schreiben('anmeldung.fehlgeschlagen', 'Passkey: '.$fehler->getMessage(), akteur: false);
 
-            return $this->abweisen($fehler->getMessage());
+            if (! $fehler->passtNicht()) {
+                return $this->abweisen($fehler->getMessage());
+            }
+
+            // Der Passkey auf dem Gerät passt nicht (mehr). Nach der
+            // Passwort-Anmeldung bieten wir an, einen neuen anzulegen.
+            $this->passkeys->passteNicht($request);
+            $this->passkeys->geraetVergessen();
+
+            return response()->json([
+                'meldung' => $fehler->getMessage().' Bitte melde dich mit E-Mail und Passwort an – '
+                    .'danach kannst du auf diesem Gerät einen neuen Passkey anlegen.',
+                'passt_nicht' => true,
+            ], 422);
         }
 
         $user = $passkey->user;
@@ -80,6 +93,9 @@ class PasskeyLoginController extends Controller
 
         $request->session()->regenerate();
         $request->session()->put('two_factor_passed', true);
+
+        // Nächstes Mal bietet die Anmeldeseite gleich den Passkey an.
+        $this->passkeys->geraetMerken($user);
 
         return response()->json([
             'weiter' => redirect()->intended(route('dashboard', absolute: false))->getTargetUrl(),

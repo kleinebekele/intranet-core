@@ -42,7 +42,9 @@
             const json = await antwort.json();
 
             if (!antwort.ok) {
-                throw new Error(json.meldung || json.message || 'Fehler ' + antwort.status);
+                const fehler = new Error(json.meldung || json.message || 'Fehler ' + antwort.status);
+                fehler.daten = json;
+                throw fehler;
             }
 
             return json;

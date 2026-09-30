@@ -51,7 +51,31 @@ class PasskeyController extends Controller
         }
 
         Audit::schreiben('passkey.angelegt', $passkey->name, $request->user());
-        $request->session()->flash('status', 'Passkey angelegt ('.$passkey->name.') – ab jetzt kannst du dich damit anmelden.');
+
+        // "Ersetzen": die übrigen Passkeys des Kontos entfernen – für den Fall,
+        // dass der alte nicht mehr passte und man aufräumen will.
+        $entfernt = 0;
+        if ($request->boolean('ersetzen')) {
+            $request->user()->passkeys()->whereKeyNot($passkey->getKey())->get()
+                ->each(function (Passkey $alt) use ($request, &$entfernt) {
+                    $alt->delete();
+                    Audit::schreiben('passkey.entfernt', $alt->name.' (ersetzt)', $request->user());
+                    $entfernt++;
+                });
+        }
+
+        $this->passkeys->geraetMerken($request->user());
+        $request->session()->flash('status', 'Passkey angelegt ('.$passkey->name.')'
+            .($entfernt > 0 ? ', '.$entfernt.' alte(r) entfernt' : '')
+            .' – ab jetzt kannst du dich damit anmelden.');
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** "Später": eine Woche lang nicht mehr fragen. */
+    public function angebotSpaeter(Request $request): JsonResponse
+    {
+        $request->user()->forceFill(['passkey_angebot_pause_bis' => now()->addWeek()])->save();
 
         return response()->json(['ok' => true]);
     }
