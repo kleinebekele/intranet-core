@@ -31,6 +31,9 @@ class Passkeys
 
     private const CHALLENGE_ANMELDEN = 'passkey.challenge.anmelden';
 
+    /** Für welchen Benutzer die Anmelde-Challenge ausgegeben wurde (null = beliebig). */
+    private const ANMELDEN_FUER = 'passkey.anmelden_fuer';
+
     /** Merker: nach dieser Anmeldung einmal das Anlegen anbieten. */
     private const ANGEBOT = 'passkey.angebot';
 
@@ -81,9 +84,10 @@ class Passkeys
     }
 
     /**
-     * Soll jetzt das Angebot erscheinen? Nur einmal direkt nach der
-     * Passwort-Anmeldung (der Merker wird dabei verbraucht), nur ohne
-     * vorhandenen Passkey und nicht nach "Nicht mehr fragen".
+     * Soll jetzt das Angebot erscheinen? Einmal direkt nach jeder
+     * Passwort-Anmeldung (der Merker wird dabei verbraucht), außer nach
+     * "Nicht mehr fragen". Auch wer schon einen Passkey hat, wird gefragt:
+     * Wer mit Passwort kommt, hat auf diesem Gerät offenbar keinen.
      */
     public function angebotZeigen(Request $request, ?User $user): bool
     {
@@ -91,9 +95,7 @@ class Passkeys
             return false;
         }
 
-        return $user->passkey_angebot_aus_am === null
-            && $this->erlaubt($user)
-            && $user->passkeys()->doesntExist();
+        return $user->passkey_angebot_aus_am === null && $this->erlaubt($user);
     }
 
     /** Optionen für navigator.credentials.create() – einen neuen Passkey anlegen. */
@@ -188,18 +190,53 @@ class Passkeys
         return $passkey;
     }
 
-    /** Optionen für navigator.credentials.get() – ohne Benutzerangabe, das Gerät bietet an. */
-    public function anmeldenOptionen(Request $request): array
+    /**
+     * Hat die Adresse einen Passkey, mit dem sie hereinkäme? Steuert, ob die
+     * Anmeldeseite den Passkey-Knopf zeigt.
+     */
+    public function benutzerMitPasskey(?string $email): ?User
+    {
+        $email = mb_strtolower(trim((string) $email));
+
+        if ($email === '') {
+            return null;
+        }
+
+        $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+
+        return $user !== null
+            && ! $user->istGesperrt()
+            && $this->erlaubt($user)
+            && $user->passkeys()->exists()
+            ? $user
+            : null;
+    }
+
+    /**
+     * Optionen für navigator.credentials.get(). Mit Benutzer: nur dessen
+     * Passkeys zulassen (das Gerät bietet dann genau die an, auch vom Handy
+     * per QR-Code). Ohne Benutzer (Autofill): das Gerät bietet an, was es hat.
+     */
+    public function anmeldenOptionen(Request $request, ?User $fuer = null): array
     {
         $challenge = random_bytes(32);
         $request->session()->put(self::CHALLENGE_ANMELDEN, $this->base64url($challenge));
+        $request->session()->put(self::ANMELDEN_FUER, $fuer?->getKey());
 
-        return [
+        $optionen = [
             'challenge' => $this->base64url($challenge),
             'rpId' => $this->rpId(),
             'userVerification' => 'required',
             'timeout' => self::TIMEOUT,
         ];
+
+        if ($fuer !== null) {
+            $optionen['allowCredentials'] = $fuer->passkeys()->pluck('credential_id')
+                ->map(fn (string $id) => ['type' => 'public-key', 'id' => $id])
+                ->all();
+        }
+
+        return $optionen;
     }
 
     /**
@@ -210,6 +247,7 @@ class Passkeys
     public function anmelden(Request $request, array $antwort): Passkey
     {
         $challenge = $request->session()->pull(self::CHALLENGE_ANMELDEN);
+        $fuer = $request->session()->pull(self::ANMELDEN_FUER);
 
         if (! is_string($challenge)) {
             throw new PasskeyFehler('Keine offene Anfrage – bitte erneut versuchen.');
@@ -220,6 +258,11 @@ class Passkeys
 
         if ($passkey === null) {
             throw new PasskeyFehler('Dieser Passkey ist hier nicht (mehr) hinterlegt.');
+        }
+
+        // Knopf zur eingegebenen Adresse: Es muss auch deren Passkey sein.
+        if ($fuer !== null && (int) $fuer !== $passkey->user_id) {
+            throw new PasskeyFehler('Dieser Passkey gehört nicht zur eingegebenen E-Mail-Adresse.');
         }
 
         // Liefert das Gerät den Benutzer mit, muss er zum Passkey passen.

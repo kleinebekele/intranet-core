@@ -278,8 +278,8 @@ class PasskeyTest extends TestCase
 
         $this->post('/login', ['email' => $user->email, 'password' => 'password'])->assertRedirect('/dashboard');
 
-        $this->get('/dashboard')->assertSee('Künftig ohne Passwort anmelden?');
-        $this->get('/dashboard')->assertDontSee('Künftig ohne Passwort anmelden?');
+        $this->get('/dashboard')->assertSee('Auf diesem Gerät ohne Passwort anmelden?');
+        $this->get('/dashboard')->assertDontSee('Auf diesem Gerät ohne Passwort anmelden?');
     }
 
     public function test_direkt_nach_der_anmeldung_ist_kein_zweites_passwort_noetig(): void
@@ -303,19 +303,56 @@ class PasskeyTest extends TestCase
 
         auth()->logout();
         $this->post('/login', ['email' => $user->email, 'password' => 'password']);
-        $this->get('/dashboard')->assertDontSee('Künftig ohne Passwort anmelden?');
+        $this->get('/dashboard')->assertDontSee('Auf diesem Gerät ohne Passwort anmelden?');
 
         // Im Profil geht es weiterhin.
         $this->get('/profile')->assertSee('Passkey auf diesem Gerät anlegen');
     }
 
-    public function test_wer_schon_einen_passkey_hat_wird_nicht_gefragt(): void
+    public function test_auch_mit_passkey_auf_anderem_geraet_wird_gefragt(): void
     {
         $user = User::factory()->create();
         $this->passkeyFuer($user);
 
         $this->post('/login', ['email' => $user->email, 'password' => 'password']);
-        $this->get('/dashboard')->assertDontSee('Künftig ohne Passwort anmelden?');
+        $this->get('/dashboard')->assertSee('Auf diesem Gerät ohne Passwort anmelden?');
+    }
+
+    public function test_pruefen_meldet_nur_adressen_mit_passkey(): void
+    {
+        $mit = User::factory()->create(['email' => 'Mit@Example.test']);
+        $this->passkeyFuer($mit);
+        $ohne = User::factory()->create();
+        $gesperrt = User::factory()->create();
+        $gesperrt->sperren('Test');
+        $this->passkeyFuer($gesperrt, 'geraet-2');
+
+        $this->postJson('/auth/passkey/pruefen', ['email' => 'mit@example.test'])->assertJsonPath('passkey', true);
+        $this->postJson('/auth/passkey/pruefen', ['email' => $ohne->email])->assertJsonPath('passkey', false);
+        $this->postJson('/auth/passkey/pruefen', ['email' => $gesperrt->email])->assertJsonPath('passkey', false);
+        $this->postJson('/auth/passkey/pruefen', ['email' => 'gibts@nicht.test'])->assertJsonPath('passkey', false);
+    }
+
+    public function test_mit_adresse_nur_deren_passkeys(): void
+    {
+        $anna = User::factory()->create();
+        $this->passkeyFuer($anna, 'anna');
+        $bernd = User::factory()->create();
+        $this->passkeyFuer($bernd, 'bernd');
+
+        $challenge = $this->postJson('/auth/passkey/optionen', ['email' => $anna->email])
+            ->assertOk()
+            ->assertJsonPath('allowCredentials.0.id', self::b64('anna'))
+            ->assertJsonCount(1, 'allowCredentials')
+            ->json('challenge');
+
+        // Berndts Passkey passt nicht zur eingegebenen Adresse von Anna.
+        $this->postJson('/auth/passkey', [
+            'antwort' => $this->anmeldeAntwort($challenge, ['credentialId' => 'bernd']),
+        ])->assertStatus(422);
+        $this->assertGuest();
+
+        $this->postJson('/auth/passkey/optionen', ['email' => 'niemand@nicht.test'])->assertStatus(422);
     }
 
     public function test_anmeldeseite_und_profil_zeigen_passkeys(): void

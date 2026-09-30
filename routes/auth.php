@@ -35,7 +35,11 @@ Route::middleware('guest')->group(function () {
         ->name('auth.microsoft.callback');
 
     // Anmeldung mit Passkey (Face ID, Windows Hello, Sicherheitsschlüssel).
-    Route::post('auth/passkey/optionen', [PasskeyLoginController::class, 'optionen'])
+    Route::post('auth/passkey/pruefen', [PasskeyLoginController::class, 'pruefen'])
+        ->middleware('throttle:20,1')
+        ->name('auth.passkey.pruefen');
+
+    Route::post('auth/passkey/optionen',[PasskeyLoginController::class, 'optionen'])
         ->middleware('throttle:30,1')
         ->name('auth.passkey.optionen');
 

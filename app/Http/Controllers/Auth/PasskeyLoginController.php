@@ -22,9 +22,31 @@ class PasskeyLoginController extends Controller
 {
     public function __construct(private readonly Passkeys $passkeys) {}
 
+    /**
+     * Gibt es zur eingegebenen Adresse einen Passkey? Dann zeigt die
+     * Anmeldeseite den Knopf. Verrät, ob eine Adresse ein Konto mit Passkey
+     * hat – deshalb eng gedrosselt (Route).
+     */
+    public function pruefen(Request $request): JsonResponse
+    {
+        return response()->json([
+            'passkey' => $this->passkeys->benutzerMitPasskey($request->input('email')) !== null,
+        ]);
+    }
+
     public function optionen(Request $request): JsonResponse
     {
-        return response()->json($this->passkeys->anmeldenOptionen($request));
+        $fuer = null;
+
+        if (filled($request->input('email'))) {
+            $fuer = $this->passkeys->benutzerMitPasskey($request->input('email'));
+
+            if ($fuer === null) {
+                return $this->abweisen('Zu dieser Adresse ist kein Passkey hinterlegt.');
+            }
+        }
+
+        return response()->json($this->passkeys->anmeldenOptionen($request, $fuer));
     }
 
     public function anmelden(Request $request): JsonResponse
