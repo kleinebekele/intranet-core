@@ -32,5 +32,6 @@ Protokoll: `waechter.log`, Zustand: `waechter-zustand.json` – beide neben der 
 
 - SMTP mit STARTTLS (Port 587, `"ssl": true`) oder unverschlüsselt (Port 25, interner Relay). Port 465 (TLS von
   Anfang an) kann `Send-MailMessage` nicht.
+- `absender_name` (optional) ist der Anzeigename des Absenders, z. B. „Intranet-Wächter".
 - Scheitert eine Alarm-Mail, versucht der nächste Lauf sie erneut.
 - Testmail von Hand: `intranet-waechter.ps1 -Konfig …\waechter.json -Testmail`.

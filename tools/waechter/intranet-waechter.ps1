@@ -34,10 +34,13 @@ function Schreibe-Log([string]$text) {
 
 function Sende-Mail([string]$betreff, [string]$inhalt) {
     $smtp = $cfg.smtp
+    # Optional mit Anzeigename: "Intranet-Waechter <waechter@firma.de>"
+    $von = [string]$smtp.absender
+    if ($smtp.absender_name) { $von = [string]$smtp.absender_name + ' <' + $smtp.absender + '>' }
     $param = @{
         SmtpServer = $smtp.server
         Port       = [int]$smtp.port
-        From       = $smtp.absender
+        From       = $von
         To         = @($smtp.empfaenger)
         Subject    = $betreff
         Body       = $inhalt

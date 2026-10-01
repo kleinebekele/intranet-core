@@ -10,6 +10,7 @@
         "benutzer": "waechter@example.org",
         "passwort_geschuetzt": "",
         "absender": "waechter@example.org",
+        "absender_name": "Intranet-Wächter",
         "empfaenger": ["it@example.org"]
     }
 }
