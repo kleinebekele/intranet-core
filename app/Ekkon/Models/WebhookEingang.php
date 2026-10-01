@@ -14,6 +14,18 @@ class WebhookEingang extends Model
 
     public $timestamps = false;
 
+    /**
+     * created_at selbst setzen: Der Spalten-Default (useCurrent) nimmt die Uhr der
+     * Datenbank – auf MySQL in UTC –, gelesen wird aber in der App-Zeitzone. Die
+     * Eingänge standen dadurch zwei Stunden zu früh in der Liste.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (self $eingang): void {
+            $eingang->created_at ??= now();
+        });
+    }
+
     protected function casts(): array
     {
         return [
