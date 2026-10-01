@@ -8,6 +8,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Neu
+- **Externer Wächter:** `GET /webhooks/ekkon/{schluessel}/lebenszeichen` (Schlüssel einer Webhook-Quelle) meldet live, ob Datenbank und Scheduler leben. Das Windows-Skript `tools/waechter` fragt es alle 5 Minuten ab und schickt bei Störung direkt per SMTP eine Mail. Gegenrichtung: Task `Waechter/Lebenszeichen` meldet über `waechter-still`, wenn der Wächter schweigt. Migration `ekkon_webhook_quellen.lebenszeichen_am/waechter_alarm_am`.
 - **Ekkon-Tasks: Vorbedingungen + Nachholen.** `$brauchtWawi` (Verbindung vor dem Start prüfen) und `$folgtAuf` (logische Kette: Vorgänger müssen seit dem eigenen letzten Erfolg durch sein). Fehlt etwas, wird der Lauf verschoben und von `ekkon:nachholen` (jede Minute) alle 10 Minuten erneut versucht, bis zum nächsten regulären Lauf; Meldungsart `task-verschoben` für Verschieben/Nachholen. Migration `ekkon_task_states.nachholen_*`.
 
 ### Geändert
