@@ -7,7 +7,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\View\View;
+use App\Ekkon\Models\Notification;
+use App\Ekkon\Models\TaskRun;
+use App\Ekkon\Models\TaskState;
 use App\Ekkon\Models\WebhookEingang;
+use Illuminate\Support\Carbon;
 use App\Ekkon\Models\WebhookQuelle;
 
 /**
@@ -55,6 +59,33 @@ class WebhookController extends Controller
         ]);
 
         return response()->json(['ok' => true, 'id' => $eingang->id]);
+    }
+
+    /**
+     * GET /webhooks/ekkon/{schluessel}/lebenszeichen - für den externen Wächter (2026-10-01).
+     * Antwortet nur, wenn Webserver, PHP und Datenbank leben (sonst 5xx/keine Antwort). ok = der
+     * Scheduler hat in den letzten 10 Minuten einen Task gestartet. Merkt sich die Abfrage als
+     * Lebenszeichen des Wächters (Gegenrichtung: Task Waechter/Lebenszeichen).
+     */
+    public function lebenszeichen(string $schluessel): JsonResponse
+    {
+        $quelle = WebhookQuelle::query()->where('schluessel', $schluessel)->where('aktiv', true)->first();
+        if ($quelle === null) {
+            abort(404);
+        }
+        $quelle->forceFill(['lebenszeichen_am' => now()])->save();
+
+        $letzterLauf = TaskRun::query()->max('started_at');
+        $alterMin = $letzterLauf !== null ? (int) floor(Carbon::parse($letzterLauf)->diffInMinutes(now(), true)) : null;
+
+        return response()->json([
+            'ok' => $alterMin !== null && $alterMin <= 10,
+            'zeit' => now()->format('Y-m-d H:i:s'),
+            'scheduler_letzter_lauf' => $letzterLauf,
+            'scheduler_alter_min' => $alterMin,
+            'benachrichtigungen_fehlgeschlagen' => Notification::query()->where('status', 'failed')->count(),
+            'pausierte_tasks' => TaskState::query()->where('enabled', false)->pluck('task_key')->all(),
+        ]);
     }
 
     // ── Admin-Seite ─────────────────────────────────────────────────────

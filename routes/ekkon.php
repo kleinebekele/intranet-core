@@ -78,6 +78,12 @@ Route::middleware(['web', 'auth'])
 // Modul-Zugriffsprüfung des Cores hier nicht greift. Die Drossel ist bewusst
 // weit: Carrier-Push-Dienste (DHL) schicken je Ereignis eine Nachricht und
 // morgens in Wellen; ein 429 kostet dort eine Stunde Wiederholung.
+// Externer Wächter (Windows-Skript im selben Netz, 2026-10-01): fragt mit dem Schlüssel einer
+// Webhook-Quelle ab, ob Datenbank und Scheduler leben; schlägt sonst selbst per Mail Alarm.
+Route::get('/webhooks/ekkon/{schluessel}/lebenszeichen', [WebhookController::class, 'lebenszeichen'])
+    ->middleware('throttle:60,1')
+    ->name('ekkon.webhook.lebenszeichen');
+
 Route::post('/webhooks/ekkon/{schluessel}', [WebhookController::class, 'empfangen'])
     ->middleware('throttle:600,1')
     ->name('ekkon.webhook.empfangen');

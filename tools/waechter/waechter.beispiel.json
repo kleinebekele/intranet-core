@@ -1,0 +1,15 @@
+{
+    "name": "Intranet",
+    "url": "https://intranet.example.org/webhooks/ekkon/SCHLUESSEL/lebenszeichen",
+    "fehlversuche_bis_alarm": 2,
+    "erinnerung_minuten": 60,
+    "smtp": {
+        "server": "smtp.example.org",
+        "port": 587,
+        "ssl": true,
+        "benutzer": "waechter@example.org",
+        "passwort_geschuetzt": "",
+        "absender": "waechter@example.org",
+        "empfaenger": ["it@example.org"]
+    }
+}

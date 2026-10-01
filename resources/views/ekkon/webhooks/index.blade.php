@@ -86,6 +86,10 @@
                                                 <button type="button" @click="kopiere({{ \Illuminate\Support\Js::from($quelle->url()) }})"
                                                         class="text-indigo-700 hover:underline text-xs whitespace-nowrap">kopieren</button>
                                             </div>
+                                            @if ($quelle->lebenszeichen_am)
+                                                <div class="mt-1 text-xs text-gray-500">Wächter: letztes Lebenszeichen {{ $quelle->lebenszeichen_am->format('d.m.Y H:i') }}
+                                                    @if ($quelle->waechter_alarm_am) <span class="font-semibold text-red-700">– schweigt, gemeldet</span> @endif</div>
+                                            @endif
                                         </td>
                                         <td class="py-2 pr-4">{{ $quelle->eingaenge_count }}</td>
                                         <td class="py-2 pr-4">

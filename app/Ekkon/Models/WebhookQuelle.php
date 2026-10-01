@@ -17,7 +17,7 @@ class WebhookQuelle extends Model
 
     protected function casts(): array
     {
-        return ['aktiv' => 'boolean'];
+        return ['aktiv' => 'boolean', 'lebenszeichen_am' => 'datetime', 'waechter_alarm_am' => 'datetime'];
     }
 
     public function eingaenge(): HasMany
@@ -28,6 +28,12 @@ class WebhookQuelle extends Model
     public function url(): string
     {
         return route('ekkon.webhook.empfangen', $this->schluessel);
+    }
+
+    /** Abfrage-Adresse für den externen Wächter (GET, gleicher Schlüssel). */
+    public function lebenszeichenUrl(): string
+    {
+        return route('ekkon.webhook.lebenszeichen', $this->schluessel);
     }
 
     public static function neuerSchluessel(): string
