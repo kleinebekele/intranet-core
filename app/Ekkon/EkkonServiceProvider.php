@@ -7,6 +7,7 @@ use App\Modules\Support\ModuleServiceProvider;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Ekkon\Console\RunTaskCommand;
 use App\Ekkon\Console\TeamsLauschenCommand;
+use App\Ekkon\Console\NachholenCommand;
 use App\Ekkon\Console\TimeoutTestCommand;
 use App\Ekkon\Models\Notification;
 use App\Ekkon\Models\TaskRun;
@@ -113,7 +114,7 @@ class EkkonServiceProvider extends ModuleServiceProvider
             return;
         }
 
-        $this->commands([RunTaskCommand::class, TimeoutTestCommand::class, TeamsLauschenCommand::class]);
+        $this->commands([RunTaskCommand::class, TimeoutTestCommand::class, TeamsLauschenCommand::class, NachholenCommand::class]);
 
         // Jeden aktiven Task beim Laravel-Scheduler anmelden. Der Server braucht
         // dafür nur EINEN Cron-Eintrag: * * * * * php artisan schedule:run
@@ -139,6 +140,9 @@ class EkkonServiceProvider extends ModuleServiceProvider
                     ->withoutOverlapping($task->lockSeconds() / 60)
                     ->runInBackground();
             }
+
+            // Verschobene Läufe nachholen (brauchtWawi / folgtAuf), auch außerhalb der Cron-Zeit.
+            $schedule->command('ekkon:nachholen')->everyMinute()->withoutOverlapping(120)->runInBackground();
 
             // Lauf-Historie begrenzen (Statistik bleibt aussagekräftig, DB schlank).
             $schedule->call(function (): void {

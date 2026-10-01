@@ -68,6 +68,14 @@ class Nachtlauf extends EkkonTask
 Statt eines starren Cron kann eine Aufgabe ihren nächsten Lauf auch selbst
 bestimmen (`$this->setInterval($zeitpunkt)`); der Cron wird dann zum Herzschlag.
 
+**Vorbedingungen und Nachholen.** `public bool $brauchtWawi = true;` lässt den Runner vor jedem
+geplanten Lauf die MSSQL-Verbindung prüfen; `public array $folgtAuf = ['Kategorie/Task'];` verlangt, dass
+jeder genannte Vorgänger seit dem letzten erfolgreichen Lauf dieser Aufgabe selbst erfolgreich war.
+Fehlt eine Vorbedingung, startet die Aufgabe nicht, sondern wird alle `$nachholenMinuten` (Standard 10)
+über `ekkon:nachholen` erneut versucht – auch außerhalb ihrer Cron-Zeit –, bis es klappt oder ihr
+nächster regulärer Lauf ansteht. Verschieben und Nachholen melden sich unter der Meldungsart
+`task-verschoben`. Manuelle Läufe prüfen keine Vorbedingung.
+
 ## Aufgaben aus eigenen Modulen beisteuern
 
 Jedes Modul meldet sein Tasks-Verzeichnis im **`register()`** seines Providers an:

@@ -2,7 +2,9 @@
 
 namespace App\Ekkon\Support;
 
+use App\Ekkon\Ekkon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use App\Ekkon\Models\TaskRun;
 use App\Ekkon\Services\Benachrichtiger;
 use App\Ekkon\Models\TaskState;
@@ -63,13 +65,26 @@ class TaskRunner
         // werden lautlos übersprungen; nur manuelle Läufe dürfen durch.
         $state = TaskState::firstWhere('task_key', $task->key());
 
-        if ($trigger === 'scheduled' && $state !== null && ! $state->enabled) {
+        // 'nachholen' = verschobener Lauf (ekkon:nachholen) - verhält sich wie ein geplanter.
+        $geplant = in_array($trigger, ['scheduled', 'nachholen'], true);
+
+        if ($geplant && $state !== null && ! $state->enabled) {
             return null;
         }
 
         if ($trigger === 'scheduled' && $state?->next_run_at?->isFuture()) {
             return null;
         }
+
+        // Vorbedingungen (2026-10-01): Wawi erreichbar, Vorgänger der Kette durch? Sonst nicht
+        // starten, sondern verschieben und nachholen. Manuelle Läufe prüfen nichts.
+        if ($geplant && ($task->brauchtWawi || $task->folgtAuf !== [])) {
+            $grund = $this->vorbedingungFehlt($task);
+            if ($grund !== null) {
+                return $this->verschieben($task, $trigger, $grund);
+            }
+        }
+        $warVerschoben = $state?->nachholen_seit !== null;
 
         $lock = Cache::lock('ekkon-task-'.$task->key(), $task->lockSeconds());
 
@@ -122,6 +137,10 @@ class TaskRunner
         ]);
 
         $this->laufzeitPruefen($task, $dauerMs, $status);
+
+        if ($warVerschoben) {
+            $this->nachgeholt($task, $status, $trigger);
+        }
 
         // Vom Task bestimmten nächsten Lauf merken (auch nach manuellen Läufen).
         if ($task->interval() !== null) {
@@ -215,6 +234,125 @@ class TaskRunner
                 // dieselbe Meldung sechsmal pro Stunde absetzen. Stündlich
                 // bleibt sichtbar, dass es weitergeht, ohne zu fluten.
                 'task-laufzeit:'.$task->key().':'.now()->format('Y-m-d-H'),
+                $task->key(),
+            );
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    /**
+     * Was hält einen geplanten Lauf auf? null = nichts. Prüft die Wawi-Verbindung (brauchtWawi) und
+     * die Vorgänger der Kette (folgtAuf): jeder muss nach dem letzten erfolgreichen Lauf dieses
+     * Tasks selbst erfolgreich gewesen sein. Pausierte oder unbekannte Vorgänger bremsen nicht.
+     */
+    private function vorbedingungFehlt(EkkonTask $task): ?string
+    {
+        if ($task->brauchtWawi && Ekkon::mssqlKonfiguriert()) {
+            $verbindung = Ekkon::mssqlConnection();
+            try {
+                DB::connection($verbindung)->select('SELECT 1 AS ok');
+            } catch (Throwable $e) {
+                DB::purge($verbindung);
+
+                return 'Wawi nicht erreichbar: '.mb_substr($e->getMessage(), 0, 300);
+            }
+        }
+
+        $registry = app(TaskRegistry::class);
+        $eigenOk = TaskRun::query()->where('task_key', $task->key())->where('status', 'ok')->max('started_at');
+        foreach ($task->folgtAuf as $vorgaenger) {
+            if ($registry->find($vorgaenger) === null || ! $registry->modulAktiv($vorgaenger)) {
+                continue;
+            }
+            $vState = TaskState::firstWhere('task_key', $vorgaenger);
+            if ($vState !== null && ! $vState->enabled) {
+                continue;
+            }
+            if ($vState?->nachholen_ab !== null) {
+                return "Vorgänger {$vorgaenger} ist selbst verschoben ({$vState->nachholen_grund}).";
+            }
+            $vOk = TaskRun::query()->where('task_key', $vorgaenger)->where('status', 'ok')->max('finished_at');
+            if ($vOk === null) {
+                return "Vorgänger {$vorgaenger} war noch nie erfolgreich.";
+            }
+            if ($eigenOk !== null && (string) $vOk <= (string) $eigenOk) {
+                return "Vorgänger {$vorgaenger} war seit dem letzten eigenen Lauf nicht erfolgreich (zuletzt ok {$vOk}).";
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Lauf nicht starten, sondern in nachholenMinuten erneut versuchen - es sei denn, der nächste
+     * reguläre Lauf kommt vorher, dann übernimmt der. Die erste Verschiebung wird gemeldet.
+     */
+    private function verschieben(EkkonTask $task, string $trigger, string $grund): TaskRun
+    {
+        $jetzt = now();
+        $ab = $jetzt->copy()->addMinutes(max(1, $task->nachholenMinuten))->startOfMinute();
+        $regulaer = $task->nextRunDate();
+        $state = TaskState::firstOrNew(['task_key' => $task->key()]);
+        $erstes = $state->nachholen_seit === null;
+
+        if ($regulaer <= $ab) {
+            $state->fill(['nachholen_ab' => null, 'nachholen_seit' => null, 'nachholen_grund' => null])->save();
+            $hinweis = 'Kein Nachholen: der nächste reguläre Lauf ('.$regulaer->format('d.m. H:i').') kommt vorher.';
+        } else {
+            $state->fill([
+                'nachholen_ab' => $ab,
+                'nachholen_seit' => $state->nachholen_seit ?? $jetzt,
+                'nachholen_grund' => mb_substr($grund, 0, 500),
+            ])->save();
+            $hinweis = 'Neuer Versuch ab '.$ab->format('H:i').' (alle '.$task->nachholenMinuten.' Minuten bis zum nächsten regulären Lauf '.$regulaer->format('d.m. H:i').').';
+        }
+
+        $run = TaskRun::create([
+            'task_key' => $task->key(),
+            'trigger' => $trigger,
+            'status' => 'skipped',
+            'started_at' => $jetzt,
+            'finished_at' => $jetzt,
+            'duration_ms' => 0,
+            'output' => ['verschoben' => $grund, 'hinweis' => $hinweis],
+        ]);
+
+        if ($erstes) {
+            try {
+                (new Benachrichtiger())->benachrichtige(
+                    TaskRegistry::MELDUNG_VERSCHOBEN,
+                    'Task verschoben: '.$task->key(),
+                    $grund."
+
+".$hinweis."
+
+Sobald er nachgeholt ist, kommt eine zweite Meldung.",
+                    ['task' => $task->key(), 'grund' => $grund],
+                    'task-verschoben:'.$task->key().':'.$jetzt->format('Y-m-d-H'),
+                    $task->key(),
+                );
+            } catch (Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $run;
+    }
+
+    /** Ein verschobener Task ist (egal wie) gelaufen: Nachholen beenden und melden. */
+    private function nachgeholt(EkkonTask $task, string $status, string $trigger): void
+    {
+        try {
+            $state = TaskState::firstWhere('task_key', $task->key());
+            $seit = $state?->nachholen_seit;
+            $state?->fill(['nachholen_ab' => null, 'nachholen_seit' => null, 'nachholen_grund' => null])->save();
+            (new Benachrichtiger())->benachrichtige(
+                TaskRegistry::MELDUNG_VERSCHOBEN,
+                ($status === 'ok' ? 'Task nachgeholt: ' : 'Task nachgeholt, aber mit Fehler: ').$task->key(),
+                'Verschoben seit '.($seit?->format('d.m.Y H:i') ?? '?').', jetzt gelaufen ('.($trigger === 'nachholen' ? 'Nachholversuch' : 'regulär').', Status: '.$status.').',
+                ['task' => $task->key(), 'status' => $status],
+                'task-nachgeholt:'.$task->key().':'.now()->format('Y-m-d-H-i'),
                 $task->key(),
             );
         } catch (Throwable $e) {

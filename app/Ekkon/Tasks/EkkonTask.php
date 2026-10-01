@@ -157,6 +157,29 @@ abstract class EkkonTask
     public bool $automatischPausieren = true;
 
     /**
+     * Braucht der Task die Wawi (MSSQL)? Dann prüft der Runner vor einem geplanten Lauf die
+     * Verbindung (SELECT 1, kurzes Login-Zeitlimit). Ist sie weg, startet der Task nicht, sondern
+     * wird alle $nachholenMinuten erneut versucht - auch außerhalb seiner Cron-Zeit -, bis es
+     * klappt oder sein nächster regulärer Lauf ansteht (Emanuel 2026-10-01: BI lief genau zur
+     * Ausfallzeit und fiel für den ganzen Tag aus).
+     */
+    public bool $brauchtWawi = false;
+
+    /**
+     * Logische Kette: Keys der Tasks, deren Daten dieser Task verarbeitet. Ein geplanter Lauf
+     * startet erst, wenn jeder Vorgänger seit dem letzten erfolgreichen Lauf DIESES Tasks selbst
+     * erfolgreich war - sonst wird er wie bei fehlender Wawi verschoben. Wird ein Vorgänger
+     * verschoben, rutscht der Nachfolger so automatisch mit. Pausierte/unbekannte Vorgänger
+     * bremsen nicht.
+     *
+     * @var list<string>
+     */
+    public array $folgtAuf = [];
+
+    /** Abstand der Nachhol-Versuche in Minuten. */
+    public int $nachholenMinuten = 10;
+
+    /**
      * Überlappungsschutz: solange (Sekunden) hält der Lauf die Sperre,
      * ein zweiter Start desselben Tasks wird währenddessen übersprungen.
      *

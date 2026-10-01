@@ -269,7 +269,7 @@ class TaskRegistry
      */
     public function meldungsartModule(): array
     {
-        $zuordnung = [self::MELDUNG_LAUFZEIT => 'System'];
+        $zuordnung = [self::MELDUNG_LAUFZEIT => 'System', self::MELDUNG_VERSCHOBEN => 'System'];
 
         foreach ($this->byModule() as $gruppe) {
             foreach ($gruppe['kategorien'] as $tasks) {
@@ -295,6 +295,12 @@ class TaskRegistry
     public const MELDUNG_LAUFZEIT = 'task-laufzeit';
 
     /**
+     * Meldungsart des Runners: ein geplanter Lauf wurde verschoben (Wawi weg, Vorgänger der Kette
+     * nicht durch) bzw. später nachgeholt (2026-10-01).
+     */
+    public const MELDUNG_VERSCHOBEN = 'task-verschoben';
+
+    /**
      * Alle Meldungsarten, die irgendein Task deklariert (EkkonTask::$meldungsarten):
      * schluessel => "Klartext (Task/Key)".
      *
@@ -312,6 +318,7 @@ class TaskRegistry
         // Route anlegen und die Meldung landete immer bei 'ohne_ziel'.
         $arten = [
             self::MELDUNG_LAUFZEIT => 'Ein Task lief ungewöhnlich lange (System)',
+            self::MELDUNG_VERSCHOBEN => 'Ein Task wurde verschoben / nachgeholt – Wawi weg oder Vorgänger nicht durch (System)',
         ];
 
         foreach ($this->all() as $key => $task) {

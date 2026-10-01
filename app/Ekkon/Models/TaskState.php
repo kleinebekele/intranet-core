@@ -22,6 +22,8 @@ class TaskState extends Model
         return [
             'next_run_at' => 'datetime',
             'enabled' => 'boolean',
+            'nachholen_ab' => 'datetime',
+            'nachholen_seit' => 'datetime',
         ];
     }
 }
