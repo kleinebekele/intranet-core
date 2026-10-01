@@ -23,7 +23,7 @@
                     if (this.auswahl.daten !== null) { return; }
                     this.auswahl.laedt = true;
                     try {
-                        const r = await fetch({{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.zugriffe.json')) }}, { headers: { 'Accept': 'application/json' } });
+                        const r = await fetch({{ \Illuminate\Support\Js::from(route('module.ekkon.notifications.graph.zugriffe.json', [], false)) }}, { headers: { 'Accept': 'application/json' } });
                         const j = await r.json().catch(() => ({}));
                         if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
                         this.auswahl.daten = j;
@@ -36,6 +36,8 @@
                 },
                 passt(text) { const s = this.auswahl.suche.trim().toLowerCase(); return s === '' || (text || '').toLowerCase().includes(s); },
                 // Bewusst OHNE Rückfrage: hier räumt man in Serie auf, jede Frage bremst.
+                // URLs für fetch() relativ (route(..., false)): hinter dem Proxy käme sonst
+                // http:// auf einer https-Seite heraus, der Browser blockt das ohne Status.
                 loeschen(id, url) {
                     fetch(url, {
                         method: 'DELETE',
@@ -565,7 +567,7 @@
                                                     </form>
                                                 @endif
                                                 <button type="button" class="text-red-700 hover:underline"
-                                                        @click="loeschen({{ $n->id }}, '{{ route('module.ekkon.notifications.destroy', $n) }}')">löschen</button>
+                                                        @click="loeschen({{ $n->id }}, '{{ route('module.ekkon.notifications.destroy', $n, false) }}')">löschen</button>
                                             </div>
                                         </td>
                                     </tr>

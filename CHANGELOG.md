@@ -15,6 +15,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **MSSQL über ODBC: Verbindungstests.** `ekkon:timeout-test --login` misst den Verbindungsaufbau gegen eine tote Adresse (`--zusatz=` hängt Schlüsselwörter an den DSN), `--tcp` prüft den neuen TCP-Vorabtest `Ekkon::mssqlErreichbar()`. Gemessen: `PDO::ATTR_TIMEOUT` wirkt bei pdo_odbc gar nicht, auch nicht beim Login (Treiber-Standard 15 s, über Laravel 30 s).
 - **Ekkon → Benachrichtigungen, Reiter Routen:** die Routen sind je Modul in eigene Reiter aufgeteilt (System zuerst, Verwaist zuletzt); der gewählte Reiter bleibt im Browser gemerkt.
 
+### Behoben
+- **Ekkon: „löschen" ohne Wirkung hinter dem Proxy** (Benachrichtigungen, Teams, Webhook-Eingang): die per `fetch()` aufgerufenen URLs werden jetzt relativ erzeugt. Absolut kamen sie hinter dem Proxy als `http://` auf der https-Seite heraus, der Browser blockte sie ohne HTTP-Status („Löschen fehlgeschlagen.").
+
 ### Sicherheit
 - Abhängigkeiten angehoben: `league/commonmark` 2.8.2 → 2.10.3 (DoS/XSS in Attributes-/SmartPunct-Extension) und `guzzlehttp/guzzle` (Host-/Cookie-Domain-Prüfung), gemeldet von `composer audit` beim Deploy.
 

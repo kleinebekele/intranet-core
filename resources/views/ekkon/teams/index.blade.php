@@ -63,7 +63,7 @@
                     listeLaedt: '',
                     async listeLaden(was) {
                         this.listeLaedt = was; this.listenFehler = '';
-                        const urls = { spezialanwendungen: {{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.spezialanwendungen')) }}, ordner: {{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.ordner')) }} };
+                        const urls = { spezialanwendungen: {{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.spezialanwendungen', [], false)) }}, ordner: {{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.ordner', [], false)) }} };
                         try {
                             const r = await fetch(urls[was], { headers: { 'Accept': 'application/json' } });
                             const j = await r.json().catch(() => ({}));
@@ -77,7 +77,7 @@
                     async modelleLaden() {
                         this.laedt = true; this.modellFehler = '';
                         try {
-                            const r = await fetch({{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.modelle')) }}, { headers: { 'Accept': 'application/json' } });
+                            const r = await fetch({{ \Illuminate\Support\Js::from(route('module.ekkon.teams.ki.modelle', [], false)) }}, { headers: { 'Accept': 'application/json' } });
                             const j = await r.json().catch(() => ({}));
                             if (! r.ok) { throw new Error(j.fehler || ('HTTP ' + r.status)); }
                             this.modelle = j.modelle || [];
@@ -271,7 +271,7 @@
                                                 <button type="button" class="text-indigo-700 hover:underline"
                                                         @click.stop="antwortAn = (antwortAn === {{ $n->id }} ? null : {{ $n->id }}); offen = {{ $n->id }}">antworten</button>
                                                 <button type="button" class="text-red-700 hover:underline"
-                                                        @click.stop="loeschen({{ $n->id }}, '{{ route('module.ekkon.teams.destroy', $n) }}')">löschen</button>
+                                                        @click.stop="loeschen({{ $n->id }}, '{{ route('module.ekkon.teams.destroy', $n, false) }}')">löschen</button>
                                             </div>
                                         </td>
                                     </tr>

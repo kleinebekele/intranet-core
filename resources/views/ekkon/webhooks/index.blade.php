@@ -220,7 +220,7 @@
                                                     </form>
                                                 @endif
                                                 <button type="button" class="text-red-700 hover:underline"
-                                                        @click.stop="loeschen({{ $e->id }}, '{{ route('module.ekkon.webhooks.eingang.destroy', $e) }}')">löschen</button>
+                                                        @click.stop="loeschen({{ $e->id }}, '{{ route('module.ekkon.webhooks.eingang.destroy', $e, false) }}')">löschen</button>
                                             </div>
                                         </td>
                                     </tr>
