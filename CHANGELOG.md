@@ -8,6 +8,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Geändert
+- **MSSQL über ODBC: Login-Zeitlimit 5 s statt 300 s** (`MSSQL_LOGIN_TIMEOUT`). `PDO::ATTR_TIMEOUT` wirkt beim ODBC-Weg als Login-Zeitlimit; bei Wawi-Ausfall hing ein Task dadurch 18,5 Minuten und wurde pausiert. Jetzt scheitert er schnell und läuft beim nächsten Mal von selbst weiter. Prüfen mit `php artisan ekkon:timeout-test --login`.
 - **Ekkon → Benachrichtigungen, Reiter Routen:** die Routen sind je Modul in eigene Reiter aufgeteilt (System zuerst, Verwaist zuletzt); der gewählte Reiter bleibt im Browser gemerkt.
 
 ### Sicherheit

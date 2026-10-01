@@ -87,9 +87,19 @@ return [
          *
          * Vor dem Vertrauen auf diesen Wert also immer erst den Test laufen
          * lassen - er verändert nichts.
+         *
+         * ⚠️ NACHTRAG 2026-10-01: Beim ODBC-Weg wirkt ATTR_TIMEOUT als LOGIN-Zeitlimit.
+         * Mit 300 hing der Statusabgleich bei Wawi-Ausfall 18,5 Minuten (mehrere
+         * Verbindungsversuche à 300 s) und wurde pausiert. Deshalb beim ODBC-Weg ein
+         * kurzes Login-Zeitlimit (MSSQL_LOGIN_TIMEOUT, Standard 5 s): ein erreichbarer
+         * Server meldet sich in Millisekunden, ein toter lässt den Task schnell und
+         * sichtbar scheitern. Lange Abfragen betrifft das nicht.
+         * Prüfen: `php artisan ekkon:timeout-test --login`.
          */
         'options' => [
-            PDO::ATTR_TIMEOUT => (int) env('MSSQL_QUERY_TIMEOUT', 300),
+            PDO::ATTR_TIMEOUT => env('MSSQL_ODBC_DSN', '') !== ''
+                ? (int) env('MSSQL_LOGIN_TIMEOUT', 5)
+                : (int) env('MSSQL_QUERY_TIMEOUT', 300),
         ],
     ],
 

@@ -29,7 +29,8 @@ use Throwable;
 class TimeoutTestCommand extends Command
 {
     protected $signature = 'ekkon:timeout-test {--sekunden=5 : Zeitlimit fuer diesen Test}
-                                               {--warten=30 : So lange soll die Testabfrage kuenstlich brauchen}';
+                                               {--warten=30 : So lange soll die Testabfrage kuenstlich brauchen}
+                                               {--login : Statt der Abfrage das LOGIN-Zeitlimit messen (Verbindung zu einer unerreichbaren Adresse)}';
 
     protected $description = 'Prueft, ob das Abfrage-Zeitlimit der MSSQL-Verbindung wirklich greift (schreibt nichts).';
 
@@ -39,6 +40,10 @@ class TimeoutTestCommand extends Command
             $this->error('Keine MSSQL-Verbindung konfiguriert (MSSQL_ODBC_DSN).');
 
             return self::FAILURE;
+        }
+
+        if ($this->option('login')) {
+            return $this->loginTest();
         }
 
         $limit = max(1, (int) $this->option('sekunden'));
@@ -97,6 +102,46 @@ class TimeoutTestCommand extends Command
                 $dauer,
             ));
             $this->line('Meldung: '.mb_substr($e->getMessage(), 0, 200));
+
+            return self::FAILURE;
+        }
+    }
+
+    /**
+     * Login-Zeitlimit messen (2026-10-01): dieselbe Verbindung samt config/ekkon.php-Optionen, nur mit
+     * einer Server-Adresse, die nie antwortet. Bricht der Aufbau nach etwa MSSQL_LOGIN_TIMEOUT Sekunden
+     * ab, wirkt das Limit. Fasst die echte Wawi nicht an.
+     */
+    private function loginTest(): int
+    {
+        $config = config('ekkon.mssql');
+        $dsn = (string) ($config['odbc_datasource_name'] ?? '');
+        if ($dsn === '') {
+            $this->error('Der Login-Test gilt nur fuer den ODBC-Weg (MSSQL_ODBC_DSN).');
+
+            return self::FAILURE;
+        }
+        $limit = (int) ($config['options'][PDO::ATTR_TIMEOUT] ?? 0);
+        // 10.255.255.1 ist nicht routbar: kein Abweisen, nur Schweigen - wie ein ausgefallener Server.
+        $config['odbc_datasource_name'] = preg_replace('/Server=[^;]*/i', 'Server=10.255.255.1,1433', $dsn) ?? $dsn;
+        config(['database.connections.ekkon-login-test' => $config]);
+
+        $this->info("Login-Zeitlimit laut config/ekkon.php: {$limit}s");
+        $start = microtime(true);
+        try {
+            DB::connection('ekkon-login-test')->getPdo();
+            $this->error('Unerwartet: Verbindung zu 10.255.255.1 kam zustande.');
+
+            return self::FAILURE;
+        } catch (Throwable $e) {
+            $dauer = microtime(true) - $start;
+            $this->line(sprintf('Abbruch nach %.1f Sekunden: %s', $dauer, mb_substr($e->getMessage(), 0, 160)));
+            if ($limit > 0 && $dauer <= $limit + 5) {
+                $this->info('Das Login-Zeitlimit greift.');
+
+                return self::SUCCESS;
+            }
+            $this->error('Das Login-Zeitlimit greift NICHT wie eingestellt.');
 
             return self::FAILURE;
         }
