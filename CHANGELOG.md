@@ -11,7 +11,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Ekkon-Tasks: Vorbedingungen + Nachholen.** `$brauchtWawi` (Verbindung vor dem Start prüfen) und `$folgtAuf` (logische Kette: Vorgänger müssen seit dem eigenen letzten Erfolg durch sein). Fehlt etwas, wird der Lauf verschoben und von `ekkon:nachholen` (jede Minute) alle 10 Minuten erneut versucht, bis zum nächsten regulären Lauf; Meldungsart `task-verschoben` für Verschieben/Nachholen. Migration `ekkon_task_states.nachholen_*`.
 
 ### Geändert
-- **MSSQL über ODBC: Login-Zeitlimit 5 s statt 300 s** (`MSSQL_LOGIN_TIMEOUT`). `PDO::ATTR_TIMEOUT` wirkt beim ODBC-Weg als Login-Zeitlimit; bei Wawi-Ausfall hing ein Task dadurch 18,5 Minuten und wurde pausiert. Jetzt scheitert er schnell und läuft beim nächsten Mal von selbst weiter. Prüfen mit `php artisan ekkon:timeout-test --login`.
+- **MSSQL über ODBC: Verbindungstests.** `ekkon:timeout-test --login` misst den Verbindungsaufbau gegen eine tote Adresse (`--zusatz=` hängt Schlüsselwörter an den DSN), `--tcp` prüft den neuen TCP-Vorabtest `Ekkon::mssqlErreichbar()`. Gemessen: `PDO::ATTR_TIMEOUT` wirkt bei pdo_odbc gar nicht, auch nicht beim Login (Treiber-Standard 15 s, über Laravel 30 s).
 - **Ekkon → Benachrichtigungen, Reiter Routen:** die Routen sind je Modul in eigene Reiter aufgeteilt (System zuerst, Verwaist zuletzt); der gewählte Reiter bleibt im Browser gemerkt.
 
 ### Sicherheit

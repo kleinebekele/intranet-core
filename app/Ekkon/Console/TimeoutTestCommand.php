@@ -30,7 +30,9 @@ class TimeoutTestCommand extends Command
 {
     protected $signature = 'ekkon:timeout-test {--sekunden=5 : Zeitlimit fuer diesen Test}
                                                {--warten=30 : So lange soll die Testabfrage kuenstlich brauchen}
-                                               {--login : Statt der Abfrage das LOGIN-Zeitlimit messen (Verbindung zu einer unerreichbaren Adresse)}';
+                                               {--login : Statt der Abfrage das LOGIN-Zeitlimit messen (Verbindung zu einer unerreichbaren Adresse)}
+                                               {--zusatz= : Beim Login-Test zusätzlich an den DSN hängen, z. B. "ConnectRetryCount=0"}
+                                               {--tcp : TCP-Vorabtest (Ekkon::mssqlErreichbar) gegen die echte Wawi und eine tote Adresse messen}';
 
     protected $description = 'Prueft, ob das Abfrage-Zeitlimit der MSSQL-Verbindung wirklich greift (schreibt nichts).';
 
@@ -44,6 +46,9 @@ class TimeoutTestCommand extends Command
 
         if ($this->option('login')) {
             return $this->loginTest();
+        }
+        if ($this->option('tcp')) {
+            return $this->tcpTest();
         }
 
         $limit = max(1, (int) $this->option('sekunden'));
@@ -112,6 +117,49 @@ class TimeoutTestCommand extends Command
      * einer Server-Adresse, die nie antwortet. Bricht der Aufbau nach etwa MSSQL_LOGIN_TIMEOUT Sekunden
      * ab, wirkt das Limit. Fasst die echte Wawi nicht an.
      */
+    /**
+     * TCP-Vorabtest pruefen, BEVOR der Runner sich darauf verlaesst (Emanuel 2026-10-01): gegen die echte
+     * Wawi muss er sofort „erreichbar" melden, gegen 10.255.255.1 nach etwa 3 s „nicht erreichbar".
+     * Fasst die Wawi nur mit einem TCP-Verbindungsaufbau an, keine Anmeldung, keine Abfrage.
+     */
+    private function tcpTest(): int
+    {
+        $ok = true;
+
+        $t = microtime(true);
+        $echt = Ekkon::mssqlErreichbar();
+        $dauer = microtime(true) - $t;
+        $this->line(sprintf('Echte Wawi: %s (%.2f s)', $echt ?? 'erreichbar', $dauer));
+        if ($echt !== null) {
+            $this->error('Der Test haelt die echte Wawi fuer nicht erreichbar - so darf er NICHT in den Runner.');
+            $ok = false;
+        }
+
+        $original = config('ekkon.mssql');
+        $tot = $original;
+        if (($tot['odbc_datasource_name'] ?? '') !== '') {
+            $tot['odbc_datasource_name'] = preg_replace('/Server=[^;]*/i', 'Server=10.255.255.1,1433', (string) $tot['odbc_datasource_name']);
+        } else {
+            $tot['host'] = '10.255.255.1';
+        }
+        config(['ekkon.mssql' => $tot]);
+        $t = microtime(true);
+        $weg = Ekkon::mssqlErreichbar();
+        $dauer = microtime(true) - $t;
+        config(['ekkon.mssql' => $original]);
+        $this->line(sprintf('Tote Adresse: %s (%.2f s)', $weg ?? 'erreichbar?!', $dauer));
+        if ($weg === null || $dauer > 5) {
+            $this->error('Gegen die tote Adresse meldet der Test nicht schnell genug „nicht erreichbar".');
+            $ok = false;
+        }
+
+        if ($ok) {
+            $this->info('TCP-Vorabtest verhaelt sich wie erwartet.');
+        }
+
+        return $ok ? self::SUCCESS : self::FAILURE;
+    }
+
     private function loginTest(): int
     {
         $config = config('ekkon.mssql');
@@ -124,6 +172,11 @@ class TimeoutTestCommand extends Command
         $limit = (int) ($config['options'][PDO::ATTR_TIMEOUT] ?? 0);
         // 10.255.255.1 ist nicht routbar: kein Abweisen, nur Schweigen - wie ein ausgefallener Server.
         $config['odbc_datasource_name'] = preg_replace('/Server=[^;]*/i', 'Server=10.255.255.1,1433', $dsn) ?? $dsn;
+        $zusatz = trim((string) $this->option('zusatz'), " ;");
+        if ($zusatz !== '') {
+            $config['odbc_datasource_name'] = rtrim($config['odbc_datasource_name'], ';').';'.$zusatz;
+            $this->line('DSN-Zusatz: '.$zusatz);
+        }
         config(['database.connections.ekkon-login-test' => $config]);
 
         $this->info("Login-Zeitlimit laut config/ekkon.php: {$limit}s");

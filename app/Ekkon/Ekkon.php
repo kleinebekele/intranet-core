@@ -36,4 +36,39 @@ class Ekkon
 
         return ($config['odbc_datasource_name'] ?? '') !== '' || ($config['host'] ?? '') !== '';
     }
+
+    /**
+     * Antwortet der MSSQL-Server überhaupt? TCP-Verbindung zu Host/Port mit kurzem Zeitlimit -
+     * null = erreichbar, sonst der Grund. Gemessen 2026-10-01: Der ODBC Driver 18 ignoriert
+     * PDO::ATTR_TIMEOUT und wartet beim Login rund 30 s; dieser Test entscheidet in Sekunden, ob es
+     * sich überhaupt lohnt. Ohne erkennbaren Host (z. B. benannte Instanz) gilt er als bestanden.
+     */
+    public static function mssqlErreichbar(float $sekunden = 3.0): ?string
+    {
+        $config = (array) config('ekkon.mssql', []);
+        $host = (string) ($config['host'] ?? '');
+        $port = (int) ($config['port'] ?? 1433);
+        $dsn = (string) ($config['odbc_datasource_name'] ?? '');
+        if ($dsn !== '' && preg_match('/(?:^|;)\s*(?:Server|Address|Addr)\s*=\s*(?:tcp:)?([^;,]+)(?:,(\d+))?/i', $dsn, $m) === 1) {
+            // Benannte Instanz (host\name) ohne festen Port: dynamischer Port, TCP-Test nicht möglich.
+            if (str_contains($m[1], '\\') && empty($m[2])) {
+                return null;
+            }
+            $host = trim($m[1]);
+            $port = isset($m[2]) && $m[2] !== '' ? (int) $m[2] : 1433;
+        }
+        if ($host === '') {
+            return null;
+        }
+
+        $fehlerNr = 0;
+        $fehler = '';
+        $socket = @fsockopen($host, $port, $fehlerNr, $fehler, $sekunden);
+        if ($socket === false) {
+            return "MSSQL-Server {$host}:{$port} antwortet nicht binnen {$sekunden} s (".trim($fehler ?: 'Zeitüberschreitung').').';
+        }
+        fclose($socket);
+
+        return null;
+    }
 }
