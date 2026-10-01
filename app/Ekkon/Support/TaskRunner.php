@@ -249,6 +249,11 @@ class TaskRunner
     private function vorbedingungFehlt(EkkonTask $task): ?string
     {
         if ($task->brauchtWawi && Ekkon::mssqlKonfiguriert()) {
+            // Erst der TCP-Vorabtest (3 s, auf RAV geprüft mit ekkon:timeout-test --tcp), dann die
+            // Anmeldung - der ODBC-Treiber allein wartet 15-30 s, bevor er aufgibt.
+            if (($nichtDa = Ekkon::mssqlErreichbar()) !== null) {
+                return 'Wawi nicht erreichbar: '.$nichtDa;
+            }
             $verbindung = Ekkon::mssqlConnection();
             try {
                 DB::connection($verbindung)->select('SELECT 1 AS ok');
