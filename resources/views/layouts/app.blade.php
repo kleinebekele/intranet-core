@@ -25,9 +25,27 @@
             <!-- Header: Logo + Usercontrol (immer oben, volle Breite) -->
             @include('layouts.header')
 
+            @if ($leisteSchmal ?? false)
+                {{-- Schmale Leiste (AppLayout::$leisteSchmal): ab Desktop-Breite nur die
+                     Symbole; beim Darüberfahren klappt sie überlappend auf. Reines CSS, damit
+                     es nicht am Tailwind-Build hängt. Mobil bleibt alles wie gewohnt. --}}
+                <style>
+                    @media (min-width: 1024px) {
+                        aside.leiste-schmal { width: 4rem; overflow-x: hidden; transition: width .15s ease, box-shadow .15s ease; }
+                        aside.leiste-schmal:hover { width: 16rem; z-index: 30; box-shadow: 0 10px 30px rgba(0, 0, 0, .15); }
+                        aside.leiste-schmal a, aside.leiste-schmal button { white-space: nowrap; }
+                        aside.leiste-schmal:not(:hover) p { visibility: hidden; }
+                        .inhalt-schmal { padding-left: 4rem !important; }
+                    }
+                </style>
+            @endif
+
             <!-- Linke Navigation -->
             <aside
-                class="fixed top-16 bottom-0 left-0 z-20 w-64 bg-white border-r border-gray-200 overflow-y-auto transform transition-transform duration-200 ease-in-out lg:translate-x-0"
+                @class([
+                    'fixed top-16 bottom-0 left-0 z-20 w-64 bg-white border-r border-gray-200 overflow-y-auto transform transition-transform duration-200 ease-in-out lg:translate-x-0',
+                    'leiste-schmal' => $leisteSchmal ?? false,
+                ])
                 :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
             >
                 @include('layouts.sidebar')
@@ -42,7 +60,7 @@
             ></div>
 
             <!-- Inhaltsbereich rechts neben der Navigation -->
-            <div class="lg:pl-64 pt-16 min-h-screen flex flex-col">
+            <div @class(['lg:pl-64 pt-16 min-h-screen flex flex-col', 'inhalt-schmal' => $leisteSchmal ?? false])>
                 <main class="flex-1">
                     @isset($header)
                         <header class="bg-white border-b border-gray-200">
