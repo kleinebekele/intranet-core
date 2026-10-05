@@ -1,9 +1,91 @@
-/* Boxicons – selbst gehostet über npm; Vite bündelt die Schriftdateien mit. */
-@import 'boxicons/css/boxicons.min.css';
+@import 'tailwindcss';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Boxicons – selbst gehostet über npm; Vite bündelt die Schriftdateien mit.
+   Im Layer components, damit Utilities wie hidden oder text-xl am Icon gewinnen. */
+@import 'boxicons/css/boxicons.min.css' layer(components);
+
+@plugin '@tailwindcss/forms';
+
+/*
+ * Wo Tailwind nach Klassen sucht. vendor/ ist per .gitignore ausgeschlossen
+ * und wird deshalb nicht automatisch erfasst – die Module unter vendor/do1emu
+ * müssen ausdrücklich genannt werden.
+ */
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/do1emu/module-*/resources/views/**/*.blade.php';
+/* Module dürfen Tailwind-Klassen auch aus PHP-Code liefern
+   (z. B. Farbcodierung der Ekkon-Laufzeiten). */
+@source '../../vendor/do1emu/module-*/src/**/*.php';
+@source '../../app/Ekkon/**/*.php';
+
+@theme {
+    --font-sans: Figtree, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /*
+     * Tailwind 4 hat die Skalen um eine Stufe verschoben (shadow-sm → shadow-xs,
+     * rounded-sm → rounded-xs). Core und Module verwenden die Klassen tausendfach
+     * mit der Bedeutung aus Tailwind 3 – deshalb die alten Werte beibehalten.
+     */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --radius-sm: 0.125rem;
+
+    /* Tailwind 3: "ring" = 3px in Blau mit 50 % Deckkraft (Tailwind 4: 1px currentColor). */
+    --default-ring-width: 3px;
+    --default-ring-color: rgb(59 130 246 / 0.5);
+}
+
+/*
+ * Weitere Grundeinstellungen von Tailwind 3, die Tailwind 4 geändert hat.
+ */
+@layer base {
+    /* Rahmen ohne Farbangabe: grau statt Textfarbe. */
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentcolor);
+    }
+
+    /* Platzhaltertext in Eingabefeldern: grau statt abgeschwächter Textfarbe. */
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--color-gray-400);
+    }
+
+    /* Knöpfe zeigen die Hand als Mauszeiger. */
+    button:not(:disabled),
+    [role='button']:not(:disabled) {
+        cursor: pointer;
+    }
+}
+
+/*
+ * space-y-* / space-x-*: Tailwind 4 setzt den Abstand an alle Kinder außer dem LETZTEN
+ * (unten), Tailwind 3 an alle außer dem ERSTEN (oben). Steht am Ende ein unsichtbares
+ * Element (Alpine-<template>, Modal mit x-show), entstünde so unten eine zusätzliche Lücke.
+ * Die Regeln stellen das Verhalten von Tailwind 3 wieder her (auch dessen Spezifität).
+ */
+@utility space-y-* {
+    & > :not(:first-child) {
+        margin-block-start: calc(var(--spacing) * --value(number));
+        margin-block-end: 0;
+    }
+    & > :first-child:not(:last-child) {
+        margin-block-end: 0;
+    }
+}
+
+@utility space-x-* {
+    & > :not(:first-child) {
+        margin-inline-start: calc(var(--spacing) * --value(number));
+        margin-inline-end: 0;
+    }
+    & > :first-child:not(:last-child) {
+        margin-inline-end: 0;
+    }
+}
 
 /* Elemente mit x-cloak bleiben ausgeblendet, bis Alpine.js geladen ist. */
 [x-cloak] {

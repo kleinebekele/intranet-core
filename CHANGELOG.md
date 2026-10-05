@@ -15,6 +15,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Ekkon-Tasks: Vorbedingungen + Nachholen.** `$brauchtWawi` (Verbindung vor dem Start prüfen) und `$folgtAuf` (logische Kette: Vorgänger müssen seit dem eigenen letzten Erfolg durch sein). Fehlt etwas, wird der Lauf verschoben und von `ekkon:nachholen` (jede Minute) alle 10 Minuten erneut versucht, bis zum nächsten regulären Lauf; Meldungsart `task-verschoben` für Verschieben/Nachholen. Migration `ekkon_task_states.nachholen_*`.
 
 ### Geändert
+- **Tailwind 4 statt 3.** Gebaut wird über `@tailwindcss/vite`; `tailwind.config.js`, `postcss.config.js` und `autoprefixer` entfallen, die Konfiguration steht in `resources/css/app.css` (`@source` für die Modul-Views unter `vendor/do1emu`). Eine Kompatibilitätsschicht hält das Aussehen von Tailwind 3, damit Module unverändert bleiben: alte Werte für `shadow-sm`/`rounded-sm`, `ring` = 3 px blau, graue Standard-Rahmen und -Platzhalter, Handzeiger auf Knöpfen, `space-x/y-*` wieder als Abstand oben/links. Boxicons liegen im Layer `components`, damit `hidden` & Co. am Icon greifen. Die Farbpalette ist die neue von Tailwind 4 (etwas kräftiger). Nach dem Pull einmal `npm install`.
 - **MSSQL über ODBC: Verbindungstests.** `ekkon:timeout-test --login` misst den Verbindungsaufbau gegen eine tote Adresse (`--zusatz=` hängt Schlüsselwörter an den DSN), `--tcp` prüft den neuen TCP-Vorabtest `Ekkon::mssqlErreichbar()`. Gemessen: `PDO::ATTR_TIMEOUT` wirkt bei pdo_odbc gar nicht, auch nicht beim Login (Treiber-Standard 15 s, über Laravel 30 s).
 - **Ekkon → Benachrichtigungen, Reiter Routen:** die Routen sind je Modul in eigene Reiter aufgeteilt (System zuerst, Verwaist zuletzt); der gewählte Reiter bleibt im Browser gemerkt.
 
@@ -23,6 +24,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Ekkon: „löschen" ohne Wirkung hinter dem Proxy** (Benachrichtigungen, Teams, Webhook-Eingang): die per `fetch()` aufgerufenen URLs werden jetzt relativ erzeugt. Absolut kamen sie hinter dem Proxy als `http://` auf der https-Seite heraus, der Browser blockte sie ohne HTTP-Status („Löschen fehlgeschlagen.").
 
 ### Sicherheit
+- `npm audit` meldete 5 Schwachstellen (hoch) in der Build-Kette von Tailwind 3 (`braces` über `micromatch`/`chokidar`/`fast-glob`); mit Tailwind 4 sind es 0. Betraf nur das Bauen, nicht das ausgelieferte Intranet.
 - Abhängigkeiten angehoben: `league/commonmark` 2.8.2 → 2.10.3 (DoS/XSS in Attributes-/SmartPunct-Extension) und `guzzlehttp/guzzle` (Host-/Cookie-Domain-Prüfung), gemeldet von `composer audit` beim Deploy.
 
 ### Neu
