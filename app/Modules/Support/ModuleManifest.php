@@ -29,6 +29,12 @@ class ModuleManifest
     public bool $fest = false;
 
     /**
+     * Hauptpunkt (siehe {@see hauptpunkt()}): steht in der Seitenleiste direkt
+     * unter „Startseite" statt in der Modulliste.
+     */
+    public bool $hauptpunkt = false;
+
+    /**
      * Rollen, die dieses Modul mitbringt (siehe {@see rolle()}).
      *
      * @var ModuleRole[]
@@ -111,6 +117,20 @@ class ModuleManifest
             group: $group,
             visibleWhen: $visibleWhen,
         );
+
+        return $this;
+    }
+
+    /**
+     * Das Modul als Hauptpunkt führen: Es steht in der Seitenleiste direkt unter
+     * „Startseite" (oberhalb von „Module"), und beim Öffnen bleibt die Leiste der
+     * Startseite stehen, statt in die Modulansicht zu wechseln. Gedacht für Module
+     * mit einer einzigen Seite, die sich wie ein Teil des Intranets anfühlen sollen
+     * (z. B. Webmail). Sichtbarkeit und Rollen wie bei jedem Modul.
+     */
+    public function hauptpunkt(): static
+    {
+        $this->hauptpunkt = true;
 
         return $this;
     }

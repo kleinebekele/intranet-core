@@ -61,6 +61,21 @@
             Startseite
         </a>
 
+        {{-- Hauptpunkte (ModuleManifest::hauptpunkt()): Module, die wie ein Teil des
+             Intranets wirken sollen, direkt unter der Startseite. --}}
+        @foreach ($sidebarHauptpunkte ?? [] as $module)
+            @php $aktiv = ($aktiverHauptpunkt ?? null) === $module->key; @endphp
+            <a href="{{ $module->homeUrl() ?? '#' }}"
+               @class([
+                   'mt-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+                   'bg-indigo-50 text-indigo-700' => $aktiv,
+                   'text-gray-600 hover:bg-gray-100 hover:text-gray-900' => ! $aktiv,
+               ])>
+                <x-module-icon :name="$module->icon" class="text-xl {{ $aktiv ? '' : 'text-gray-400' }}" />
+                {{ $module->name }}
+            </a>
+        @endforeach
+
         <p class="mt-6 mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
             Module
         </p>

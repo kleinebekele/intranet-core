@@ -50,6 +50,12 @@ class Navigation
             ->values();
     }
 
+    /** Steht das Modul als Hauptpunkt unter „Startseite" (siehe ModuleManifest::hauptpunkt())? */
+    public function istHauptpunkt(string $moduleKey): bool
+    {
+        return (bool) $this->registry->manifest($moduleKey)?->hauptpunkt;
+    }
+
     public function currentModuleKey(): ?string
     {
         return $this->registry->currentKey(request()->route()?->getName());
