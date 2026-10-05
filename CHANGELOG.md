@@ -24,6 +24,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Ekkon: „löschen" ohne Wirkung hinter dem Proxy** (Benachrichtigungen, Teams, Webhook-Eingang): die per `fetch()` aufgerufenen URLs werden jetzt relativ erzeugt. Absolut kamen sie hinter dem Proxy als `http://` auf der https-Seite heraus, der Browser blockte sie ohne HTTP-Status („Löschen fehlgeschlagen.").
 
 ### Sicherheit
+- `laravel/framework` 13.18 → 13.34 (XSS auf der Debug-Seite) und `league/flysystem` 3.35.1 → 3.36.0 (Pfadprüfung umgehbar mit kaputtem UTF-8), beide „low", gemeldet von `composer audit` beim Deploy. Bewusst ohne `-W`: das hätte Guzzle 7 → 8 mitgezogen.
 - `npm audit` meldete 5 Schwachstellen (hoch) in der Build-Kette von Tailwind 3 (`braces` über `micromatch`/`chokidar`/`fast-glob`); mit Tailwind 4 sind es 0. Betraf nur das Bauen, nicht das ausgelieferte Intranet.
 - Abhängigkeiten angehoben: `league/commonmark` 2.8.2 → 2.10.3 (DoS/XSS in Attributes-/SmartPunct-Extension) und `guzzlehttp/guzzle` (Host-/Cookie-Domain-Prüfung), gemeldet von `composer audit` beim Deploy.
 
