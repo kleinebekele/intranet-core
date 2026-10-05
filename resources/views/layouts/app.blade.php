@@ -35,6 +35,11 @@
                         aside.leiste-schmal:hover { width: 16rem; z-index: 30; box-shadow: 0 10px 30px rgba(0, 0, 0, .15); }
                         aside.leiste-schmal a, aside.leiste-schmal button { white-space: nowrap; }
                         aside.leiste-schmal:not(:hover) p { visibility: hidden; }
+                        /* Eingeklappt nur die Symbole: Beschriftung (Textknoten) auf Schriftgröße 0,
+                           die Symbole bringen ihre eigene Größe mit (text-xl/text-lg). */
+                        aside.leiste-schmal:not(:hover) a, aside.leiste-schmal:not(:hover) button { font-size: 0; }
+                        aside.leiste-schmal:not(:hover) a i, aside.leiste-schmal:not(:hover) button i { font-size: 1.25rem; }
+                        aside.leiste-schmal:not(:hover) button i.bx-chevron-down { display: none; }
                         .inhalt-schmal { padding-left: 4rem !important; }
                     }
                 </style>
