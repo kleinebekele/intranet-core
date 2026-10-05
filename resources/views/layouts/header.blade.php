@@ -27,6 +27,10 @@
             @auth
                 {{-- Kein Verwaltungs-Link mehr hier: Er fuehrte zum selben Ziel wie der
                      Punkt unten in der Seitenleiste. Ein Ziel, ein Weg. --}}
+                {{-- Symbole von Modulen (App\Support\Kopfleiste), z. B. Webmail --}}
+                @foreach (\App\Support\Kopfleiste::fuer(auth()->user()) as $symbol)
+                    {!! $symbol !!}
+                @endforeach
                 <x-hinweis-glocke />
                 <x-hilfe-knopf />
 
