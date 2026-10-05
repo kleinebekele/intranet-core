@@ -8,6 +8,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Neu
+- **Dunkles Design je Benutzer:** Profil → Darstellung mit „Hell" (Standard), „Dunkel" und „Wie System". Umgesetzt über die Farbvariablen von Tailwind 4 (`resources/css/dunkel.css`, erzeugt von `tools/dunkel-css.mjs`): Unter `<html class="dark">` werden Grauskala und Farbtöne umgelegt, kräftige Hintergründe (Knöpfe, Banner, Codeblöcke) bleiben und behalten innen die Originalpalette. Core und Module brauchen dafür keine `dark:`-Klassen; die `dark:`-Variante ist abgeschaltet. Eigene Modul-Styles folgen, wenn sie `var(--color-…, #hex)` statt fester Hexwerte nutzen. Migration `users.farbschema`.
 - **Hauptpunkte in der Seitenleiste:** Ein Modul kann sich mit `ModuleManifest::hauptpunkt()` direkt unter „Startseite" eintragen (oberhalb von „Module"). In einem Hauptpunkt bleibt die Startseiten-Leiste stehen, der Punkt ist hervorgehoben. Gedacht für einseitige Module wie Webmail; Rollen und Sichtbarkeit wie bei jedem Modul.
 - **Symbole von Modulen in der Kopfzeile:** `App\Support\Kopfleiste::registrieren()` hängt ein Symbol links neben die Glocke (z. B. Webmail mit ungelesenen Mails). Gleiches Muster wie `Benutzerbereiche`; ein Fehler blendet nur das Symbol aus.
 - **Schmale Seitenleiste je Seite:** `<x-app-layout :leiste-schmal="true">` zeigt die linke Navigation ab Desktop-Breite nur als Symbolstreifen, der beim Darüberfahren überlappend aufklappt – für Seiten, die die volle Breite brauchen (Webmail). Mobil unverändert.

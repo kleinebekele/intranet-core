@@ -1,6 +1,18 @@
+@php($farbschema = auth()->user()?->farbschema ?? 'hell')
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => $farbschema === 'dunkel'])>
     <head>
+        @if ($farbschema === 'system')
+            {{-- Wie System: vor dem ersten Zeichnen setzen, sonst blitzt die Seite hell auf. --}}
+            <script>
+                (() => {
+                    const dunkel = window.matchMedia('(prefers-color-scheme: dark)');
+                    const setzen = () => document.documentElement.classList.toggle('dark', dunkel.matches);
+                    setzen();
+                    dunkel.addEventListener('change', setzen);
+                })();
+            </script>
+        @endif
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">

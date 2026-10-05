@@ -4,7 +4,18 @@
    Im Layer components, damit Utilities wie hidden oder text-xl am Icon gewinnen. */
 @import 'boxicons/css/boxicons.min.css' layer(components);
 
+/* Dunkles Farbschema (Profil → Darstellung), erzeugt von tools/dunkel-css.mjs. */
+@import './dunkel.css' layer(utilities);
+
 @plugin '@tailwindcss/forms';
+
+/*
+ * Das dunkle Schema entsteht durch Umlegen der Farbvariablen (dunkel.css), nicht über
+ * dark:-Klassen. Einige Module tragen noch dark:-Klassen aus der Zeit, als sie dem
+ * Betriebssystem folgten – die würden auf der umgelegten Palette wieder hell. Deshalb
+ * greift die dark:-Variante nirgends.
+ */
+@custom-variant dark (&:where(.dark-variante-aus, .dark-variante-aus *));
 
 /*
  * Wo Tailwind nach Klassen sucht. vendor/ ist per .gitignore ausgeschlossen
@@ -52,6 +63,16 @@
     input::placeholder,
     textarea::placeholder {
         color: var(--color-gray-400);
+    }
+
+    /* Das Forms-Plugin setzt Eingabefeldern ein festes Weiß – im dunklen Schema der Karte angleichen. */
+    .dark :is(input:not([type='checkbox'], [type='radio']), textarea, select) {
+        background-color: var(--color-gray-50);
+        border-color: var(--color-gray-300);
+    }
+    .dark :is(input[type='checkbox'], input[type='radio']):not(:checked) {
+        background-color: var(--color-gray-50);
+        border-color: var(--color-gray-400);
     }
 
     /* Knöpfe zeigen die Hand als Mauszeiger. */

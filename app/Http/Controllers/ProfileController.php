@@ -49,6 +49,20 @@ class ProfileController extends Controller
     }
 
     /**
+     * Darstellung (hell/dunkel/wie System) speichern.
+     */
+    public function darstellung(Request $request): RedirectResponse
+    {
+        $daten = $request->validate([
+            'farbschema' => ['required', 'in:hell,dunkel,system'],
+        ]);
+
+        $request->user()->forceFill(['farbschema' => $daten['farbschema']])->save();
+
+        return Redirect::route('profile.edit')->with('status', 'Darstellung gespeichert.');
+    }
+
+    /**
      * Delete the user's account.
      */
     public function destroy(Request $request): RedirectResponse
