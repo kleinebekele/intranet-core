@@ -22,6 +22,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Ekkon → Benachrichtigungen, Reiter Routen:** die Routen sind je Modul in eigene Reiter aufgeteilt (System zuerst, Verwaist zuletzt); der gewählte Reiter bleibt im Browser gemerkt.
 
 ### Behoben
+- **npm audit:** `source-map-js` aktualisiert, `shell-quote` per `overrides` auf ≥ 1.11 (kommt über `concurrently`). Betraf nur Build-Werkzeuge.
 - **Webhook-Eingang: Uhrzeit in UTC.** `created_at` kam aus dem Spalten-Default der Datenbank (MySQL läuft in UTC), gelesen wird in der App-Zeitzone – Eingänge standen zwei Stunden zu früh. Das Model setzt die Zeit jetzt selbst; bereits gespeicherte Eingänge bleiben verschoben, bis sie aufgeräumt sind.
 - **Ekkon: „löschen" ohne Wirkung hinter dem Proxy** (Benachrichtigungen, Teams, Webhook-Eingang): die per `fetch()` aufgerufenen URLs werden jetzt relativ erzeugt. Absolut kamen sie hinter dem Proxy als `http://` auf der https-Seite heraus, der Browser blockte sie ohne HTTP-Status („Löschen fehlgeschlagen.").
 
