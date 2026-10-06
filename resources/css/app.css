@@ -75,6 +75,12 @@
         border-color: var(--color-gray-400);
     }
 
+    /* <dialog> mittig wie im Browser-Standard: Tailwind 4 setzt margin: 0 an jedem Element,
+       damit kleben showModal()-Fenster oben links (Tailwind 3 ließ dialog in Ruhe). */
+    dialog {
+        margin: auto;
+    }
+
     /* Knöpfe zeigen die Hand als Mauszeiger. */
     button:not(:disabled),
     [role='button']:not(:disabled) {
