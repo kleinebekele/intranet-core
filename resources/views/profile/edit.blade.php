@@ -41,6 +41,13 @@
                 </div>
             @endif
 
+            {{-- Zusatzbereiche der Module (App\Support\Profilbereiche), z. B. Mail-Passwort. --}}
+            @foreach (\App\Support\Profilbereiche::fuer($user) as $schluessel => $bereich)
+                <div id="{{ $schluessel }}" class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                    <div class="max-w-xl">{!! $bereich !!}</div>
+                </div>
+            @endforeach
+
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div class="max-w-xl">
                     @include('profile.partials.delete-user-form')
