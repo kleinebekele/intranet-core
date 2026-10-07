@@ -13,6 +13,12 @@
                 </div>
             </div>
 
+            <div id="profilbild" class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+                <div class="max-w-xl">
+                    @include('profile.partials.profilbild-form', ['user' => $user])
+                </div>
+            </div>
+
             <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
                 <div class="max-w-3xl">
                     @include('profile.partials.darstellung-form', ['user' => $user])

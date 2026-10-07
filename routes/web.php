@@ -37,6 +37,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/darstellung', [ProfileController::class, 'darstellung'])->name('profile.darstellung');
+    Route::post('/profile/bild', [ProfileController::class, 'profilbild'])->name('profile.profilbild');
+    Route::get('/profilbild/{user}', [ProfileController::class, 'profilbildZeigen'])->name('profilbild');
 
     // 2FA-Verwaltung im eigenen Profil (Opt-in + TOTP).
     Route::post('/profile/two-factor/enable', [TwoFactorController::class, 'enable'])->name('profile.two-factor.enable');
