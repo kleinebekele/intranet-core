@@ -58,9 +58,11 @@ Route::middleware('auth')->group(function () {
 
     // Admin panel: arrange the module navigation.
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
-        // Einstellungen: Erscheinungsbild und Betriebsgrenzen.
+        // Systemeinstellungen: Erscheinungsbild (erster Reiter) und Mailversand (Stundenlimit).
         Route::get('einstellungen', [SettingController::class, 'index'])->name('settings.index');
         Route::put('einstellungen', [SettingController::class, 'update'])->name('settings.update');
+        Route::get('einstellungen/mailversand', [SettingController::class, 'mailversand'])->name('settings.mailversand');
+        Route::put('einstellungen/mailversand', [SettingController::class, 'mailversandSpeichern'])->name('settings.mailversand.update');
 
         // Systemlog im Browser (Fehlersuche ohne SSH ins Logfile).
         Route::get('logs', [LogController::class, 'index'])->name('logs.index');

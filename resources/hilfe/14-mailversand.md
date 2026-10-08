@@ -26,7 +26,7 @@ abgearbeitet wird.
 
 rollen: admin
 
-Das Limit steht unter **Verwaltung → Einstellungen**, nicht in einer Datei auf dem Server.
+Das Limit steht unter **Systemeinstellungen → Mailversand**, nicht in einer Datei auf dem Server.
 Der Wert **0 bedeutet: kein Limit**. Gezählt wird gleitend über die letzten 60 Minuten.
 
 ## Wenn nichts rausgeht

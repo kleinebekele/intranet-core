@@ -1,17 +1,18 @@
 {{-- Umschalter zwischen den Verwaltungs-Bereichen.
 
      Reihenfolge ist bewusst gesetzt: erst was das ganze Intranet betrifft
-     (Einstellungen, Adressen), dann wer es benutzen darf (Benutzer, Rollen),
+     (Erscheinungsbild, Adressen), dann wer es benutzen darf (Benutzer, Rollen),
      dann der Betrieb (Maillog, Module). --}}
 @php
     $bereiche = [
-        ['route' => 'admin.settings.index', 'muster' => 'admin.settings.*', 'label' => 'Einstellungen'],
+        ['route' => 'admin.settings.index', 'muster' => 'admin.settings.index', 'label' => 'Erscheinungsbild'],
         ['route' => 'admin.seo.index', 'muster' => 'admin.seo.*', 'label' => 'SEO'],
         ['route' => 'admin.users.index', 'muster' => 'admin.users.*', 'label' => 'Benutzer'],
         ['route' => 'admin.roles.index', 'muster' => 'admin.roles.*', 'label' => 'Rollen'],
         ['route' => 'admin.einladungen.index', 'muster' => 'admin.einladungen.*', 'label' => 'Einladungen',
          'zaehler' => \App\Models\Einladung::wartend()->count()],
         ['route' => 'admin.microsoft.index', 'muster' => 'admin.microsoft.*', 'label' => 'Microsoft-SSO'],
+        ['route' => 'admin.settings.mailversand', 'muster' => 'admin.settings.mailversand*', 'label' => 'Mailversand'],
         ['route' => 'admin.mailvorlagen.index', 'muster' => 'admin.mailvorlagen.*', 'label' => 'Mailvorlagen'],
         ['route' => 'admin.mail.index', 'muster' => 'admin.mail.*', 'label' => 'Maillog'],
         ['route' => 'admin.modules.index', 'muster' => 'admin.modules.*', 'label' => 'Module'],

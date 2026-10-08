@@ -97,7 +97,7 @@
         @auth
             @if (auth()->user()->isAdmin())
                 {{-- Der einzige Weg in die Verwaltung. Zielt bewusst auf den ersten
-                     Reiter (Einstellungen), nicht mehr auf die Modul-Verwaltung. --}}
+                     Reiter (Erscheinungsbild), nicht mehr auf die Modul-Verwaltung. --}}
                 <div class="mt-auto pt-4 border-t border-gray-100">
                     <a href="{{ route('admin.settings.index') }}"
                        @class([
@@ -106,7 +106,7 @@
                            'text-gray-600 hover:bg-gray-100 hover:text-gray-900' => ! request()->routeIs('admin.*'),
                        ])>
                         <x-module-icon name="cog" class="text-xl {{ request()->routeIs('admin.*') ? 'text-indigo-500' : 'text-gray-400' }}" />
-                        Einstellungen
+                        Systemeinstellungen
                     </a>
                 </div>
             @endif

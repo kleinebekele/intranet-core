@@ -7,6 +7,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Geändert
+- **Systemeinstellungen statt „Verwaltung":** Der Admin-Bereich heißt in der Seitenleiste und im Seitentitel „Systemeinstellungen" (Verwechslung mit Modulen namens „Verwaltung"). Der bisherige Reiter „Einstellungen" ist aufgeteilt in **Erscheinungsbild** (Haupttitel, Logo, Favicon; erster Reiter, `admin.settings.index`) und **Mailversand** (Stundenlimit, vor „Mailvorlagen", Route `admin.settings.mailversand`). Wiki-Hilfe dazu neu: `19-mailversand-stundenlimit.md`.
+
 ### Neu
 - **Einladungslinks 14 Tage gültig:** Einladungen („Willkommen – Passwort festlegen") nutzen den eigenen Passwort-Broker `einladungen` mit Tabelle `einladung_tokens` und gelten 14 Tage (`EINLADUNG_GUELTIG_MINUTEN` in der `.env`). Vorher galt die Stunde von „Passwort vergessen" – bei gedrosseltem Versand über den Ausgangskorb waren Links oft schon tot, bevor sie ankamen. „Passwort vergessen" bleibt bei 60 Minuten; die Seite „Passwort festlegen" nimmt beide, ein gesetztes Passwort entwertet beide Links. Migration `einladung_tokens`.
 - **Einladungen nach Rolle verschicken:** Verwaltung → Einladungen hat eine Auswahl „Rolle" (mit Anzahl wartender); „Alle verschicken" trifft dann nur diese Rolle – z. B. erst Lehrer und Mitarbeiter, Eltern später.

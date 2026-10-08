@@ -1,4 +1,4 @@
-{{-- Favicon aus den Einstellungen (Verwaltung → Einstellungen).
+{{-- Favicon aus den Einstellungen (Systemeinstellungen → Erscheinungsbild).
 
      Ohne hochgeladenes Bild geben wir bewusst GAR NICHTS aus: Der Browser sucht
      dann von selbst nach /favicon.ico – so bleibt ein per Hand dort abgelegtes

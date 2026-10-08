@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 /**
- * Einstellungen, die Administratoren im Betrieb ändern können – Erscheinungsbild
- * (Haupttitel, Favicon) und Betriebsgrenzen (Mail-Stundenlimit).
+ * Systemeinstellungen, die Administratoren im Betrieb ändern können – je ein
+ * Reiter für das Erscheinungsbild (Haupttitel, Logo, Favicon) und den
+ * Mailversand (Stundenlimit des Ausgangskorbs).
  *
  * Alles hier ist bewusst NICHT in der `.env`: Es sind Werte, die jemand ohne
  * Serverzugang ändern können soll.
@@ -28,17 +29,40 @@ class SettingController
             'haupttitelStandard' => config('app.name', 'Intranet'),
             'logoPfad' => Setting::get('logo'),
             'faviconPfad' => Setting::get('favicon'),
+        ]);
+    }
+
+    /** Eigener Reiter „Mailversand": das Stundenlimit des Ausgangskorbs. */
+    public function mailversand(): View
+    {
+        return view('admin.settings.mailversand', [
             'stundenlimit' => Setting::get('mail_stundenlimit', ''),
             'outboxAktiv' => (bool) config('mail.outbox.aktiv', true),
         ]);
+    }
+
+    public function mailversandSpeichern(Request $request): RedirectResponse
+    {
+        $daten = $request->validate([
+            // 0/leer = kein Limit. Obergrenze nur als Tippfehler-Bremse.
+            'mail_stundenlimit' => ['nullable', 'integer', 'min:0', 'max:100000'],
+        ]);
+
+        Setting::set('mail_stundenlimit', (string) ($daten['mail_stundenlimit'] ?? ''));
+
+        Audit::schreiben('einstellungen.gespeichert', null, daten: [
+            'mail_stundenlimit' => $daten['mail_stundenlimit'] ?? '',
+        ]);
+
+        return redirect()
+            ->route('admin.settings.mailversand')
+            ->with('status', 'Mailversand gespeichert.');
     }
 
     public function update(Request $request): RedirectResponse
     {
         $daten = $request->validate([
             'haupttitel' => ['nullable', 'string', 'max:60'],
-            // 0/leer = kein Limit. Obergrenze nur als Tippfehler-Bremse.
-            'mail_stundenlimit' => ['nullable', 'integer', 'min:0', 'max:100000'],
             // Logo steht in der Kopfzeile, darf also etwas größer sein als das Favicon.
             'logo' => ['nullable', 'file', 'mimes:png,svg,jpg,jpeg,webp', 'max:1024'],
             'logo_entfernen' => ['nullable', 'boolean'],
@@ -52,21 +76,19 @@ class SettingController
         ]);
 
         Setting::set('haupttitel', trim((string) ($daten['haupttitel'] ?? '')));
-        Setting::set('mail_stundenlimit', (string) ($daten['mail_stundenlimit'] ?? ''));
 
         $this->bildVerarbeiten($request, 'logo');
         $this->bildVerarbeiten($request, 'favicon');
 
         Audit::schreiben('einstellungen.gespeichert', null, daten: [
             'haupttitel' => $daten['haupttitel'] ?? '',
-            'mail_stundenlimit' => $daten['mail_stundenlimit'] ?? '',
             'logo' => $request->hasFile('logo') ? 'neu' : ($request->boolean('logo_entfernen') ? 'entfernt' : 'unverändert'),
             'favicon' => $request->hasFile('favicon') ? 'neu' : ($request->boolean('favicon_entfernen') ? 'entfernt' : 'unverändert'),
         ]);
 
         return redirect()
             ->route('admin.settings.index')
-            ->with('status', 'Einstellungen gespeichert.');
+            ->with('status', 'Erscheinungsbild gespeichert.');
     }
 
     /**

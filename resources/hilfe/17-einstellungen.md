@@ -1,5 +1,5 @@
 ---
-titel: Erscheinungsbild und Grundeinstellungen
+titel: Erscheinungsbild
 route: admin.settings.index
 kategorie: Verwaltung
 position: 17
@@ -7,8 +7,7 @@ position: 17
 
 rollen: admin
 
-Der erste Reiter der Verwaltung: Wie heißt dieses Intranet, wie sieht es aus, und welche
-Betriebsgrenzen gelten.
+Der erste Reiter der Systemeinstellungen: Wie heißt dieses Intranet und wie sieht es aus.
 
 ## Haupttitel, Logo, Favicon
 
@@ -20,11 +19,3 @@ müssen dafür nichts tun.
 
 **Logo** und **Favicon** werden hochgeladen. Das Logo erscheint in der Kopfzeile und auf der
 Anmeldeseite, das Favicon im Browser-Reiter.
-
-## Stundenlimit für Mails
-
-rollen: admin
-
-Wie viele Mails das Intranet höchstens pro Stunde verschickt. **0 bedeutet: kein Limit.**
-Der Wert steht bewusst hier und nicht in einer Datei auf dem Server – so lässt er sich
-ändern, ohne dass jemand auf den Server muss.

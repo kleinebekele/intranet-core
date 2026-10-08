@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Zur Laufzeit änderbare Einstellungen (Verwaltung → Einstellungen).
+ * Zur Laufzeit änderbare Einstellungen (Systemeinstellungen).
  *
  * Wird auf jeder Seite gelesen (Titel, Favicon), darum im Cache gehalten und
  * bei jeder Änderung verworfen.

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h1 class="text-xl font-semibold text-gray-800">Verwaltung</h1>
+        <h1 class="text-xl font-semibold text-gray-800">Systemeinstellungen</h1>
     </x-slot>
 
     @php($selectedRoles = old('roles', $user->roles->pluck('role_id')->all()))
