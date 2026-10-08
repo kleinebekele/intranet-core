@@ -25,6 +25,13 @@ class MailOutbox extends Model
     /** Gescheitert und abgehakt – von Hand oder automatisch, siehe `mail:aufraeumen`. */
     public const VERWORFEN = 'verworfen';
 
+    /** Zustellung nach dem Versand (Spalte `zustellung`, siehe App\Support\Zustellmeldungen). */
+    public const ZUGESTELLT = 'zugestellt';
+
+    public const VERZOEGERT = 'verzoegert';
+
+    public const ABGEWIESEN = 'abgewiesen';
+
     /** So lange darf eine Mail auf „fehlgeschlagen" stehen, dann wird sie verworfen. */
     public const VERWERFEN_NACH_TAGEN = 10;
 
@@ -51,6 +58,8 @@ class MailOutbox extends Model
             'versendet_am' => 'datetime',
             'naechster_versuch_am' => 'datetime',
             'verworfen_am' => 'datetime',
+            'zustellung_am' => 'datetime',
+            'zustellung_empfaenger' => 'array',
         ];
     }
 

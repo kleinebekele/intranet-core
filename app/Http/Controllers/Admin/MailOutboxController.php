@@ -25,7 +25,11 @@ class MailOutboxController
         MailOutbox::VERSENDET,
         MailOutbox::FEHLGESCHLAGEN,
         MailOutbox::VERWORFEN,
+        self::UNZUGESTELLT,
     ];
+
+    /** Filter „Nicht zugestellt": versendet, aber der Mailserver meldet verzögert/abgewiesen. */
+    private const UNZUGESTELLT = 'unzugestellt';
 
     /** Wert des Absender-Filters für „über den Standard-Mailer". */
     private const STANDARD = 'standard';
@@ -49,8 +53,10 @@ class MailOutboxController
         $mails = MailOutbox::query()
             // „Alle" heißt: alles außer Verworfenem – das ist abgehakt und steht
             // nur unter seinem eigenen Reiter.
-            ->when($status, fn ($q) => $q->where('status', $status),
-                fn ($q) => $q->where('status', '!=', MailOutbox::VERWORFEN))
+            ->when($status === self::UNZUGESTELLT,
+                fn ($q) => $q->whereIn('zustellung', [MailOutbox::VERZOEGERT, MailOutbox::ABGEWIESEN]),
+                fn ($q) => $q->when($status, fn ($q) => $q->where('status', $status),
+                    fn ($q) => $q->where('status', '!=', MailOutbox::VERWORFEN)))
             ->when($suche !== '', function ($q) use ($suche) {
                 $muster = '%'.addcslashes($suche, '%_\\').'%';
                 $q->where(fn ($w) => $w->where('betreff', 'like', $muster)->orWhere('an', 'like', $muster));
@@ -117,6 +123,7 @@ class MailOutboxController
                 MailOutbox::VERSENDET => MailOutbox::where('status', MailOutbox::VERSENDET)->count(),
                 MailOutbox::FEHLGESCHLAGEN => MailOutbox::where('status', MailOutbox::FEHLGESCHLAGEN)->count(),
                 MailOutbox::VERWORFEN => MailOutbox::where('status', MailOutbox::VERWORFEN)->count(),
+                self::UNZUGESTELLT => MailOutbox::whereIn('zustellung', [MailOutbox::VERZOEGERT, MailOutbox::ABGEWIESEN])->count(),
             ],
         ]);
     }

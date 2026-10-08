@@ -83,6 +83,7 @@
                         'versendet' => 'Versendet',
                         'fehlgeschlagen' => 'Fehlgeschlagen',
                         'verworfen' => 'Verworfen',
+                        'unzugestellt' => 'Nicht zugestellt'.($anzahl['unzugestellt'] ? ' ('.$anzahl['unzugestellt'].')' : ''),
                     ];
                 @endphp
                 @foreach ($filter as $wert => $beschriftung)
@@ -196,10 +197,24 @@
                                     @if ($mail->prioritaet > 0)
                                         <span class="mt-1 block text-xs font-medium text-indigo-600">eilig</span>
                                     @endif
+                                    {{-- Rückmeldung des Mailservers nach dem Versand (App\Support\Zustellmeldungen). --}}
+                                    @if ($mail->zustellung === 'zugestellt')
+                                        <span class="mt-1 block text-xs font-medium text-green-700" title="Der Server des Empfängers hat die Mail angenommen ({{ $mail->zustellung_am?->format('d.m.Y H:i') }})">✓ zugestellt</span>
+                                    @elseif ($mail->zustellung === 'verzoegert')
+                                        <span class="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700" title="Der Mailserver versucht es weiter">verzögert</span>
+                                    @elseif ($mail->zustellung === 'abgewiesen')
+                                        <span class="mt-1 inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">abgewiesen</span>
+                                    @endif
                                 </td>
 
                                 <td class="px-4 py-3 font-medium text-gray-800">
                                     {{ $mail->betreff ?: '—' }}
+                                    @if (in_array($mail->zustellung, ['verzoegert', 'abgewiesen'], true) && $mail->zustellung_grund)
+                                        <div class="mt-1 text-xs font-normal {{ $mail->zustellung === 'abgewiesen' ? 'text-red-600' : 'text-amber-700' }}">
+                                            Zustellung: {{ \Illuminate\Support\Str::limit($mail->zustellung_grund, 200) }}
+                                            <span class="text-gray-400">({{ $mail->zustellung_am?->format('d.m. H:i') }})</span>
+                                        </div>
+                                    @endif
                                     @if ($mail->fehler)
                                         <div class="mt-1 text-xs font-normal text-red-600">
                                             {{ \Illuminate\Support\Str::limit($mail->fehler, 160) }}
@@ -317,9 +332,10 @@
         @endif
 
         <p class="mt-6 text-xs text-gray-400">
-            „Versendet" heißt: der Mailserver hat die Nachricht angenommen. Ob sie im Postfach
-            ankam, weiß die Plattform nicht – dafür braucht es Rückmeldungen des Mailproviders,
-            die später über die gespeicherte Message-ID zugeordnet werden können.
+            „Versendet" heißt: der Mailserver hat die Nachricht angenommen. Meldet er zurück, wie es
+            weiterging, steht das darunter: „zugestellt" (der Server des Empfängers hat sie angenommen),
+            „verzögert" (wird weiter versucht) oder „abgewiesen". Ohne Rückmeldung weiß die Plattform
+            nicht, ob die Mail ankam.
         </p>
         <p class="mt-2 text-xs text-gray-400">
             Fehlgeschlagene Mails werden nach {{ \App\Models\MailOutbox::VERWERFEN_NACH_TAGEN }} Tagen
