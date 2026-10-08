@@ -114,7 +114,7 @@ class Einladung extends Model
             return false;
         }
 
-        $this->user->notify(new WelcomeNewUser(Password::broker()->createToken($this->user)));
+        $this->user->notify(new WelcomeNewUser(Password::broker('einladungen')->createToken($this->user)));
         $this->abschliessen(self::VERSCHICKT, $entschiedenVon);
 
         return true;

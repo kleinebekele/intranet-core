@@ -17,7 +17,9 @@
             Benutzer an — <span class="font-medium">verschickt wird nichts</span>, solange du nicht
             zustimmst. Beim Freigeben gehen die Mails über den Ausgangskorb und damit gedrosselt raus.
             Benutzer ohne echte Mailadresse (z.&nbsp;B. Schüler) stehen hier gar nicht erst: Sie melden
-            sich an, ohne je eine Mail zu bekommen.
+            sich an, ohne je eine Mail zu bekommen. Über „Rolle" lassen sich Gruppen nacheinander einladen
+            (z.&nbsp;B. erst Lehrer, später Eltern). Der Link in der Einladung gilt
+            {{ intdiv((int) config('auth.passwords.einladungen.expire'), 60 * 24) }} Tage.
         </p>
 
         {{-- Suche (GET, damit der Filter in der URL steht und die Seitenlinks ihn mitnehmen) --}}
@@ -29,11 +31,23 @@
                        placeholder="z. B. Schmidt oder @firma.de"
                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
             </div>
+            @if (! empty($rollen))
+                <div class="min-w-[12rem]">
+                    <label for="rolle" class="block text-xs font-medium text-gray-500">Rolle</label>
+                    <select id="rolle" name="rolle" onchange="this.form.submit()"
+                            class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <option value="">Alle Rollen</option>
+                        @foreach ($rollen as $id => $r)
+                            <option value="{{ $id }}" @selected($rolle === $id)>{{ $r['name'] }} ({{ $r['anzahl'] }})</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
             <button type="submit"
                     class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                 <i class='bx bx-search text-base'></i> Suchen
             </button>
-            @if ($search !== '')
+            @if ($search !== '' || $rolle !== '')
                 <a href="{{ route('admin.einladungen.index') }}"
                    class="px-2 py-2 text-sm text-gray-500 hover:text-gray-700">Zurücksetzen</a>
             @endif
@@ -41,8 +55,8 @@
 
         @if ($wartend->isEmpty())
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
-                @if ($search !== '')
-                    Keine wartende Einladung passt zu „{{ $search }}".
+                @if ($search !== '' || $rolle !== '')
+                    Keine wartende Einladung passt zur Auswahl.
                 @else
                     Es wartet keine Einladung.
                 @endif
@@ -51,7 +65,7 @@
             <div class="mb-3 flex items-center justify-between">
                 <div class="text-sm text-gray-500">
                     {{ $wartend->total() }} wartend
-                    @if ($search !== '')
+                    @if ($search !== '' || $rolle !== '')
                         <span class="text-gray-300">·</span> gefiltert, insgesamt {{ $wartendGesamt }}
                     @endif
                     @if ($wartend->hasPages())
@@ -59,14 +73,25 @@
                     @endif
                 </div>
 
-                {{-- „Alle" meint immer alle wartenden, unabhängig von Suche und Seite. --}}
+                {{-- „Alle" meint alle wartenden der gewählten Rolle, unabhängig von Suche und Seite. --}}
+                @php
+                    $rollenName = $rolle !== '' ? ($rollen[$rolle]['name'] ?? $rolle) : null;
+                    $bestaetigung = $rollenName
+                        ? "{$wartendAuswahl} Einladungen an „{$rollenName}“ jetzt verschicken?"
+                        : "{$wartendGesamt} Einladungen jetzt verschicken?";
+                @endphp
                 <form method="POST" action="{{ route('admin.einladungen.alle') }}"
-                      onsubmit="return confirm('{{ $wartendGesamt }} Einladungen jetzt verschicken?');">
+                      onsubmit="return confirm({{ \Illuminate\Support\Js::from($bestaetigung) }});">
                     @csrf
+                    <input type="hidden" name="rolle" value="{{ $rolle }}">
                     <button type="submit"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">
                         <i class='bx bx-mail-send text-base'></i>
-                        Alle {{ $wartendGesamt }} verschicken
+                        @if ($rollenName)
+                            Alle {{ $wartendAuswahl }} „{{ $rollenName }}“ verschicken
+                        @else
+                            Alle {{ $wartendGesamt }} verschicken
+                        @endif
                     </button>
                 </form>
             </div>

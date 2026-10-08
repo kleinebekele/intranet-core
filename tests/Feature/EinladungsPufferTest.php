@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Einladung;
 use App\Models\MailOutbox;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 /**
@@ -155,5 +158,83 @@ class EinladungsPufferTest extends TestCase
             ->get(route('admin.einladungen.index'))
             ->assertOk()
             ->assertSee('lehrerin@example.org');
+    }
+
+    /** Erst die Lehrer, die Eltern später: „Alle verschicken" mit Rolle trifft nur diese. */
+    public function test_alle_freigeben_mit_rolle_trifft_nur_diese_rolle(): void
+    {
+        $admin = $this->admin();
+        Role::firstOrCreate(['role_id' => 'teacher'], ['name' => 'Lehrer']);
+        Role::firstOrCreate(['role_id' => 'parent'], ['name' => 'Eltern']);
+
+        $lehrer = User::factory()->create(['email' => 'lehrer@example.org']);
+        $lehrer->roles()->attach('teacher');
+        $eltern = User::factory()->create(['email' => 'eltern@example.org']);
+        $eltern->roles()->attach('parent');
+        Einladung::vormerken($lehrer);
+        Einladung::vormerken($eltern);
+
+        $this->actingAs($admin)
+            ->get(route('admin.einladungen.index', ['rolle' => 'teacher']))
+            ->assertOk()
+            ->assertSee('lehrer@example.org')
+            ->assertDontSee('eltern@example.org');
+
+        $this->actingAs($admin)->post(route('admin.einladungen.alle'), ['rolle' => 'teacher'])->assertRedirect();
+
+        $this->assertSame(1, MailOutbox::count());
+        $this->assertSame(Einladung::VERSCHICKT, Einladung::where('user_id', $lehrer->id)->sole()->status);
+        $this->assertSame(Einladung::WARTEND, Einladung::where('user_id', $eltern->id)->sole()->status);
+    }
+
+    /** Die Mail geht gedrosselt raus und wird oft erst Tage später geöffnet. */
+    public function test_einladungslink_gilt_auch_nach_tagen(): void
+    {
+        $user = User::factory()->create(['email' => 'lehrer@example.org']);
+        $token = Password::broker('einladungen')->createToken($user);
+
+        $this->travel(10)->days();
+
+        $this->post(route('password.store'), $this->neuesPasswort($user, $token))
+            ->assertRedirect(route('login'));
+
+        $this->assertTrue(Hash::check('neues-Passwort-123', $user->fresh()->password));
+    }
+
+    /** „Passwort vergessen" bleibt kurz gültig – die lange Frist gilt nur für Einladungen. */
+    public function test_reset_link_bleibt_kurz_gueltig(): void
+    {
+        $user = User::factory()->create(['email' => 'lehrer@example.org']);
+        $alt = $user->password;
+        $token = Password::broker()->createToken($user);
+
+        $this->travel(2)->hours();
+
+        $this->post(route('password.store'), $this->neuesPasswort($user, $token))
+            ->assertSessionHasErrors('email');
+
+        $this->assertSame($alt, $user->fresh()->password);
+    }
+
+    /** Ist das Passwort gesetzt, taugt der Einladungslink nicht noch einmal. */
+    public function test_einladungslink_nur_einmal(): void
+    {
+        $user = User::factory()->create(['email' => 'lehrer@example.org']);
+        $token = Password::broker('einladungen')->createToken($user);
+
+        $this->post(route('password.store'), $this->neuesPasswort($user, $token))
+            ->assertRedirect(route('login'));
+        $this->post(route('password.store'), $this->neuesPasswort($user, $token, 'anderes-Passwort-456'))
+            ->assertSessionHasErrors('email');
+    }
+
+    private function neuesPasswort(User $user, string $token, string $passwort = 'neues-Passwort-123'): array
+    {
+        return [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => $passwort,
+            'password_confirmation' => $passwort,
+        ];
     }
 }

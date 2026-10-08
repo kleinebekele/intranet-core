@@ -97,7 +97,7 @@ class UserController extends Controller
         ]);
 
         // Willkommens-Mail mit Link zum Passwort-Setzen.
-        $token = Password::broker()->createToken($user);
+        $token = Password::broker('einladungen')->createToken($user);
         $user->notify(new WelcomeNewUser($token));
 
         return redirect()->route('admin.users.index')

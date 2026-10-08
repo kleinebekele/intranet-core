@@ -99,6 +99,16 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // Einladungslinks („Willkommen – Passwort festlegen"): eigene Tabelle,
+        // damit sie länger gelten können als „Passwort vergessen". Die Mail geht
+        // gedrosselt über den Ausgangskorb und wird oft erst Tage später geöffnet.
+        'einladungen' => [
+            'provider' => 'users',
+            'table' => 'einladung_tokens',
+            'expire' => (int) env('EINLADUNG_GUELTIG_MINUTEN', 60 * 24 * 14),
+            'throttle' => 0,
+        ],
     ],
 
     /*

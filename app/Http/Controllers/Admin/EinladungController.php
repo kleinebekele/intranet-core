@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Einladung;
+use App\Models\Role;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
@@ -27,8 +30,11 @@ class EinladungController extends Controller
                 ->orWhere('email', 'like', "%{$search}%")),
         ));
 
+        $rolle = trim((string) $request->query('rolle', ''));
+
         $wartend = Einladung::with('user.roles')->wartend()
             ->tap($nachPerson)
+            ->tap(fn ($query) => $this->nachRolle($query, $rolle))
             ->oldest()
             ->paginate(50, ['*'], 'seite')
             ->withQueryString();
@@ -42,7 +48,13 @@ class EinladungController extends Controller
 
         $wartendGesamt = Einladung::wartend()->count();
 
-        return view('admin.einladungen.index', compact('wartend', 'erledigt', 'search', 'wartendGesamt'));
+        // Was „Alle verschicken" träfe: alle wartenden der gewählten Rolle, ohne Suche.
+        $wartendAuswahl = $this->nachRolle(Einladung::wartend(), $rolle)->count();
+
+        return view('admin.einladungen.index', [
+            ...compact('wartend', 'erledigt', 'search', 'wartendGesamt', 'rolle', 'wartendAuswahl'),
+            'rollen' => $this->rollenDerWartenden(),
+        ]);
     }
 
     /** Eine einzelne Einladung verschicken. */
@@ -56,7 +68,8 @@ class EinladungController extends Controller
     }
 
     /**
-     * Alle wartenden auf einmal – der Regelfall nach einem Import.
+     * Alle wartenden auf einmal – der Regelfall nach einem Import. Mit Rolle
+     * nur die wartenden dieser Rolle (z. B. erst Lehrer, Eltern später).
      *
      * Der Versand läuft über den Ausgangskorb, wird also gedrosselt und nicht
      * in einem Schwall verschickt.
@@ -65,8 +78,9 @@ class EinladungController extends Controller
     {
         $verschickt = 0;
         $uebersprungen = 0;
+        $rolle = trim((string) $request->input('rolle', ''));
 
-        foreach (Einladung::with('user')->wartend()->get() as $einladung) {
+        foreach ($this->nachRolle(Einladung::with('user')->wartend(), $rolle)->get() as $einladung) {
             $einladung->freigeben($request->user()) ? $verschickt++ : $uebersprungen++;
         }
 
@@ -81,5 +95,35 @@ class EinladungController extends Controller
         $einladung->verwerfen($request->user());
 
         return back()->with('status', "Einladung an {$einladung->user->email} verworfen.");
+    }
+
+    /** Nur Einladungen an Benutzer mit dieser Rolle; leere Rolle = alle. */
+    private function nachRolle(Builder $query, string $rolle): Builder
+    {
+        return $query->when($rolle !== '', fn ($q) => $q->whereHas(
+            'user.roles',
+            fn ($r) => $r->where('roles.role_id', $rolle),
+        ));
+    }
+
+    /**
+     * Rollen, die unter den wartenden Einladungen vorkommen, mit Anzahl –
+     * für die Auswahl über der Liste. Die Grundrolle „user" haben alle.
+     *
+     * @return array<string, array{name: string, anzahl: int}>
+     */
+    private function rollenDerWartenden(): array
+    {
+        $anzahl = DB::table('user_roles')
+            ->join('einladungen', 'einladungen.user_id', '=', 'user_roles.user_id')
+            ->where('einladungen.status', Einladung::WARTEND)
+            ->where('user_roles.role_id', '!=', 'user')
+            ->groupBy('user_roles.role_id')
+            ->selectRaw('user_roles.role_id, count(*) as anzahl')
+            ->pluck('anzahl', 'role_id');
+
+        return Role::whereIn('role_id', $anzahl->keys())->orderBy('name')->get()
+            ->mapWithKeys(fn (Role $r) => [$r->role_id => ['name' => $r->name, 'anzahl' => (int) $anzahl[$r->role_id]]])
+            ->all();
     }
 }
