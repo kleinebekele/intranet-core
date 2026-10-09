@@ -8,6 +8,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Geändert
+- **Rückfrage-Dialog im dunklen Design:** Der Hintergrund hinter dem Dialog wird jetzt in beiden Designs abgedunkelt (feste Farbe statt `bg-gray-900/50`, das im dunklen Design zu einem hellen Schleier wurde).
 - **Hilfe im Fenster:** Der „?"-Knopf öffnet die Hilfe als Modal über der Seite, statt wegzunavigieren. Er lädt die Adresse des Hilfe-Anbieters mit der Kopfzeile `X-Hilfe-Modal: 1`; der Anbieter (Wiki ab v1.5.0) liefert dann nur den Text. Bei Fehler führt der Link wie bisher auf die Hilfeseite.
 - **Systemeinstellungen statt „Verwaltung":** Der Admin-Bereich heißt in der Seitenleiste und im Seitentitel „Systemeinstellungen" (Verwechslung mit Modulen namens „Verwaltung"). Der bisherige Reiter „Einstellungen" ist aufgeteilt in **Erscheinungsbild** (Haupttitel, Logo, Favicon; erster Reiter, `admin.settings.index`) und **Mailversand** (Stundenlimit, vor „Mailvorlagen", Route `admin.settings.mailversand`). Wiki-Hilfe dazu neu: `19-mailversand-stundenlimit.md`.
 

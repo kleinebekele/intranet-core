@@ -7,7 +7,9 @@
 <div x-data x-show="$store.dialog.offen" x-cloak
      x-transition.opacity.duration.150ms
      @keydown.escape.window="$store.dialog.offen && $store.dialog.antworte(false)"
-     class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-gray-900/50"
+     {{-- Feste Farbe statt bg-gray-900/50: im dunklen Design werden die Grautöne umgedreht,
+          das Abdunkeln wäre dann ein heller Schleier. --}}
+     class="fixed inset-0 z-[70] flex items-center justify-center p-4" style="background: rgb(0 0 0 / 0.6)"
      role="dialog" aria-modal="true" :aria-label="$store.dialog.titel">
     <div @click.outside="$store.dialog.antworte(false)"
          x-show="$store.dialog.offen"
