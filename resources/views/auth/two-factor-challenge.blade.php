@@ -1,6 +1,9 @@
 <x-guest-layout>
     <div class="mb-4 text-sm text-gray-600">
-        @if ($usesTotp)
+        @if ($usesTotp && $totpApp)
+            Gib den 6-stelligen Code aus <b>{{ $totpApp }}</b> ein,
+            um die Anmeldung abzuschließen.
+        @elseif ($usesTotp)
             Gib den 6-stelligen Code aus deiner <b>Authenticator-App</b> ein
             (z.&nbsp;B. Vaultwarden), um die Anmeldung abzuschließen.
         @else

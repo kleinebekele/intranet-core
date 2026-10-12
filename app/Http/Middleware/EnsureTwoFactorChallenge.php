@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Anmeldeweg;
 use App\Support\Microsoft\MicrosoftSso;
 use App\Support\TwoFactorTrust;
 use Closure;
@@ -17,7 +18,10 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureTwoFactorChallenge
 {
-    public function __construct(private readonly TwoFactorTrust $trust) {}
+    public function __construct(
+        private readonly TwoFactorTrust $trust,
+        private readonly Anmeldeweg $anmeldeweg,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -46,6 +50,20 @@ class EnsureTwoFactorChallenge
             && app(MicrosoftSso::class)->aktiv()) {
             $request->session()->put('two_factor_passed', true);
             $request->session()->put(MicrosoftSso::ANGEMELDET_UEBER, true);
+
+            return $next($request);
+        }
+
+        // Über das Dauer-Cookie zurückgekehrt, das aus einer Anmeldung per
+        // Microsoft oder Passkey stammt? Dann gilt der zweite Faktor als
+        // erledigt – auch bei Konten, die zusätzlich ein Passwort haben.
+        // Stammt das Cookie aus einer Passwort-Anmeldung, fehlt der Merker.
+        if (Auth::viaRemember() && ($weg = $this->anmeldeweg->fuer($user, $request)) !== null) {
+            $request->session()->put('two_factor_passed', true);
+
+            if ($weg === Anmeldeweg::MICROSOFT) {
+                $request->session()->put(MicrosoftSso::ANGEMELDET_UEBER, true);
+            }
 
             return $next($request);
         }

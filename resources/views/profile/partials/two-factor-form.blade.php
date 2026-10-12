@@ -34,13 +34,33 @@
             Status: <b>aktiv</b>@if ($forced) <span class="text-xs text-gray-500">(auf dieser Installation für alle verpflichtend)</span>@endif
             — Verfahren:
             @if ($user->hasTotp())
-                <b>Authenticator-App</b> (seit {{ $user->totp_confirmed_at->format('d.m.Y') }})
+                <b>Authenticator-App</b>@if ($user->totp_app) „{{ $user->totp_app }}"@endif
+                (seit {{ $user->totp_confirmed_at->format('d.m.Y') }})
             @else
                 <b>Code per E-Mail</b> an {{ $user->email }}
             @endif
         </p>
 
         @if ($user->hasTotp())
+            {{-- Gedankenstütze: in welcher App liegt der Schlüssel? --}}
+            @if (session('status') === 'totp-app-saved')
+                <p class="mt-4 text-sm font-medium text-green-600">Gespeichert.</p>
+            @endif
+            <form method="POST" action="{{ route('profile.two-factor.app') }}" class="mt-4 space-y-2">
+                @csrf
+                @method('PATCH')
+                <x-input-label for="totp_app_edit" value="Gespeichert in App (Gedankenstütze für die Code-Abfrage)" />
+                @unless ($user->totp_app)
+                    <p class="text-xs text-amber-600">Bitte nachtragen – die Code-Abfrage zeigt dir dann, in welcher App du suchen musst.</p>
+                @endunless
+                <div class="flex flex-wrap items-center gap-3">
+                    <x-text-input id="totp_app_edit" name="app" type="text" maxlength="100" list="totp-app-vorschlaege"
+                                  :value="old('app', $user->totp_app)" class="block w-full max-w-xs" required />
+                    <x-secondary-button type="submit">Speichern</x-secondary-button>
+                </div>
+                <x-input-error :messages="$errors->totpApp->get('app')" class="mt-2" />
+            </form>
+
             {{-- TOTP aktiv → entfernen (fällt auf Mail-Code zurück) --}}
             <form method="POST" action="{{ route('profile.two-factor.remove-totp') }}" class="mt-4 space-y-3">
                 @csrf
@@ -73,6 +93,13 @@
                                       autocomplete="one-time-code" class="mt-1 block w-full max-w-xs tracking-widest" required />
                         <x-input-error :messages="$errors->totp->get('code')" class="mt-2" />
                     </div>
+                    <div>
+                        <x-input-label for="totp_app" value="3. In welcher App hast du den Schlüssel gespeichert?" />
+                        <x-text-input id="totp_app" name="app" type="text" maxlength="100" list="totp-app-vorschlaege"
+                                      :value="old('app')" placeholder="z. B. Vaultwarden" class="mt-1 block w-full max-w-xs" required />
+                        <p class="mt-1 text-xs text-gray-500">Wird dir bei der Code-Abfrage angezeigt, damit du nicht suchen musst.</p>
+                        <x-input-error :messages="$errors->totp->get('app')" class="mt-2" />
+                    </div>
                     <div class="flex items-center gap-3">
                         <x-primary-button>Bestätigen &amp; aktivieren</x-primary-button>
                         <a href="{{ route('profile.two-factor.cancel') }}"
@@ -97,6 +124,12 @@
                 <x-secondary-button type="submit">Authenticator-App (TOTP) einrichten</x-secondary-button>
             </form>
         @endif
+
+        <datalist id="totp-app-vorschlaege">
+            @foreach (['Vaultwarden', 'Bitwarden', 'Microsoft Authenticator', 'Google Authenticator', '1Password', 'Authy', 'Aegis', 'FreeOTP'] as $vorschlag)
+                <option value="{{ $vorschlag }}"></option>
+            @endforeach
+        </datalist>
 
         @unless ($forced)
             {{-- Komplett abschalten --}}

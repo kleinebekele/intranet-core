@@ -37,6 +37,7 @@ class TwoFactorChallengeController extends Controller
 
         return view('auth.two-factor-challenge', [
             'usesTotp' => $usesTotp,
+            'totpApp' => $usesTotp ? $user->totp_app : null,
             'canResend' => ! $usesTotp && $this->mailCode->canResend($user),
             'rememberDays' => $this->trust->enabled() ? $this->trust->days() : 0,
         ]);

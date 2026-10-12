@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\Anmeldeweg;
 use App\Support\Audit;
 use App\Support\Microsoft\MicrosoftSso;
 use App\Support\PasskeyFehler;
@@ -93,6 +94,14 @@ class PasskeyLoginController extends Controller
 
         $request->session()->regenerate();
         $request->session()->put('two_factor_passed', true);
+
+        // Ein Passkey ist selbst schon zwei Faktoren (Gerät + PIN/Biometrie) –
+        // auch die Rückkehr per Dauer-Cookie fragt deshalb keinen Code.
+        if ($request->boolean('remember')) {
+            app(Anmeldeweg::class)->merken($user, Anmeldeweg::PASSKEY);
+        } else {
+            app(Anmeldeweg::class)->vergessen();
+        }
 
         // Nächstes Mal bietet die Anmeldeseite gleich den Passkey an.
         $this->passkeys->geraetMerken($user);

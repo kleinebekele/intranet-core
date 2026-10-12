@@ -45,6 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile/two-factor', [TwoFactorController::class, 'disable'])->name('profile.two-factor.disable');
     Route::post('/profile/two-factor', [TwoFactorController::class, 'setup'])->name('profile.two-factor.setup');
     Route::post('/profile/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('profile.two-factor.confirm');
+    Route::patch('/profile/two-factor/app', [TwoFactorController::class, 'updateApp'])->name('profile.two-factor.app');
     Route::get('/profile/two-factor/cancel', [TwoFactorController::class, 'cancel'])->name('profile.two-factor.cancel');
     Route::delete('/profile/two-factor/totp', [TwoFactorController::class, 'removeTotp'])->name('profile.two-factor.remove-totp');
 

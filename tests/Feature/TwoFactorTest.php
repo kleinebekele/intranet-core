@@ -138,14 +138,21 @@ class TwoFactorTest extends TestCase
         $secret = session('totp_pending_secret');
         $this->assertNotNull($secret);
 
-        $this->post('/profile/two-factor/confirm', ['code' => $this->totpCode($secret)]);
-        $this->assertTrue($user->fresh()->hasTotp());
+        // Ohne Angabe der App wird nichts eingerichtet.
+        $this->post('/profile/two-factor/confirm', ['code' => $this->totpCode($secret)])
+            ->assertSessionHasErrors('app', null, 'totp');
+        $this->assertFalse($user->fresh()->hasTotp());
 
-        // Neue Sitzung: Abfrage verlangt jetzt TOTP statt Mail-Code.
+        $this->post('/profile/two-factor/confirm', ['code' => $this->totpCode($secret), 'app' => 'Vaultwarden']);
+        $this->assertTrue($user->fresh()->hasTotp());
+        $this->assertSame('Vaultwarden', $user->fresh()->totp_app);
+
+        // Neue Sitzung: Abfrage verlangt jetzt TOTP statt Mail-Code und
+        // nennt die App, in der der Schlüssel liegt.
         $this->post('/logout');
         $this->actingAs($user->fresh());
 
-        $this->get('/two-factor')->assertOk()->assertSee('Authenticator-App');
+        $this->get('/two-factor')->assertOk()->assertSee('Code aus <b>Vaultwarden</b>', false);
         Mail::assertNothingOutgoing();
 
         $this->post('/two-factor', ['code' => $this->totpCode($secret)])->assertRedirect('/dashboard');
@@ -213,7 +220,11 @@ class TwoFactorTest extends TestCase
         $this->get('/profile')->assertOk()->assertSee(session('totp_pending_secret'));
 
         // Zustand 4: TOTP aktiv → Entfernen-Formular
-        $this->post('/profile/two-factor/confirm', ['code' => $this->totpCode(session('totp_pending_secret'))]);
+        $this->post('/profile/two-factor/confirm', ['code' => $this->totpCode(session('totp_pending_secret')), 'app' => 'Aegis']);
         $this->get('/profile')->assertOk()->assertSee('Authenticator-App');
+
+        // Gedankenstütze nachträglich ändern.
+        $this->patch('/profile/two-factor/app', ['app' => 'Bitwarden'])->assertSessionHasNoErrors();
+        $this->assertSame('Bitwarden', $user->fresh()->totp_app);
     }
 }

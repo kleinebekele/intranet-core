@@ -298,6 +298,7 @@ class UserController extends Controller
         $user->forceFill([
             'totp_secret' => null,
             'totp_confirmed_at' => null,
+            'totp_app' => null,
         ])->save();
         Audit::schreiben('benutzer.totp_zurueckgesetzt', null, $user);
 

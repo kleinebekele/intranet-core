@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Support\Anmeldeweg;
 use App\Support\Passkeys;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +30,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Ein Dauer-Cookie aus dieser Anmeldung stammt vom Passwort – die
+        // Rückkehr darüber muss wieder nach dem zweiten Faktor fragen.
+        app(Anmeldeweg::class)->vergessen();
+
         // Nach dem Passwort einmal anbieten, einen Passkey anzulegen.
         app(Passkeys::class)->nachPasswortAnmeldung($request);
 
@@ -48,6 +53,8 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
+
+        app(Anmeldeweg::class)->vergessen();
 
         return redirect('/');
     }

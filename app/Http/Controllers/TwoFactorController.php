@@ -36,6 +36,7 @@ class TwoFactorController extends Controller
             'two_factor_enabled' => false,
             'totp_secret' => null,
             'totp_confirmed_at' => null,
+            'totp_app' => null,
         ])->save();
         Audit::schreiben('zweifaktor.deaktiviert', 'Im eigenen Profil.', $request->user());
 
@@ -53,7 +54,12 @@ class TwoFactorController extends Controller
     /** TOTP Schritt 2: erst ein gültiger Code aktiviert die App (und damit 2FA). */
     public function confirm(Request $request): RedirectResponse
     {
-        $request->validate(['code' => ['required', 'string']]);
+        $request->validateWithBag('totp', [
+            'code' => ['required', 'string'],
+            'app' => ['required', 'string', 'max:100'],
+        ], [
+            'app.required' => 'Bitte angeben, in welcher App du den Schlüssel speicherst.',
+        ]);
 
         $secret = $request->session()->get('totp_pending_secret');
 
@@ -69,12 +75,23 @@ class TwoFactorController extends Controller
             'two_factor_enabled' => true,
             'totp_secret' => $secret,
             'totp_confirmed_at' => now(),
+            'totp_app' => trim($request->input('app')),
         ])->save();
 
         $request->session()->forget('totp_pending_secret');
         Audit::schreiben('zweifaktor.totp', 'Authenticator-App bestätigt.', $request->user());
 
         return redirect()->route('profile.edit')->with('status', 'totp-confirmed');
+    }
+
+    /** Gedankenstütze nachtragen/ändern: in welcher App liegt der Schlüssel? */
+    public function updateApp(Request $request): RedirectResponse
+    {
+        $request->validateWithBag('totpApp', ['app' => ['required', 'string', 'max:100']]);
+
+        $request->user()->forceFill(['totp_app' => trim($request->input('app'))])->save();
+
+        return redirect()->route('profile.edit')->with('status', 'totp-app-saved')->withFragment('two-factor');
     }
 
     /** TOTP-Einrichtung abbrechen (verwirft das unbestätigte Secret). */
@@ -93,6 +110,7 @@ class TwoFactorController extends Controller
         $request->user()->forceFill([
             'totp_secret' => null,
             'totp_confirmed_at' => null,
+            'totp_app' => null,
         ])->save();
         Audit::schreiben('zweifaktor.totp_entfernt', 'Im eigenen Profil, zurück zum Mail-Code.', $request->user());
 

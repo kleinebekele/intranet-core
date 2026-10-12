@@ -142,15 +142,33 @@ class MicrosoftSsoTest extends TestCase
         $this->assertAuthenticatedAs($benutzer->fresh());
     }
 
-    public function test_admin_wird_bei_rueckkehr_per_cookie_weiter_gefragt(): void
+    public function test_admin_wird_bei_rueckkehr_per_sso_cookie_nicht_gefragt(): void
     {
-        // Beim Admin darf das Cookie von einer PASSWORT-Anmeldung stammen –
-        // ihn durchzulassen würde die 2FA aushebeln.
+        // Auch ein Admin (darf zusätzlich per Passwort herein) wird nicht
+        // gefragt, wenn sein Dauer-Cookie aus der Microsoft-Anmeldung stammt.
         $admin = User::factory()->create(['email' => 'chef@firma.de']);
         $admin->forceFill(['is_admin' => true, 'two_factor_enabled' => true])->save();
 
         $this->microsoftAntwortet('chef@firma.de');
         $antwort = $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state');
+
+        $this->neueSitzungMitCookie($antwort, mitAnmeldeweg: true)
+            ->get('/dashboard')
+            ->assertOk();
+    }
+
+    public function test_admin_wird_bei_rueckkehr_per_passwort_cookie_gefragt(): void
+    {
+        // Stammt das Dauer-Cookie aus einer Passwort-Anmeldung, muss der
+        // zweite Faktor wieder abgefragt werden.
+        $admin = User::factory()->create(['email' => 'chef@firma.de']);
+        $admin->forceFill(['is_admin' => true, 'two_factor_enabled' => true])->save();
+
+        $antwort = $this->post('/login', [
+            'email' => 'chef@firma.de',
+            'password' => 'password',
+            'remember' => 'on',
+        ]);
 
         $this->neueSitzungMitCookie($antwort)
             ->get('/dashboard')
@@ -161,8 +179,14 @@ class MicrosoftSsoTest extends TestCase
      * Das Angemeldet-bleiben-Cookie aus einer Anmelde-Antwort übernehmen und
      * die Sitzung leeren – der Zustand am nächsten Tag.
      */
-    private function neueSitzungMitCookie(TestResponse $antwort): self
+    private function neueSitzungMitCookie(TestResponse $antwort, bool $mitAnmeldeweg = false): self
     {
+        if ($mitAnmeldeweg) {
+            $weg = $antwort->getCookie('intranet_anmeldeweg');
+            $this->assertNotNull($weg, 'Es wurde kein Anmeldeweg-Cookie gesetzt.');
+            $this->withCookie('intranet_anmeldeweg', $weg->getValue());
+        }
+
         $name = Auth::guard('web')->getRecallerName();
 
         // Entschlüsselt übernehmen: withCookie() verschlüsselt beim Senden

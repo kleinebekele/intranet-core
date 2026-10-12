@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MicrosoftAnmeldung;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Anmeldeweg;
 use App\Support\Microsoft\MicrosoftProfil;
 use App\Support\Microsoft\MicrosoftSso;
 use App\Support\Microsoft\MicrosoftSsoFehler;
@@ -194,6 +195,9 @@ class MicrosoftLoginController extends Controller
         // Benutzer nur eine Hürde ohne zusätzlichen Schutz.
         $request->session()->put('two_factor_passed', true);
         $request->session()->put(MicrosoftSso::ANGEMELDET_UEBER, true);
+
+        // Damit auch die stille Rückkehr per Dauer-Cookie keinen Code verlangt.
+        app(Anmeldeweg::class)->merken($benutzer, Anmeldeweg::MICROSOFT);
     }
 
     private function abweisen(string $meldung): RedirectResponse
