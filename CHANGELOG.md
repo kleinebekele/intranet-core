@@ -20,6 +20,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **SVG-Logo/Favicon** nur noch ohne Skripte, Ereignis-Attribute, eingebettete Inhalte und Verweise nach außen.
 - **`.env.example`** als Server-Vorlage: `APP_ENV=production`, `APP_DEBUG=false`, `LOG_LEVEL=warning`, `SESSION_SECURE_COOKIE=true`, dazu `TRUSTED_PROXIES`, `FORCE_2FA_ADMINS`.
 - Teams-Webhook: `sig=` aus Fehlermeldungen im Log entfernt.
+- **Webhook-Signatur je Quelle (optional):** Ekkon → Webhook-Eingang → „Signatur einschalten" erzeugt ein Geheimnis (verschlüsselt, einmal angezeigt). Danach nimmt die Quelle nur noch Aufrufe mit `X-Intranet-Zeit` (±5 min) und `X-Intranet-Signatur: sha256=HMAC(geheimnis, zeit.body)` an, jede Signatur nur einmal. Migration `add_signatur_geheimnis_to_ekkon_webhook_quellen`.
 
 ### Neu
 - **Footer-Links und eigene Seiten:** Systemeinstellungen → Footer. Links stehen mittig im Footer und unter dem Anmeldefeld. Intern = eigene Seite unter `/seite/{slug}` (Route `seiten.show`, ohne Anmeldung) mit HTML aus dem neuen Editor `<x-html-editor>` (Werkzeugleiste + Quelltext) und optionaler roher Einbindung für Dienstleister-Skripte; extern = Adresse im neuen Tab. Migration `footer_links` legt Impressum und Datenschutz mit Platzhaltertext an. Wiki-Hilfe `20-footer.md`.

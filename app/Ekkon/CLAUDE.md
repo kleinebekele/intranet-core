@@ -82,6 +82,13 @@ in Wellen). Der Schlüssel in der URL ist das Passwort, unbekannt/inaktiv
 bis 1 MB, IP gekürzt); Admin-Seite „Webhook-Eingang" zeigt und löscht. Fachlogik (z. B. Sally.io-
 Zusammenfassungen nach Titel routen) kommt als Task obendrauf, nicht in den Empfang.
 
+**Signatur (optional je Quelle, seit 13.10.2026):** Admin-Seite → „Signatur einschalten" erzeugt
+`signatur_geheimnis` (verschlüsselt, einmal angezeigt). Dann nur noch Aufrufe mit
+`X-Intranet-Zeit` (Unix-Sekunden, ±300 s) und `X-Intranet-Signatur: sha256=<HMAC-SHA256(geheimnis,
+zeit + "." + body)>`, jede Signatur nur einmal (Cache) → sonst 401/409. Nur für Absender, die selbst
+signieren können (eigene Skripte); DHL/Sally können es nicht und bleiben beim URL-Schlüssel.
+Das Lebenszeichen (GET) ist davon nicht betroffen.
+
 Erster Task darauf (liegt im **RAV-Fachmodul `module-ekkon-jtl`**, nicht hier — die Basis bleibt
 firmenneutral): `Webhooks/SallyZusammenfassung` (alle 5 Min): erkennt Sally-Eingänge am Inhalt
 (`recordingSummaryId` + `appointmentSubject`), macht je Termin-Titel eine Meldungsart `sally-<slug>`

@@ -86,6 +86,20 @@
                                                 <button type="button" @click="kopiere({{ \Illuminate\Support\Js::from($quelle->url()) }})"
                                                         class="text-indigo-700 hover:underline text-xs whitespace-nowrap">kopieren</button>
                                             </div>
+                                            <div class="mt-1 text-xs text-gray-500">
+                                                @if ($quelle->verlangtSignatur())
+                                                    <span class="font-semibold text-green-700">Signatur Pflicht</span>
+                                                    (HMAC-SHA256 über <code>X-Intranet-Zeit</code> + „.“ + Body, Kopfzeile <code>X-Intranet-Signatur: sha256=…</code>)
+                                                @else
+                                                    Ohne Signatur – nur der Schlüssel in der URL schützt.
+                                                @endif
+                                            </div>
+                                            @if (session('webhook_geheimnis.quelle') === $quelle->id)
+                                                <div class="mt-1 rounded bg-amber-50 border border-amber-200 px-2 py-1 text-xs text-amber-800">
+                                                    Neues Geheimnis – nur jetzt sichtbar, beim Absender eintragen:
+                                                    <code class="break-all">{{ session('webhook_geheimnis.wert') }}</code>
+                                                </div>
+                                            @endif
                                             @if ($quelle->lebenszeichen_am)
                                                 <div class="mt-1 text-xs text-gray-500">Wächter: letztes Lebenszeichen {{ $quelle->lebenszeichen_am->format('d.m.Y H:i') }}
                                                     @if ($quelle->waechter_alarm_am) <span class="font-semibold text-red-700">– schweigt, gemeldet</span> @endif</div>
@@ -106,6 +120,22 @@
                                                     @csrf
                                                     <button class="text-gray-600 hover:underline">{{ $quelle->aktiv ? 'deaktivieren' : 'aktivieren' }}</button>
                                                 </form>
+                                                <form method="POST" action="{{ route('module.ekkon.webhooks.quelle.signatur', $quelle) }}"
+                                                      data-titel="{{ $quelle->verlangtSignatur() ? 'Neues Geheimnis' : 'Signatur einschalten' }}"
+                                                      data-bestaetigen="{{ $quelle->verlangtSignatur() ? 'Neues Geheimnis erzeugen? Das bisherige gilt sofort nicht mehr – der Absender muss umgestellt werden.' : 'Ab sofort nur noch signierte Aufrufe annehmen? Erst einschalten, wenn der Absender signieren kann.' }}"
+                                                      data-knopf="{{ $quelle->verlangtSignatur() ? 'Neu erzeugen' : 'Einschalten' }}">
+                                                    @csrf
+                                                    <button class="text-gray-600 hover:underline">{{ $quelle->verlangtSignatur() ? 'neues Geheimnis' : 'Signatur einschalten' }}</button>
+                                                </form>
+                                                @if ($quelle->verlangtSignatur())
+                                                    <form method="POST" action="{{ route('module.ekkon.webhooks.quelle.signatur', $quelle) }}"
+                                                          data-titel="Signatur abschalten" data-knopf="Abschalten"
+                                                          data-bestaetigen="Signatur für „{{ $quelle->name }}“ abschalten? Dann genügt wieder der Schlüssel in der URL.">
+                                                        @csrf
+                                                        <input type="hidden" name="aus" value="1">
+                                                        <button class="text-gray-600 hover:underline">Signatur aus</button>
+                                                    </form>
+                                                @endif
                                                 <form method="POST" action="{{ route('module.ekkon.webhooks.quelle.destroy', $quelle) }}"
                                                       data-bestaetigen="Quelle „{{ $quelle->name }}“ samt allen Eingängen löschen? Die URL wird damit ungültig."
                                                       data-knopf="Löschen">

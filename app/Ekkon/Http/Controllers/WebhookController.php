@@ -12,6 +12,7 @@ use App\Ekkon\Models\TaskRun;
 use App\Ekkon\Models\TaskState;
 use App\Ekkon\Models\WebhookEingang;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use App\Ekkon\Models\WebhookQuelle;
 
 /**
@@ -41,6 +42,22 @@ class WebhookController extends Controller
         $body = (string) $request->getContent();
         if (strlen($body) > self::MAX_BYTES) {
             return response()->json(['ok' => false, 'fehler' => 'Payload zu groß'], 413);
+        }
+
+        // Quellen mit Geheimnis: nur signierte, frische Aufrufe – und jede
+        // Signatur nur einmal (Zeitfenster ± SIGNATUR_TOLERANZ, so lange
+        // merken wir sie uns).
+        if ($quelle->verlangtSignatur()) {
+            $signatur = $request->header('X-Intranet-Signatur');
+
+            if (! $quelle->signaturGueltig($request->header('X-Intranet-Zeit'), $signatur, $body)) {
+                return response()->json(['ok' => false, 'fehler' => 'Signatur fehlt oder ungültig'], 401);
+            }
+
+            $merker = 'ekkon:webhook:signatur:'.hash('sha256', $quelle->id.'|'.$signatur);
+            if (! Cache::add($merker, true, 2 * WebhookQuelle::SIGNATUR_TOLERANZ)) {
+                return response()->json(['ok' => false, 'fehler' => 'Aufruf wurde schon verarbeitet'], 409);
+            }
         }
 
         // Header ohne Geheimnisse: Authorization & Cookies bleiben draußen.
@@ -129,6 +146,25 @@ class WebhookController extends Controller
         $quelle->update($daten);
 
         return back()->with('status', 'Quelle gespeichert.');
+    }
+
+    /**
+     * Signatur einschalten (neues Geheimnis) oder abschalten. Das Geheimnis
+     * erscheint einmal in der Rückmeldung und muss beim Absender eingetragen
+     * werden; danach zeigt die Seite nur noch, DASS eins gesetzt ist.
+     */
+    public function quelleSignatur(Request $request, WebhookQuelle $quelle): RedirectResponse
+    {
+        if ($request->boolean('aus')) {
+            $quelle->update(['signatur_geheimnis' => null]);
+
+            return back()->with('status', "Signatur für „{$quelle->name}“ abgeschaltet – der Schlüssel in der URL genügt wieder.");
+        }
+
+        $geheimnis = WebhookQuelle::neuesGeheimnis();
+        $quelle->update(['signatur_geheimnis' => $geheimnis]);
+
+        return back()->with('webhook_geheimnis', ['quelle' => $quelle->id, 'wert' => $geheimnis]);
     }
 
     public function quelleToggle(WebhookQuelle $quelle): RedirectResponse

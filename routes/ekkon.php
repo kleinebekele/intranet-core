@@ -65,6 +65,7 @@ Route::middleware(['web', 'auth'])
                 Route::post('/quelle', [WebhookController::class, 'quelleStore'])->name('quelle.store');
                 Route::post('/quelle/{quelle}/toggle', [WebhookController::class, 'quelleToggle'])->name('quelle.toggle');
                 Route::put('/quelle/{quelle}', [WebhookController::class, 'quelleUpdate'])->name('quelle.update');
+                Route::post('/quelle/{quelle}/signatur', [WebhookController::class, 'quelleSignatur'])->name('quelle.signatur');
                 Route::delete('/quelle/{quelle}', [WebhookController::class, 'quelleDestroy'])->name('quelle.destroy');
                 Route::delete('/eingang/{eingang}', [WebhookController::class, 'eingangDestroy'])->name('eingang.destroy');
                 Route::post('/eingang/{eingang}/erneut', [WebhookController::class, 'eingangErneut'])->name('eingang.erneut');
