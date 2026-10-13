@@ -18,7 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
  *  - Route gehört zu einem Menüpunkt (exakt oder als Unterseite, z. B. deckt
  *    `…orders.index` auch `…orders.store`) -> dessen Rollen entscheiden.
  *  - Route ohne eigenen Menüpunkt (technische Endpunkte) -> erreichbar,
- *    wenn der Benutzer irgendeinen Menüpunkt des Moduls sehen darf;
+ *    wenn der Benutzer irgendeinen Menüpunkt des Moduls sehen darf – mit der
+ *    niedrigsten Stufe, die er dort hat (Aktionen per gehoertZu binden);
  *    feinere Prüfungen bleiben Sache des Moduls.
  *  - Zusätzlich muss die Zugriffsstufe (lesen/bearbeiten/verwalten) für die
  *    Anfrage reichen (siehe Zugriffsstufe::benoetigt). Die Stufe landet im

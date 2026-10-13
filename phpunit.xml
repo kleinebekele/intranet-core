@@ -30,6 +30,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="FORCE_2FA" value="false"/>
+        <!-- Der erste Test-Benutzer wird Admin; die Admin-Pflicht prueft ein eigener Test. -->
+        <env name="FORCE_2FA_ADMINS" value="false"/>
         <env name="TWO_FACTOR_REMEMBER_DAYS" value="30"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>

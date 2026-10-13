@@ -16,6 +16,7 @@ use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
@@ -82,6 +83,22 @@ class AppServiceProvider extends ServiceProvider
         // erzeugen, sonst blockiert der Browser CSS/JS als „Mixed Content".
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
+
+            // Links in Mails (Passwort-Reset, Bestätigungen) immer auf APP_URL
+            // bauen, nie aus dem Host-Header der Anfrage – sonst könnte ein
+            // Fremder einen echten Reset-Link auf seine Domain umlenken.
+            if ($root = config('app.url')) {
+                URL::forceRootUrl($root);
+            }
+        }
+
+        // Reverse-Proxy vor dem Intranet, der die Client-IP nur im Header
+        // X-Forwarded-For mitgibt (statt per nginx real_ip selbst einzusetzen):
+        // dessen IP(s) in TRUSTED_PROXIES. Nur diesen Absendern glaubt Laravel
+        // den Header – sonst ließe sich die IP (Terminal-Freigaben, Drosseln,
+        // Audit) einfach vorgeben.
+        if ($proxies = config('intranet.trusted_proxies')) {
+            TrustProxies::at($proxies);
         }
 
         // Knöpfe nach Zugriffsstufe ausblenden: @darf('bearbeiten') … @enddarf

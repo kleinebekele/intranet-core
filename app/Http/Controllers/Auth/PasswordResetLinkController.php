@@ -32,26 +32,19 @@ class PasswordResetLinkController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        // Konten, die über Microsoft laufen, würde ein neues Passwort nichts
-        // nützen: Die Anmeldung damit wird ohnehin abgewiesen. Statt sie in
-        // diese Sackgasse laufen zu lassen, sagen wir es gleich.
+        // Die Antwort ist immer dieselbe – ob es das Konto gibt, ob es über
+        // Microsoft läuft oder gerade gedrosselt ist. Sonst ließe sich über
+        // dieses öffentliche Formular abfragen, wer ein Konto hat.
+        //
+        // Konten, die über Microsoft laufen, bekommen keinen Link: Ein neues
+        // Passwort nützte ihnen nichts. Den Hinweis darauf zeigt das Formular
+        // allen (siehe auth/forgot-password).
         $benutzer = User::query()->whereRaw('LOWER(email) = ?', [strtolower((string) $request->input('email'))])->first();
 
-        if ($benutzer?->nurUeberMicrosoft() && app(MicrosoftSso::class)->aktiv()) {
-            return back()->withInput($request->only('email'))
-                ->withErrors(['email' => trans('auth.nur_microsoft')]);
+        if (! ($benutzer?->nurUeberMicrosoft() && app(MicrosoftSso::class)->aktiv())) {
+            Password::sendResetLink($request->only('email'));
         }
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        return $status == Password::RESET_LINK_SENT
-                    ? back()->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                        ->withErrors(['email' => __($status)]);
+        return back()->with('status', __(Password::RESET_LINK_SENT));
     }
 }

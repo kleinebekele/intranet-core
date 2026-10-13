@@ -25,6 +25,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
         // web-Gruppe, denn die greift erst nach dem Zuordnen.
         $middleware->prepend(\App\Http\Middleware\RoutenAliaseAnwenden::class);
 
+        // Grundschutz-Header (Clickjacking, nosniff, HSTS) an jeder Antwort.
+        $middleware->append(\App\Http\Middleware\Sicherheitsheader::class);
+
         // Eine Sperre wirkt sofort, auch bei laufender Sitzung. Steht vor der
         // 2FA-Prüfung: Wer gesperrt ist, braucht keinen zweiten Faktor mehr.
         $middleware->web(append: \App\Http\Middleware\GesperrteAbmelden::class);

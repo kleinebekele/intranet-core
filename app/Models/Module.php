@@ -61,8 +61,13 @@ class Module extends Model
     }
 
     /**
-     * Höchste Stufe des Benutzers über alle Unterpunkte – gilt für Routen
-     * ohne eigenen Menüpunkt (technische Endpunkte). null = gar kein Zugang.
+     * Stufe für Routen ohne eigenen Menüpunkt (technische Endpunkte): die
+     * NIEDRIGSTE, die der Benutzer auf einem seiner sichtbaren Unterpunkte
+     * hat. Bewusst nicht die höchste – sonst erbte eine nicht zugeordnete
+     * Aktionsroute die Rechte des stärksten Menüpunkts, und wer nur bei den
+     * Vorlagen „verwalten" darf, dürfte überall im Modul löschen. Aktionen,
+     * die mehr brauchen, bindet das Modul per `->gehoertZu()` an ihren
+     * Menüpunkt. null = gar kein Zugang.
      */
     public function stufeFuer(?User $user): ?Zugriffsstufe
     {
@@ -73,7 +78,7 @@ class Module extends Model
             return null;
         }
 
-        return Zugriffsstufe::hoechste(
+        return Zugriffsstufe::niedrigste(
             $this->menuItems->map(fn (ModuleMenuItem $item) => $item->stufeFuer($user)),
         );
     }

@@ -9,6 +9,8 @@ return [
      * seinem Profil (Standard-Faktor: Code per E-Mail; optional TOTP per
      * Authenticator-App, z. B. Vaultwarden).
      *
+     * FORCE_2FA_ADMINS=false    → Admins dürfen 2FA abschalten (Standard:
+     *                             für Admins verpflichtend).
      * FORCE_2FA=true            → 2FA ist für ALLE Benutzer verpflichtend
      *                             (individuelles Abschalten nicht möglich).
      * TWO_FACTOR_REMEMBER_DAYS  → "Dieses Gerät merken" bei der Code-Abfrage:
@@ -31,6 +33,8 @@ return [
 
     'two_factor_forced' => filter_var(env('FORCE_2FA', false), FILTER_VALIDATE_BOOL),
 
+    'two_factor_admins' => filter_var(env('FORCE_2FA_ADMINS', true), FILTER_VALIDATE_BOOL),
+
     'two_factor_remember_days' => max(0, (int) env('TWO_FACTOR_REMEMBER_DAYS', 30)),
 
     /*
@@ -38,5 +42,12 @@ return [
      * nachts gelöscht. 0 = nie aufräumen.
      */
     'audit_aufbewahrung_tage' => max(0, (int) env('AUDIT_AUFBEWAHRUNG_TAGE', 365)),
+
+    /*
+     * IPs der Reverse-Proxys, deren X-Forwarded-For Laravel glauben darf
+     * (kommagetrennt). Leer = keinem – richtig, wenn nginx die Client-IP per
+     * `set_real_ip_from` schon selbst einsetzt.
+     */
+    'trusted_proxies' => array_values(array_filter(array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', ''))))),
 
 ];

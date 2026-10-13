@@ -25,6 +25,7 @@ class MicrosoftAnmeldung extends Model
         'kein_konto' => 'Kein Intranet-Konto',
         'keine_gruppe' => 'Nicht in der freigegebenen Gruppe',
         'gesperrt' => 'Konto gesperrt',
+        'konflikt' => 'Nicht verknüpft (Konflikt)',
         'fehler' => 'Fehler',
     ];
 

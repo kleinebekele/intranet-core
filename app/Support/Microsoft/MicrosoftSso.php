@@ -268,12 +268,15 @@ class MicrosoftSso
             throw new MicrosoftSsoFehler('Der Anmelde-Nachweis wurde für eine andere Anwendung ausgestellt.');
         }
 
-        // Nur vergleichen, wenn ein konkreter Tenant konfiguriert ist
-        // (common/organizations lassen bewusst mehrere zu).
+        // Immer gegen den eigenen Tenant prüfen. Konten werden auch über die
+        // E-Mail-Adresse zugeordnet – ließe man fremde Tenants zu (common/
+        // organizations), könnte sich jeder mit einer passenden Adresse in
+        // seinem eigenen Tenant als unser Benutzer ausgeben.
         $tenant = (string) $this->tenant();
-        if (! in_array($tenant, ['common', 'organizations', 'consumers'], true)
-            && isset($angaben['tid'])
-            && strcasecmp((string) $angaben['tid'], $tenant) !== 0) {
+        if (in_array(strtolower($tenant), ['common', 'organizations', 'consumers'], true)) {
+            throw new MicrosoftSsoFehler('MS_TENANT_ID muss die Tenant-ID (GUID) des eigenen Microsoft 365 sein, nicht „'.$tenant.'“.');
+        }
+        if (! isset($angaben['tid']) || strcasecmp((string) $angaben['tid'], $tenant) !== 0) {
             throw new MicrosoftSsoFehler('Das Konto gehört nicht zu diesem Microsoft-365-Tenant.');
         }
     }

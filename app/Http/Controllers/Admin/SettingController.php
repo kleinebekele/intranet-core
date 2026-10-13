@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -64,9 +65,9 @@ class SettingController
         $daten = $request->validate([
             'haupttitel' => ['nullable', 'string', 'max:60'],
             // Logo steht in der Kopfzeile, darf also etwas größer sein als das Favicon.
-            'logo' => ['nullable', 'file', 'mimes:png,svg,jpg,jpeg,webp', 'max:1024'],
+            'logo' => ['nullable', 'file', 'mimes:png,svg,jpg,jpeg,webp', 'max:1024', $this->svgOhneSkript(...)],
             'logo_entfernen' => ['nullable', 'boolean'],
-            'favicon' => ['nullable', 'file', 'mimes:png,ico,svg,jpg,jpeg,webp', 'max:512'],
+            'favicon' => ['nullable', 'file', 'mimes:png,ico,svg,jpg,jpeg,webp', 'max:512', $this->svgOhneSkript(...)],
             'favicon_entfernen' => ['nullable', 'boolean'],
         ], [
             'logo.mimes' => 'Als Logo sind PNG, SVG, JPG oder WebP möglich.',
@@ -89,6 +90,28 @@ class SettingController
         return redirect()
             ->route('admin.settings.index')
             ->with('status', 'Erscheinungsbild gespeichert.');
+    }
+
+    /**
+     * Ein SVG ist ein Dokument, kein Bild: Direkt aufgerufen führt der Browser
+     * darin enthaltene Skripte im Namen des Intranets aus. Logo und Favicon
+     * liegen öffentlich – deshalb nur SVGs ohne aktive Inhalte annehmen.
+     */
+    private function svgOhneSkript(string $feld, mixed $datei, \Closure $fehler): void
+    {
+        if (! $datei instanceof UploadedFile || strtolower($datei->getClientOriginalExtension()) !== 'svg') {
+            return;
+        }
+
+        $inhalt = (string) file_get_contents($datei->getRealPath());
+
+        // Skripte, Ereignis-Attribute, eingebettete Fremdinhalte, Entitäten und
+        // Verweise nach außen (nur Sprungmarken #id bleiben erlaubt).
+        $aktiv = '/<\s*(script|foreignObject|iframe|embed|object)\b|\son[a-z]+\s*=|javascript:|<!ENTITY|href\s*=\s*["\']\s*(?!#)/i';
+
+        if (preg_match($aktiv, $inhalt)) {
+            $fehler('Dieses SVG enthält Skripte, Verweise oder eingebettete Inhalte. Bitte als PNG hochladen oder ein schlichtes SVG verwenden.');
+        }
     }
 
     /**

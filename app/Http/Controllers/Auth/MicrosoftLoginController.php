@@ -7,6 +7,7 @@ use App\Models\MicrosoftAnmeldung;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Anmeldeweg;
+use App\Support\IpKuerzung;
 use App\Support\Microsoft\MicrosoftProfil;
 use App\Support\Microsoft\MicrosoftSso;
 use App\Support\Microsoft\MicrosoftSsoFehler;
@@ -52,10 +53,26 @@ class MicrosoftLoginController extends Controller
             return $this->abweisen($fehler->getMessage());
         }
 
-        $benutzer = $this->kontoSuchen($profil);
+        $benutzer = User::query()->where('microsoft_id', $profil->id)->first();
 
         if ($benutzer === null) {
-            return $this->unbekannten($request, $profil);
+            $benutzer = User::query()->whereRaw('LOWER(email) = ?', [$profil->email])->first();
+
+            if ($benutzer === null) {
+                return $this->unbekannten($request, $profil);
+            }
+
+            if (($abweisung = $this->erstZuordnungPruefen($request, $benutzer, $profil)) !== null) {
+                return $abweisung;
+            }
+        }
+
+        // Wer aus allen freigegebenen Gruppen herausgenommen wurde, kommt auch
+        // mit einem schon verknüpften Konto nicht mehr herein.
+        if ($this->sso->darfAnlegen() && $profil->gruppenBekannt && ! $profil->inEinerGruppe($this->sso->gruppen())) {
+            $this->protokoll($request, 'keine_gruppe', 'Nicht (mehr) in einer freigegebenen Microsoft-365-Gruppe.', $profil, $benutzer);
+
+            return $this->abweisen('Für '.$profil->email.' ist kein Zugang zum Intranet freigegeben.');
         }
 
         if ($benutzer->istGesperrt()) {
@@ -118,13 +135,42 @@ class MicrosoftLoginController extends Controller
     }
 
     /**
-     * Das passende Intranet-Konto finden: erst über die Microsoft-Objekt-ID,
-     * beim ersten Mal über die E-Mail-Adresse (Groß-/Kleinschreibung egal).
+     * Erste Anmeldung auf ein bestehendes Konto, gefunden über die E-Mail.
+     * Die Adresse allein ist kein Beweis, dass es dieselbe Person ist –
+     * deshalb nur unter Bedingungen verknüpfen:
+     *  - das Konto hängt noch an keinem anderen Microsoft-Konto,
+     *  - es ist kein Administrator-Konto (Admins melden sich mit Passwort an),
+     *  - sind Gruppen eingestellt, muss der Anmelder in einer davon sein.
      */
-    private function kontoSuchen(MicrosoftProfil $profil): ?User
+    private function erstZuordnungPruefen(Request $request, User $benutzer, MicrosoftProfil $profil): ?RedirectResponse
     {
-        return User::query()->where('microsoft_id', $profil->id)->first()
-            ?? User::query()->whereRaw('LOWER(email) = ?', [$profil->email])->first();
+        if ($benutzer->microsoft_id !== null) {
+            $this->protokoll($request, 'konflikt', 'Das Intranet-Konto mit dieser Adresse gehört bereits zu einem anderen Microsoft-Konto.', $profil, $benutzer);
+
+            return $this->abweisen('Dieses Intranet-Konto ist bereits mit einem anderen Microsoft-Konto verbunden. Bitte wenden Sie sich an die Verwaltung.');
+        }
+
+        if ($benutzer->isAdmin()) {
+            $this->protokoll($request, 'konflikt', 'Administrator-Konten werden nicht automatisch mit Microsoft verknüpft.', $profil, $benutzer);
+
+            return $this->abweisen('Administratoren melden sich bitte mit E-Mail und Passwort an.');
+        }
+
+        if ($this->sso->darfAnlegen()) {
+            if (! $profil->gruppenBekannt) {
+                $this->protokoll($request, 'fehler', 'Gruppen-Zugehörigkeit unbekannt – Konto nicht verknüpft.', $profil, $benutzer);
+
+                return $this->abweisen('Die Anmeldung ist noch nicht vollständig eingerichtet. Bitte die Verwaltung informieren.');
+            }
+
+            if (! $profil->inEinerGruppe($this->sso->gruppen())) {
+                $this->protokoll($request, 'keine_gruppe', 'Nicht in einer freigegebenen Microsoft-365-Gruppe.', $profil, $benutzer);
+
+                return $this->abweisen('Für '.$profil->email.' ist kein Zugang zum Intranet freigegeben.');
+            }
+        }
+
+        return null;
     }
 
     private function kontoAnlegen(MicrosoftProfil $profil): User
@@ -219,7 +265,7 @@ class MicrosoftLoginController extends Controller
             'ergebnis' => $ergebnis,
             'meldung' => $meldung,
             'user_id' => $benutzer?->id,
-            'ip' => $request->ip(),
+            'ip' => IpKuerzung::kuerzen($request->ip()),
         ]);
     }
 }

@@ -94,6 +94,6 @@ final class Audit
             return null;
         }
 
-        return request()?->ip();
+        return IpKuerzung::kuerzen(request()?->ip());
     }
 }

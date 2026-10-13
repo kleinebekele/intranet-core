@@ -37,6 +37,7 @@ class ZugriffsstufeTest extends TestCase
             Route::delete('/gerichte/{id}', fn () => 'geloescht')->name('dishes.destroy');
             Route::post('/gerichte/abhaken', fn () => 'abgehakt')->name('dishes.toggle');
             Route::post('/gerichte/suchen', fn () => 'gefunden')->name('dishes.lookup');
+            Route::delete('/aufraeumen', fn () => 'aufgeraeumt')->name('aufraeumen');
         });
 
         $this->app->make(ModuleRegistry::class)->register(
@@ -165,6 +166,22 @@ class ZugriffsstufeTest extends TestCase
 
         $this->punkt->roles()->updateExistingPivot('crew', ['stufe' => 'bearbeiten']);
         $this->actingAs($user->fresh())->post('/modules/tm/vorlagen/ausrollen')->assertOk();
+    }
+
+    public function test_route_ohne_menuepunkt_bekommt_die_niedrigste_stufe(): void
+    {
+        $vorlagen = Module::where('key', 'tm')->first()->menuItems()->create([
+            'key' => 'vorlagen', 'label' => 'Vorlagen', 'route_name' => 'module.tm.vorlagen.index', 'position' => 1,
+        ]);
+        $user = $this->mitStufe('lesen');
+        $vorlagen->roles()->sync(['crew' => ['stufe' => 'verwalten']]);
+
+        // Verwalten nur bei den Vorlagen reicht nicht für eine Aktion, die
+        // keinem Menüpunkt zugeordnet ist.
+        $this->actingAs($user)->delete('/modules/tm/aufraeumen')->assertForbidden();
+
+        $this->punkt->roles()->sync(['crew' => ['stufe' => 'verwalten']]);
+        $this->actingAs($user->fresh())->delete('/modules/tm/aufraeumen')->assertOk();
     }
 
     public function test_admin_darf_alles(): void

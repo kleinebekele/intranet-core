@@ -73,9 +73,12 @@ class TeamsWebhookClient
             // Kein Erfolgs-Beweis möglich – siehe Klassen-Kommentar.
             return null;
         } catch (Throwable $e) {
-            Log::warning('Teams-Webhook Ausnahme', ['fehler' => $e->getMessage()]);
+            // Verbindungsfehler nennen oft die ganze Adresse – samt sig=…,
+            // dem eigentlichen Schlüssel des Workflows. Der gehört nicht ins Log.
+            $meldung = preg_replace('/([?&]sig=)[^&\s"\']+/i', '$1***', $e->getMessage());
+            Log::warning('Teams-Webhook Ausnahme', ['fehler' => $meldung]);
 
-            return mb_substr($e->getMessage(), 0, 300);
+            return mb_substr($meldung, 0, 300);
         }
     }
 

@@ -35,8 +35,10 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     // Zwei-Faktor-Abfrage nach dem Passwort-Login.
     Route::get('/two-factor', [TwoFactorChallengeController::class, 'show'])->name('two-factor.challenge');
-    Route::post('/two-factor', [TwoFactorChallengeController::class, 'verify'])->name('two-factor.verify');
-    Route::post('/two-factor/resend', [TwoFactorChallengeController::class, 'resend'])->name('two-factor.resend');
+    Route::post('/two-factor', [TwoFactorChallengeController::class, 'verify'])
+        ->middleware('throttle:10,1')->name('two-factor.verify');
+    Route::post('/two-factor/resend', [TwoFactorChallengeController::class, 'resend'])
+        ->middleware('throttle:5,1')->name('two-factor.resend');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

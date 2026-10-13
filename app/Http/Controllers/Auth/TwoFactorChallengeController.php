@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Support\Totp;
 use App\Support\TwoFactorMailCode;
 use App\Support\TwoFactorTrust;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
 
 /**
@@ -16,6 +19,12 @@ use Illuminate\View\View;
  */
 class TwoFactorChallengeController extends Controller
 {
+    /** Fehlversuche mit der Authenticator-App, bis die Abfrage pausiert. */
+    private const TOTP_VERSUCHE = 5;
+
+    /** So lange pausiert sie danach (Sekunden). */
+    private const TOTP_SPERRE = 900;
+
     public function __construct(
         private readonly TwoFactorMailCode $mailCode,
         private readonly TwoFactorTrust $trust,
@@ -50,8 +59,14 @@ class TwoFactorChallengeController extends Controller
         $user = $request->user();
 
         $valid = $user->hasTotp()
-            ? Totp::verify($user->totp_secret, $request->input('code'))
+            ? $this->totpPruefen($user, $request->input('code'))
             : $this->mailCode->verify($user, $request->input('code'));
+
+        if ($valid === null) {
+            $minuten = (int) ceil(RateLimiter::availableIn($this->totpSchluessel($user)) / 60);
+
+            return back()->withErrors(['code' => "Zu viele falsche Codes. Bitte warte {$minuten} Minuten."]);
+        }
 
         if (! $valid) {
             return back()->withErrors(['code' => 'Der Code ist ungültig oder abgelaufen.']);
@@ -64,6 +79,40 @@ class TwoFactorChallengeController extends Controller
         }
 
         return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    /**
+     * TOTP mit Versuchszähler je Benutzer und Replay-Schutz: Ein Code gilt
+     * nur einmal, auch innerhalb seines 30-Sekunden-Fensters.
+     *
+     * @return bool|null null = gesperrt (zu viele Fehlversuche)
+     */
+    private function totpPruefen(User $user, string $code): ?bool
+    {
+        $schluessel = $this->totpSchluessel($user);
+
+        if (RateLimiter::tooManyAttempts($schluessel, self::TOTP_VERSUCHE)) {
+            return null;
+        }
+
+        $schritt = Totp::zeitschritt($user->totp_secret, $code);
+        $zuletzt = Cache::get($schluessel.':zuletzt');
+
+        if ($schritt === null || ($zuletzt !== null && $schritt <= $zuletzt)) {
+            RateLimiter::hit($schluessel, self::TOTP_SPERRE);
+
+            return false;
+        }
+
+        Cache::put($schluessel.':zuletzt', $schritt, 300);
+        RateLimiter::clear($schluessel);
+
+        return true;
+    }
+
+    private function totpSchluessel(User $user): string
+    {
+        return "two-factor:totp:{$user->id}";
     }
 
     public function resend(Request $request): RedirectResponse

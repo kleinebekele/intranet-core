@@ -80,6 +80,74 @@ class TwoFactorTest extends TestCase
         $this->get('/dashboard')->assertOk();
     }
 
+    public function test_admins_brauchen_2fa_wenn_erzwungen(): void
+    {
+        config(['intranet.two_factor_admins' => true]);
+        $admin = User::factory()->create(); // erster Benutzer = Admin
+        $normal = User::factory()->create();
+
+        $this->actingAs($admin)->get('/dashboard')->assertRedirect('/two-factor');
+        $this->actingAs($normal)->get('/dashboard')->assertOk();
+
+        // Abschalten geht für den Admin nicht.
+        $admin->forceFill(['two_factor_enabled' => true])->save();
+        $this->actingAs($admin)->withSession(['two_factor_passed' => true])
+            ->delete('/profile/two-factor', ['password' => 'password']);
+        $this->assertTrue($admin->fresh()->two_factor_enabled);
+    }
+
+    public function test_totp_sperrt_nach_fuenf_fehlversuchen(): void
+    {
+        $user = $this->userMit2fa();
+        $secret = Totp::generateSecret();
+        $user->forceFill(['totp_secret' => $secret, 'totp_confirmed_at' => now()])->save();
+        $this->actingAs($user);
+
+        foreach (range(1, 5) as $i) {
+            $this->post('/two-factor', ['code' => '000000'])->assertSessionHasErrors('code');
+        }
+
+        // Auch der richtige Code geht jetzt nicht mehr durch.
+        $this->post('/two-factor', ['code' => $this->totpCode($secret)])->assertSessionHasErrors('code');
+        $this->get('/dashboard')->assertRedirect('/two-factor');
+    }
+
+    public function test_totp_code_gilt_nur_einmal(): void
+    {
+        $user = $this->userMit2fa();
+        $secret = Totp::generateSecret();
+        $user->forceFill(['totp_secret' => $secret, 'totp_confirmed_at' => now()])->save();
+        $code = $this->totpCode($secret);
+
+        $this->actingAs($user)->post('/two-factor', ['code' => $code])->assertRedirect('/dashboard');
+
+        $this->flushSession();
+        $this->actingAs($user)->post('/two-factor', ['code' => $code])->assertSessionHasErrors('code');
+    }
+
+    public function test_mail_code_sperrt_nach_fuenf_fehlversuchen(): void
+    {
+        $this->actingAs($this->userMit2fa())->get('/two-factor');
+
+        $code = null;
+        Mail::assertSent(TwoFactorCodeMail::class, function (TwoFactorCodeMail $mail) use (&$code) {
+            $code = $mail->code;
+
+            return true;
+        });
+
+        foreach (range(1, 5) as $i) {
+            $this->post('/two-factor', ['code' => '000000'])->assertSessionHasErrors('code');
+        }
+
+        $this->post('/two-factor', ['code' => $code])->assertSessionHasErrors('code');
+
+        // Neuladen verschickt nicht sofort einen frischen Code.
+        Mail::assertSentCount(1);
+        $this->get('/two-factor');
+        Mail::assertSentCount(1);
+    }
+
     public function test_falscher_mail_code_wird_abgelehnt(): void
     {
         $this->actingAs($this->userMit2fa())->get('/two-factor');

@@ -7,7 +7,7 @@
         </p>
     </header>
 
-    @php($forced = config('intranet.two_factor_forced'))
+    @php($forced = $user->zweiFaktorErzwungen())
     @php($pendingSecret = session('totp_pending_secret'))
 
     @if (session('status') === 'two-factor-enabled')
@@ -31,7 +31,7 @@
     @else
         {{-- 2FA aktiv (freiwillig oder erzwungen) --}}
         <p class="mt-4 text-sm text-gray-700">
-            Status: <b>aktiv</b>@if ($forced) <span class="text-xs text-gray-500">(auf dieser Installation für alle verpflichtend)</span>@endif
+            Status: <b>aktiv</b>@if ($forced) <span class="text-xs text-gray-500">(für dein Konto verpflichtend)</span>@endif
             — Verfahren:
             @if ($user->hasTotp())
                 <b>Authenticator-App</b>@if ($user->totp_app) „{{ $user->totp_app }}"@endif

@@ -109,11 +109,23 @@ class User extends Authenticatable
 
     /**
      * Braucht dieser Benutzer beim Login einen zweiten Faktor?
-     * Eigene Entscheidung (Profil) — oder FORCE_2FA erzwingt es für alle.
+     * Eigene Entscheidung (Profil) — oder es ist erzwungen (siehe
+     * {@see zweiFaktorErzwungen()}).
      */
     public function needsTwoFactor(): bool
     {
-        return $this->two_factor_enabled || config('intranet.two_factor_forced');
+        return $this->two_factor_enabled || $this->zweiFaktorErzwungen();
+    }
+
+    /**
+     * Muss dieser Benutzer 2FA nutzen? FORCE_2FA für alle, FORCE_2FA_ADMINS
+     * (Standard: an) für Administratoren – ein übernommenes Admin-Konto
+     * öffnet sonst mit einem einzigen Passwort das ganze Haus.
+     */
+    public function zweiFaktorErzwungen(): bool
+    {
+        return config('intranet.two_factor_forced')
+            || ($this->isAdmin() && config('intranet.two_factor_admins'));
     }
 
     /**

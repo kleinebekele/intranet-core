@@ -23,10 +23,10 @@ class TwoFactorController extends Controller
         return redirect()->route('profile.edit')->with('status', 'two-factor-enabled');
     }
 
-    /** 2FA komplett abschalten (nur wenn nicht per FORCE_2FA erzwungen). */
+    /** 2FA komplett abschalten (nur wenn nicht erzwungen: FORCE_2FA bzw. FORCE_2FA_ADMINS). */
     public function disable(Request $request): RedirectResponse
     {
-        if (config('intranet.two_factor_forced')) {
+        if ($request->user()->zweiFaktorErzwungen()) {
             return redirect()->route('profile.edit');
         }
 

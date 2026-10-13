@@ -23,6 +23,6 @@ return [
 
     // Auch hier ist Klartext besser als Rätselraten: Das Passwort stimmt ja,
     // es ist nur nicht mehr der richtige Weg.
-    'nur_microsoft' => 'Dieses Konto läuft über Microsoft. Bitte melde dich auf der Anmeldeseite über "Mit Microsoft anmelden" an – ein Passwort brauchst du dafür nicht.',
+    'nur_microsoft' => 'Wer sich über Microsoft anmeldet, braucht kein Passwort: Bitte auf der Anmeldeseite "Mit Microsoft anmelden" wählen.',
 
 ];

@@ -28,18 +28,22 @@ class TwoFactorMailCode
 
         Cache::put($this->key($user), [
             'hash' => Hash::make($code),
-            'attempts' => 0,
         ], now()->addMinutes(self::TTL_MINUTES));
+        Cache::put($this->key($user).':versuche', 0, now()->addMinutes(self::TTL_MINUTES));
 
         Cache::put($this->key($user).':resend', true, self::RESEND_SECONDS);
 
         Mail::to($user->email)->send(new TwoFactorCodeMail($code, self::TTL_MINUTES));
     }
 
-    /** Nur senden, wenn kein Code mehr aktiv ist (z. B. beim Öffnen der Abfrage-Seite). */
+    /**
+     * Nur senden, wenn kein Code mehr aktiv ist (z. B. beim Öffnen der
+     * Abfrage-Seite) – und nicht schneller als der erneute Versand erlaubt,
+     * sonst ließe sich die Fehlversuch-Grenze per Neuladen umgehen.
+     */
     public function sendIfMissing(User $user): void
     {
-        if (! Cache::has($this->key($user))) {
+        if (! Cache::has($this->key($user)) && $this->canResend($user)) {
             $this->send($user);
         }
     }
@@ -57,7 +61,9 @@ class TwoFactorMailCode
             return false; // abgelaufen oder nie angefordert
         }
 
-        if ($entry['attempts'] >= self::MAX_ATTEMPTS) {
+        // Erst zählen (atomar), dann prüfen: parallele Anfragen schieben so
+        // nicht mehr als MAX_ATTEMPTS Versuche durch.
+        if (Cache::increment($this->key($user).':versuche') > self::MAX_ATTEMPTS) {
             Cache::forget($this->key($user));
 
             return false;
@@ -65,12 +71,10 @@ class TwoFactorMailCode
 
         if (Hash::check(preg_replace('/\D/', '', $code), $entry['hash'])) {
             Cache::forget($this->key($user));
+            Cache::forget($this->key($user).':versuche');
 
             return true;
         }
-
-        $entry['attempts']++;
-        Cache::put($this->key($user), $entry, now()->addMinutes(self::TTL_MINUTES));
 
         return false;
     }

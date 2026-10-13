@@ -43,21 +43,31 @@ class Totp
      */
     public static function verify(string $secret, string $code, int $window = 1): bool
     {
+        return self::zeitschritt($secret, $code, $window) !== null;
+    }
+
+    /**
+     * Wie {@see verify()}, liefert aber den Zeitschritt, zu dem der Code
+     * passte (null = falsch). Damit lässt sich ein schon benutzter Code im
+     * selben Fenster abweisen (Replay-Schutz).
+     */
+    public static function zeitschritt(string $secret, string $code, int $window = 1): ?int
+    {
         $code = preg_replace('/\D/', '', $code);
 
         if (strlen($code) !== self::DIGITS) {
-            return false;
+            return null;
         }
 
         $counter = (int) floor(time() / self::PERIOD);
 
         foreach (range(-$window, $window) as $offset) {
             if (hash_equals(self::hotp(self::base32Decode($secret), $counter + $offset), $code)) {
-                return true;
+                return $counter + $offset;
             }
         }
 
-        return false;
+        return null;
     }
 
     /** HMAC-basierter Einmal-Code (HOTP, RFC 4226) für einen Zählerstand. */

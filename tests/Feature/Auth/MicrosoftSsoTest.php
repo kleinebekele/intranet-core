@@ -43,6 +43,10 @@ class MicrosoftSsoTest extends TestCase
             'gruppen' => self::GRUPPE,
             'rollen' => 'staff',
         ]);
+
+        // Der erste Benutzer wird automatisch Admin – Admin-Konten verknüpft
+        // die Microsoft-Anmeldung aber nicht. Deshalb vorab einen anlegen.
+        User::factory()->create(['email' => 'erster-admin@firma.de']);
     }
 
     /** In der Benutzerliste: „Nur noch über Microsoft" nur, wenn Microsoft eingerichtet ist. */
@@ -163,7 +167,7 @@ class MicrosoftSsoTest extends TestCase
         // Auch ein Admin (darf zusätzlich per Passwort herein) wird nicht
         // gefragt, wenn sein Dauer-Cookie aus der Microsoft-Anmeldung stammt.
         $admin = User::factory()->create(['email' => 'chef@firma.de']);
-        $admin->forceFill(['is_admin' => true, 'two_factor_enabled' => true])->save();
+        $admin->forceFill(['is_admin' => true, 'two_factor_enabled' => true, 'microsoft_id' => self::OID])->save();
 
         $this->microsoftAntwortet('chef@firma.de');
         $antwort = $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state');
@@ -332,6 +336,69 @@ class MicrosoftSsoTest extends TestCase
         $this->assertAuthenticatedAs(User::where('email', 'neu@firma.de')->firstOrFail());
     }
 
+    public function test_admin_konto_wird_nicht_per_adresse_verknuepft(): void
+    {
+        $admin = User::factory()->create(['email' => 'chef@firma.de']);
+        $admin->forceFill(['is_admin' => true])->save();
+
+        $this->microsoftAntwortet('chef@firma.de');
+
+        $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state')
+            ->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->assertNull($admin->fresh()->microsoft_id);
+        $this->assertDatabaseHas('microsoft_anmeldungen', ['ergebnis' => 'konflikt']);
+    }
+
+    public function test_fremdes_microsoft_konto_uebernimmt_kein_verknuepftes_konto(): void
+    {
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $benutzer->forceFill(['microsoft_id' => '55555555-5555-5555-5555-555555555555'])->save();
+
+        $this->microsoftAntwortet('anna@firma.de');
+
+        $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state')
+            ->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->assertDatabaseHas('microsoft_anmeldungen', ['ergebnis' => 'konflikt']);
+    }
+
+    public function test_bestehendes_konto_ohne_gruppe_wird_nicht_verknuepft(): void
+    {
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+
+        $this->microsoftAntwortet('anna@firma.de', gruppen: ['99999999-9999-9999-9999-999999999999']);
+
+        $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state')
+            ->assertRedirect(route('login'));
+        $this->assertGuest();
+        $this->assertNull($benutzer->fresh()->microsoft_id);
+    }
+
+    public function test_aus_der_gruppe_entfernte_kommen_nicht_mehr_herein(): void
+    {
+        $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
+        $benutzer->forceFill(['microsoft_id' => self::OID])->save();
+
+        $this->microsoftAntwortet('anna@firma.de', gruppen: ['99999999-9999-9999-9999-999999999999']);
+
+        $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state')
+            ->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_token_ohne_tenant_wird_abgewiesen(): void
+    {
+        User::factory()->create(['email' => 'anna@firma.de']);
+        config()->set('services.microsoft.tenant', 'organizations');
+
+        $this->microsoftAntwortet('anna@firma.de');
+
+        $this->mitSitzung()->get('/auth/microsoft/callback?code=abc&state=der-state')
+            ->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
     public function test_gesperrtes_konto_kommt_auch_ueber_microsoft_nicht_herein(): void
     {
         $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
@@ -427,7 +494,7 @@ class MicrosoftSsoTest extends TestCase
 
         $antwort = $this->post('/forgot-password', ['email' => 'anna@firma.de']);
 
-        $antwort->assertSessionHasErrors(['email' => trans('auth.nur_microsoft')]);
+        $antwort->assertSessionHasNoErrors()->assertSessionHas('status', __('passwords.sent'));
         $this->assertDatabaseCount('password_reset_tokens', 0);
     }
 
@@ -460,7 +527,7 @@ class MicrosoftSsoTest extends TestCase
 
     public function test_admin_kann_ein_konto_von_hand_auf_microsoft_umstellen(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
         $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
         $benutzer->forceFill(['is_admin' => false])->save();
 
@@ -482,7 +549,7 @@ class MicrosoftSsoTest extends TestCase
 
     public function test_admin_kann_den_passwort_weg_wieder_freigeben(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
         $benutzer = User::factory()->create(['email' => 'anna@firma.de']);
         $benutzer->forceFill(['is_admin' => false, 'microsoft_id' => self::OID])->save();
 
@@ -498,7 +565,7 @@ class MicrosoftSsoTest extends TestCase
 
     public function test_zuruecknehmen_ohne_verknuepfung_fuehrt_in_die_automatik(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
         $benutzer = User::factory()->create();
         $benutzer->forceFill(['is_admin' => false, 'anmeldeweg' => 'microsoft'])->save();
 
@@ -511,7 +578,7 @@ class MicrosoftSsoTest extends TestCase
 
     public function test_ein_admin_konto_laesst_sich_nicht_umstellen(): void
     {
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
         $zweiter = User::factory()->create();
         $zweiter->forceFill(['is_admin' => true])->save();
 
@@ -526,7 +593,7 @@ class MicrosoftSsoTest extends TestCase
     {
         // Achtung: Der allererste Benutzer wird im Core automatisch Admin
         // (User::booted) – der Nicht-Admin darf also nicht der erste sein.
-        $admin = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
         $normal = User::factory()->create();
         $normal->forceFill(['is_admin' => false])->save();
 
@@ -558,7 +625,7 @@ class MicrosoftSsoTest extends TestCase
      */
     private function microsoftAntwortet(
         string $email,
-        ?array $gruppen = null,
+        ?array $gruppen = [self::GRUPPE],
         array $checkMemberGroups = [],
         int $checkMemberGroupsStatus = 200,
         string $nonce = 'der-nonce',

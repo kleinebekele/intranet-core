@@ -75,6 +75,28 @@ enum Zugriffsstufe: string
     }
 
     /**
+     * Die niedrigste der gegebenen Stufen (null/leer wird übersprungen);
+     * null, wenn keine dabei ist.
+     *
+     * @param  iterable<self|string|null>  $stufen
+     */
+    public static function niedrigste(iterable $stufen): ?self
+    {
+        $kleinste = null;
+        foreach ($stufen as $stufe) {
+            if ($stufe === null || $stufe === '') {
+                continue;
+            }
+            $stufe = self::tryFrom($stufe instanceof self ? $stufe->value : $stufe);
+            if ($stufe && (! $kleinste || $stufe->rang() < $kleinste->rang())) {
+                $kleinste = $stufe;
+            }
+        }
+
+        return $kleinste;
+    }
+
+    /**
      * Welche Stufe braucht diese Anfrage? Eine Vorgabe aus dem Manifest
      * ({@see ModuleManifest::stufe()}) gewinnt, sonst gilt:
      *
