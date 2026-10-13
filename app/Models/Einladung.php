@@ -54,7 +54,7 @@ class Einladung extends Model
      */
     public static function vormerken(User $user, ?string $quelle = null): ?self
     {
-        if (! Zustellbarkeit::zustellbar($user->email)) {
+        if (! Zustellbarkeit::zustellbar($user->email) || $user->istGesperrt()) {
             return null;
         }
 
@@ -110,6 +110,13 @@ class Einladung extends Model
 
         if (! Zustellbarkeit::zustellbar($this->user->email)) {
             $this->abschliessen(self::UNZUSTELLBAR, $entschiedenVon);
+
+            return false;
+        }
+
+        // Gesperrte Konten (z. B. Dubletten) bekommen keinen Zugangslink.
+        if ($this->user->istGesperrt()) {
+            $this->verwerfen($entschiedenVon);
 
             return false;
         }

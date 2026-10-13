@@ -64,7 +64,7 @@ class EinladungController extends Controller
 
         return back()->with('status', $verschickt
             ? "Einladung an {$einladung->user->email} ist im Ausgangskorb."
-            : "Einladung an {$einladung->user->email} konnte nicht verschickt werden (keine echte Adresse).");
+            : "Einladung an {$einladung->user->email} konnte nicht verschickt werden (keine echte Adresse oder Konto gesperrt).");
     }
 
     /**
@@ -85,7 +85,7 @@ class EinladungController extends Controller
         }
 
         $meldung = "{$verschickt} Einladung(en) in den Ausgangskorb gelegt.";
-        $meldung .= $uebersprungen ? " {$uebersprungen} übersprungen (keine echte Adresse)." : '';
+        $meldung .= $uebersprungen ? " {$uebersprungen} übersprungen (keine echte Adresse oder Konto gesperrt)." : '';
 
         return back()->with('status', $meldung);
     }

@@ -45,6 +45,22 @@ class MicrosoftSsoTest extends TestCase
         ]);
     }
 
+    /** In der Benutzerliste: „Nur noch über Microsoft" nur, wenn Microsoft eingerichtet ist. */
+    public function test_anmeldeweg_knopf_nur_mit_eingerichtetem_sso(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+        User::factory()->create(['email' => 'lehrer@example.org']);
+
+        $this->actingAs($admin)->get(route('admin.users.index'))
+            ->assertOk()->assertSee('Nur noch über Microsoft anmelden');
+
+        config()->set('services.microsoft.client_secret', null);
+
+        $this->actingAs($admin)->get(route('admin.users.index'))
+            ->assertOk()->assertDontSee('Nur noch über Microsoft anmelden');
+    }
+
     public function test_knopf_erscheint_nur_wenn_eingerichtet(): void
     {
         $this->get('/login')->assertOk()->assertSee('Mit Microsoft anmelden');

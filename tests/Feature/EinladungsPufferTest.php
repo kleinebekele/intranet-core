@@ -160,6 +160,27 @@ class EinladungsPufferTest extends TestCase
             ->assertSee('lehrerin@example.org');
     }
 
+    /** Doppelt angelegte Konten werden gesperrt – ihr Zugangslink darf nicht mehr raus. */
+    public function test_sperren_verwirft_wartende_einladung(): void
+    {
+        $user = User::factory()->create(['email' => 'doppelt@example.org']);
+        $einladung = Einladung::vormerken($user);
+
+        $user->sperren('Dublette');
+
+        $this->assertSame(Einladung::VERWORFEN, $einladung->fresh()->status);
+        $this->assertFalse($einladung->fresh()->freigeben());
+        $this->assertSame(0, MailOutbox::count());
+    }
+
+    public function test_gesperrte_werden_nicht_vorgemerkt(): void
+    {
+        $user = User::factory()->create(['email' => 'doppelt@example.org']);
+        $user->sperren('Dublette');
+
+        $this->assertNull(Einladung::vormerken($user));
+    }
+
     /** Erst die Lehrer, die Eltern später: „Alle verschicken" mit Rolle trifft nur diese. */
     public function test_alle_freigeben_mit_rolle_trifft_nur_diese_rolle(): void
     {

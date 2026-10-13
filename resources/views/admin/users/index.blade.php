@@ -167,9 +167,13 @@
                                     </form>
 
                                     {{-- Anmeldeweg umschalten: nur Microsoft oder Passwort erlaubt.
-                                         Bei Administratoren nicht angeboten – deren Passwort gilt immer. --}}
-                                    @unless ($user->isAdmin())
-                                        @php $nurMs = $user->nurUeberMicrosoft(); @endphp
+                                         Bei Administratoren nicht angeboten – deren Passwort gilt immer.
+                                         Ohne eingerichtetes Microsoft-SSO nur noch der Weg zurück zum Passwort. --}}
+                                    @php
+                                        $nurMs = $user->nurUeberMicrosoft();
+                                        $msAktiv ??= app(\App\Support\Microsoft\MicrosoftSso::class)->aktiv();
+                                    @endphp
+                                    @if (! $user->isAdmin() && ($msAktiv || $nurMs))
                                         <form method="POST" action="{{ route('admin.users.anmeldeweg', $user) }}"
                                               onsubmit="return confirm('{{ $nurMs ? 'Soll sich „'.$user->name.'“ wieder mit Passwort anmelden dürfen?' : '„'.$user->name.'“ ab jetzt nur noch über Microsoft anmelden lassen? Das lokale Passwort wird damit abgelehnt.' }}');">
                                             @csrf
@@ -183,7 +187,7 @@
                                                 <i class="bx {{ $nurMs ? 'bx-key' : 'bxl-microsoft' }}"></i>
                                             </button>
                                         </form>
-                                    @endunless
+                                    @endif
 
                                     @if (! $user->is(auth()->user()))
                                         <form method="POST" action="{{ route('admin.users.sperre', $user) }}"

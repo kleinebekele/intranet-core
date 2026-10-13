@@ -58,6 +58,10 @@ class User extends Authenticatable
         }
 
         $this->forceFill(['gesperrt_am' => now(), 'gesperrt_grund' => $grund])->save();
+
+        // Wer gesperrt ist, soll keinen Zugangslink mehr bekommen (z. B. doppelt
+        // angelegte Konten). Die wartende Einladung gilt damit als verworfen.
+        Einladung::where('user_id', $this->id)->wartend()->get()->each->verwerfen();
     }
 
     public function entsperren(): void
