@@ -8,6 +8,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Geändert
+- **Systemeinstellungen überall:** Der Link unten in der Seitenleiste steht jetzt auch innerhalb von Modulen, nicht nur auf der Startseite.
+- **„Nur noch über Microsoft" nur mit Microsoft-SSO:** Der Umschalter in der Benutzerliste erscheint nur, wenn Microsoft-SSO eingerichtet ist (bzw. ein Konto schon auf Microsoft steht – dann zum Zurückstellen).
+- **Gesperrt = keine Einladung:** `User::sperren()` verwirft eine wartende Einladung; gesperrte Konten werden nicht vorgemerkt und beim Freigeben übersprungen. Migration verwirft wartende Einladungen bereits gesperrter Konten (Dubletten).
 - **2FA nur nach Passwort-Anmeldung:** Wer über Microsoft oder per Passkey (mit „Angemeldet bleiben") hereinkam, wird bei der stillen Rückkehr über das Dauer-Cookie nach Sitzungsablauf nicht mehr nach dem Code gefragt – jetzt auch bei Konten, die zusätzlich ein Passwort haben (Admins). Das verschlüsselte Cookie `intranet_anmeldeweg` (an Benutzer + `remember_token` gebunden, `App\Support\Anmeldeweg`) merkt sich den Weg; Passwort-Anmeldung und Abmelden löschen es.
 - **Rückfrage-Dialog im dunklen Design:** Der Hintergrund hinter dem Dialog wird jetzt in beiden Designs abgedunkelt (feste Farbe statt `bg-gray-900/50`, das im dunklen Design zu einem hellen Schleier wurde).
 - **Hilfe im Fenster:** Der „?"-Knopf öffnet die Hilfe als Modal über der Seite, statt wegzunavigieren. Er lädt die Adresse des Hilfe-Anbieters mit der Kopfzeile `X-Hilfe-Modal: 1`; der Anbieter (Wiki ab v1.5.0) liefert dann nur den Text. Bei Fehler führt der Link wie bisher auf die Hilfeseite.
