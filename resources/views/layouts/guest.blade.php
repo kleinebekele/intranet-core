@@ -28,6 +28,15 @@
             <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
                 {{ $slot }}
             </div>
+
+            {{-- Impressum, Datenschutz … müssen auch vor dem Login erreichbar sein. --}}
+            <nav class="mt-4 mb-6 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-gray-500" aria-label="Rechtliches und Links">
+                @foreach (\App\Models\FooterLink::fuerFooter() as $link)
+                    <a href="{{ $link->href() }}"
+                       @unless ($link->istIntern()) target="_blank" rel="noopener" @endunless
+                       class="hover:text-gray-700 hover:underline">{{ $link->titel }}</a>
+                @endforeach
+            </nav>
         </div>
 
         @include('layouts.cookie-notice')

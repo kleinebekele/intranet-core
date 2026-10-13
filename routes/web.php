@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\EinladungController;
+use App\Http\Controllers\Admin\FooterController;
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\MailAbsenderController;
 use App\Http\Controllers\Admin\MailKontoController;
@@ -16,12 +17,16 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
 use App\Http\Controllers\PasskeyController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SeiteController;
 use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 // The intranet has no public landing page: send visitors straight to the
 // dashboard (which redirects to the login screen when not signed in).
 Route::get('/', fn () => redirect()->route('dashboard'));
+
+// Eigene Seiten aus dem Footer (Impressum, Datenschutz …) – ohne Anmeldung erreichbar.
+Route::get('/seite/{slug}', [SeiteController::class, 'show'])->where('slug', '[a-z0-9-]+')->name('seiten.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -64,6 +69,9 @@ Route::middleware('auth')->group(function () {
         Route::put('einstellungen', [SettingController::class, 'update'])->name('settings.update');
         Route::get('einstellungen/mailversand', [SettingController::class, 'mailversand'])->name('settings.mailversand');
         Route::put('einstellungen/mailversand', [SettingController::class, 'mailversandSpeichern'])->name('settings.mailversand.update');
+        // Footer: Links (extern oder eigene Seite mit HTML-Inhalt).
+        Route::resource('footer', FooterController::class)->except('show');
+        Route::post('footer/{footer}/verschieben', [FooterController::class, 'verschieben'])->name('footer.verschieben');
 
         // Systemlog im Browser (Fehlersuche ohne SSH ins Logfile).
         Route::get('logs', [LogController::class, 'index'])->name('logs.index');

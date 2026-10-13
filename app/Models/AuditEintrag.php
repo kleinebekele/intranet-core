@@ -66,6 +66,8 @@ class AuditEintrag extends Model
         'modul.sichtbarkeit' => 'Modul-Sichtbarkeit geändert',
         'modul.entfernt' => 'Modul entfernt',
         'einstellungen.gespeichert' => 'Einstellungen gespeichert',
+        'footer.gespeichert' => 'Footer-Link gespeichert',
+        'footer.geloescht' => 'Footer-Link gelöscht',
         'mailkonto.angelegt' => 'SMTP-Absender angelegt',
         'mailkonto.geaendert' => 'SMTP-Absender geändert',
         'mailkonto.geloescht' => 'SMTP-Absender gelöscht',

@@ -6,6 +6,7 @@
 @php
     $bereiche = [
         ['route' => 'admin.settings.index', 'muster' => 'admin.settings.index', 'label' => 'Erscheinungsbild'],
+        ['route' => 'admin.footer.index', 'muster' => 'admin.footer.*', 'label' => 'Footer'],
         ['route' => 'admin.seo.index', 'muster' => 'admin.seo.*', 'label' => 'SEO'],
         ['route' => 'admin.users.index', 'muster' => 'admin.users.*', 'label' => 'Benutzer'],
         ['route' => 'admin.roles.index', 'muster' => 'admin.roles.*', 'label' => 'Rollen'],
