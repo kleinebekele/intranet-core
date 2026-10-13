@@ -47,10 +47,12 @@ if [ -n "$aenderungen" ]; then
 fi
 
 # --- Los ------------------------------------------------------------------
-schritt "Wartungsmodus an"
-artisan down --retry=15 || true
-# Egal wie das Skript endet: die Seite kommt wieder hoch.
-trap 'echo; echo "==> Wartungsmodus aus"; $PHP artisan up || true' EXIT
+# Code, PHP-Pakete und Assets kommen, WAEHREND die Seite noch laeuft - das dauert
+# am laengsten (npm ci/build oft eine halbe Minute). In den Wartungsmodus geht es
+# erst fuer Migration, Modulabgleich und Caches: dann sind es wenige Sekunden.
+# Preis: In der kurzen Spanne zwischen Pull und Migration laeuft schon neuer Code
+# gegen die alte Datenbank. Bei reinen Oberflaechen-Aenderungen egal; braucht neuer
+# Code eine neue Tabelle, kann genau in diesen Sekunden ein Aufruf scheitern.
 
 schritt "Code holen"
 vorher_deploy="$(git rev-parse "HEAD:$(basename "$0")" 2>/dev/null || true)"
@@ -86,6 +88,13 @@ else
     echo "WARNUNG: '$NPM' nicht gefunden - Assets werden NICHT neu gebaut."
     echo "         Falls sich CSS/JS geaendert haben, sieht die Seite alt aus."
 fi
+
+schritt "Wartungsmodus an"
+# Eigene Seite resources/views/errors/503.blade.php, beim Abschalten vorgerendert
+# (--render); --refresh laesst den Browser nach 15 s selbst neu laden.
+artisan down --render="errors::503" --refresh=15 --retry=15 || true
+# Egal wie das Skript endet: die Seite kommt wieder hoch.
+trap 'echo; echo "==> Wartungsmodus aus"; $PHP artisan up || true' EXIT
 
 schritt "Datenbank"
 artisan migrate --force
