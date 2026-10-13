@@ -7,6 +7,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Neu
+- **Footer-Links und eigene Seiten:** Systemeinstellungen → Footer. Links stehen mittig im Footer und unter dem Anmeldefeld. Intern = eigene Seite unter `/seite/{slug}` (Route `seiten.show`, ohne Anmeldung) mit HTML aus dem neuen Editor `<x-html-editor>` (Werkzeugleiste + Quelltext) und optionaler roher Einbindung für Dienstleister-Skripte; extern = Adresse im neuen Tab. Migration `footer_links` legt Impressum und Datenschutz mit Platzhaltertext an. Wiki-Hilfe `20-footer.md`.
+
 ### Geändert
 - **Systemeinstellungen überall:** Der Link unten in der Seitenleiste steht jetzt auch innerhalb von Modulen, nicht nur auf der Startseite.
 - **„Nur noch über Microsoft" nur mit Microsoft-SSO:** Der Umschalter in der Benutzerliste erscheint nur, wenn Microsoft-SSO eingerichtet ist (bzw. ein Konto schon auf Microsoft steht – dann zum Zurückstellen).
