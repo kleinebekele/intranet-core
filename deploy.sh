@@ -120,6 +120,12 @@ artisan route:cache
 artisan view:cache
 artisan event:cache
 
+# Ab hier ist die Seite fertig - Aufraeumen und Dauerdienste brauchen keinen
+# Wartungsmodus. Die Falle (trap) bleibt fuer Abbrueche davor zustaendig.
+schritt "Wartungsmodus aus"
+artisan up
+trap - EXIT
+
 schritt "Aufraeumen"
 # Nur beim allerersten Deploy noetig; danach steht der Link und artisan wuerde
 # bei jedem Lauf einen roten ERROR ausgeben, der keiner ist.
