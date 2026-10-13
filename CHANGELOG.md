@@ -7,6 +7,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Sicherheit
+- **Eigene E-Mail nur mit Bestätigung:** Wer im Profil seine Adresse ändert, braucht das aktuelle Passwort (sofern das Konto eins hat) und bekommt einen Link an die NEUE Adresse (Vorlage `email_bestaetigen`, 60 Minuten gültig, Schlüssel nur als SHA-256 in `users.email_neu_token`). Erst der Klick übernimmt sie nach `email` und setzt `email_verified_at`; die alte Adresse erhält `login_geaendert`. Bis dahin steht sie in `users.email_neu` (Migration `add_email_neu_to_users_table`), im Profil mit „Änderung zurückziehen". Microsoft-Konten können die Adresse nicht selbst ändern. Hintergrund: Die E-Mail ist Ausweis für Nextcloud-/Linear-Abgleich, Absenderfreigabe und „Passwort vergessen" – bisher ließ sie sich ohne jede Prüfung auf eine fremde Adresse setzen. Audit `profil.email_angefragt`.
+
 ### Neu
 - **Footer-Links und eigene Seiten:** Systemeinstellungen → Footer. Links stehen mittig im Footer und unter dem Anmeldefeld. Intern = eigene Seite unter `/seite/{slug}` (Route `seiten.show`, ohne Anmeldung) mit HTML aus dem neuen Editor `<x-html-editor>` (Werkzeugleiste + Quelltext) und optionaler roher Einbindung für Dienstleister-Skripte; extern = Adresse im neuen Tab. Migration `footer_links` legt Impressum und Datenschutz mit Platzhaltertext an. Wiki-Hilfe `20-footer.md`.
 

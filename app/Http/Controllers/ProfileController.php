@@ -3,19 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Mail\Vorlagen\VorlagenMailer;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Profilbild;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
 {
+    /** Wie lange der Bestätigungslink für eine neue E-Mail gilt. */
+    public const EMAIL_LINK_MINUTEN = 60;
+
     /**
      * Display the user's profile form.
      */
@@ -31,25 +37,135 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $user->fill(['name' => $request->validated('name')]);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
+        $geaendert = array_intersect_key($user->getDirty(), array_flip(['name']));
+        $vorher = array_intersect_key($user->getOriginal(), $geaendert);
 
-        $geaendert = array_intersect_key($request->user()->getDirty(), array_flip(['name', 'email']));
-        $vorher = array_intersect_key($request->user()->getOriginal(), $geaendert);
-
-        $request->user()->save();
+        $user->save();
 
         if ($geaendert !== []) {
-            Audit::schreiben('profil.geaendert', 'Geändert: '.implode(', ', array_keys($geaendert)).'.', $request->user(), [
+            Audit::schreiben('profil.geaendert', 'Geändert: '.implode(', ', array_keys($geaendert)).'.', $user, [
                 'vorher' => $vorher,
                 'nachher' => $geaendert,
             ]);
         }
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        if (! $request->emailGeaendert()) {
+            return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        }
+
+        // Die E-Mail ist an mehreren Stellen ein Ausweis (Nextcloud-/Linear-
+        // Abgleich, Absenderfreigabe, Passwort vergessen). Deshalb gilt sie erst,
+        // wenn der Link an genau diese Adresse angeklickt wurde.
+        $schluessel = 'email-aendern:'.$user->id;
+
+        if (RateLimiter::tooManyAttempts($schluessel, 5)) {
+            return Redirect::route('profile.edit')->withErrors([
+                'email' => 'Zu viele Änderungen in kurzer Zeit. Bitte versuche es in einer Stunde noch einmal.',
+            ]);
+        }
+
+        RateLimiter::hit($schluessel, 3600);
+
+        $neu = $request->validated('email');
+        $token = Str::random(40);
+
+        $user->forceFill([
+            'email_neu' => $neu,
+            'email_neu_token' => hash('sha256', $token),
+            'email_neu_am' => now(),
+        ])->save();
+
+        app(VorlagenMailer::class)->senden('email_bestaetigen', $neu, [
+            'name' => $user->name,
+            'neue_mail' => $neu,
+            'link' => url(route('profile.email.bestaetigen', ['token' => $token], false)),
+            'minuten' => self::EMAIL_LINK_MINUTEN,
+        ]);
+
+        Audit::schreiben('profil.email_angefragt', "Neue Adresse {$neu} angefragt, wartet auf Bestätigung.", $user, [
+            'vorher' => $user->email,
+            'neu' => $neu,
+        ]);
+
+        return Redirect::route('profile.edit')->with('status', "Wir haben einen Bestätigungslink an {$neu} geschickt. Erst nach dem Klick darauf gilt die neue Adresse.");
+    }
+
+
+    /**
+     * Link aus der Bestätigungsmail: übernimmt die wartende Adresse.
+     */
+    public function emailBestaetigen(Request $request, string $token): RedirectResponse
+    {
+        $user = $request->user();
+
+        $gueltig = $user->email_neu
+            && $user->email_neu_token
+            && hash_equals($user->email_neu_token, hash('sha256', $token))
+            && $user->email_neu_am?->gt(now()->subMinutes(self::EMAIL_LINK_MINUTEN));
+
+        if (! $gueltig) {
+            return Redirect::route('profile.edit')->withErrors([
+                'email' => 'Der Bestätigungslink ist ungültig oder abgelaufen. Trag die neue Adresse bitte noch einmal ein.',
+            ]);
+        }
+
+        $neu = $user->email_neu;
+        $alt = $user->email;
+
+        $vergeben = User::whereRaw('LOWER(email) = ?', [mb_strtolower($neu)])
+            ->whereKeyNot($user->id)
+            ->exists();
+
+        if ($vergeben) {
+            $this->emailAnfrageVerwerfen($user);
+
+            return Redirect::route('profile.edit')->withErrors([
+                'email' => 'Diese Adresse gehört inzwischen zu einem anderen Konto.',
+            ]);
+        }
+
+        $user->forceFill([
+            'email' => $neu,
+            'email_verified_at' => now(),
+            'email_neu' => null,
+            'email_neu_token' => null,
+            'email_neu_am' => null,
+        ])->save();
+
+        Audit::schreiben('profil.geaendert', 'Geändert: email (bestätigt).', $user, [
+            'vorher' => ['email' => $alt],
+            'nachher' => ['email' => $neu],
+        ]);
+
+        // Hinweis an die bisherige Adresse – falls jemand anderes am Werk war.
+        app(VorlagenMailer::class)->senden('login_geaendert', $alt, [
+            'name' => $user->name,
+            'neue_mail' => $neu,
+        ]);
+
+        return Redirect::route('profile.edit')->with('status', "Deine Anmelde-Adresse ist jetzt {$neu}.");
+    }
+
+    /**
+     * Wartende Adressänderung zurückziehen.
+     */
+    public function emailAbbrechen(Request $request): RedirectResponse
+    {
+        $this->emailAnfrageVerwerfen($request->user());
+
+        return Redirect::route('profile.edit')->with('status', 'Die Adressänderung wurde zurückgezogen.');
+    }
+
+    private function emailAnfrageVerwerfen(User $user): void
+    {
+        $user->forceFill([
+            'email_neu' => null,
+            'email_neu_token' => null,
+            'email_neu_am' => null,
+        ])->save();
     }
 
     /**

@@ -43,6 +43,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::patch('/profile/darstellung', [ProfileController::class, 'darstellung'])->name('profile.darstellung');
     Route::post('/profile/bild', [ProfileController::class, 'profilbild'])->name('profile.profilbild');
+    Route::get('/profile/email/bestaetigen/{token}', [ProfileController::class, 'emailBestaetigen'])
+        ->middleware('throttle:10,1')->name('profile.email.bestaetigen');
+    Route::delete('/profile/email', [ProfileController::class, 'emailAbbrechen'])->name('profile.email.abbrechen');
     Route::get('/profilbild/{user}', [ProfileController::class, 'profilbildZeigen'])->name('profilbild');
 
     // 2FA-Verwaltung im eigenen Profil (Opt-in + TOTP).

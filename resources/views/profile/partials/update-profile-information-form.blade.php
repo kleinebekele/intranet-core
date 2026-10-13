@@ -9,11 +9,18 @@
         </p>
     </header>
 
-    <form id="send-verification" method="post" action="{{ route('verification.send') }}">
+    <form id="email-abbrechen" method="post" action="{{ route('profile.email.abbrechen') }}">
         @csrf
+        @method('delete')
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
+    @php
+        $nurMicrosoft = $user->nurUeberMicrosoft();
+        $mitPasswort = $user->password !== null;
+    @endphp
+
+    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6"
+          x-data="{ email: @js(old('email', $user->email)), original: @js($user->email) }">
         @csrf
         @method('patch')
 
@@ -25,27 +32,34 @@
 
         <div>
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
+            @if ($nurMicrosoft)
+                <x-text-input id="email" name="email" type="email" class="mt-1 block w-full bg-gray-50" :value="$user->email" readonly autocomplete="username" />
+                <p class="mt-2 text-sm text-gray-600">Deine Adresse kommt aus deinem Microsoft-Konto und lässt sich nur dort ändern.</p>
+            @else
+                <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" x-model="email" required autocomplete="username" />
+                <p class="mt-2 text-sm text-gray-600">Eine neue Adresse gilt erst, wenn du den Link bestätigst, den wir an sie schicken.</p>
+            @endif
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
 
-            @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div>
-                    <p class="text-sm mt-2 text-gray-800">
-                        {{ __('Your email address is unverified.') }}
-
-                        <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            {{ __('Click here to re-send the verification email.') }}
-                        </button>
+            @if ($user->email_neu)
+                <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <p>
+                        Wartet auf Bestätigung: <strong>{{ $user->email_neu }}</strong>
+                        (angefragt {{ $user->email_neu_am?->diffForHumans() }}). Bis dahin gilt weiter {{ $user->email }}.
                     </p>
-
-                    @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-sm text-green-600">
-                            {{ __('A new verification link has been sent to your email address.') }}
-                        </p>
-                    @endif
+                    <button form="email-abbrechen" class="mt-1 underline hover:text-amber-900">Änderung zurückziehen</button>
                 </div>
             @endif
         </div>
+
+        @if (! $nurMicrosoft && $mitPasswort)
+            <div x-show="email.trim().toLowerCase() !== original.toLowerCase()" x-cloak>
+                <x-input-label for="current_password_profil" value="Aktuelles Passwort" />
+                <x-text-input id="current_password_profil" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
+                <p class="mt-2 text-sm text-gray-600">Zum Ändern der E-Mail brauchen wir dein Passwort.</p>
+                <x-input-error class="mt-2" :messages="$errors->get('current_password')" />
+            </div>
+        @endif
 
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>

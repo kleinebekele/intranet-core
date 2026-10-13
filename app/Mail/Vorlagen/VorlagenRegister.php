@@ -137,6 +137,22 @@ class VorlagenRegister
             html: self::LOGIN_GEAENDERT_HTML,
             text: self::LOGIN_GEAENDERT_TEXT,
         ));
+
+        $this->registrieren(new VorlagenDefinition(
+            schluessel: 'email_bestaetigen',
+            titel: 'Neue E-Mail bestätigen',
+            beschreibung: 'Geht an die NEUE Adresse, wenn jemand im Profil seine E-Mail ändert. '
+                .'Erst der Klick auf den Link übernimmt sie.',
+            platzhalter: [
+                'name' => 'Name des Empfängers',
+                'neue_mail' => 'Die neue Adresse',
+                'link' => 'Button-Adresse zum Bestätigen',
+                'minuten' => 'Gültigkeitsdauer in Minuten',
+            ],
+            betreff: 'Bitte bestätige deine neue E-Mail-Adresse',
+            html: self::EMAIL_BESTAETIGEN_HTML,
+            text: self::EMAIL_BESTAETIGEN_TEXT,
+        ));
     }
 
     // ── Standardtexte ────────────────────────────────────────────────────────
@@ -263,5 +279,30 @@ ist neu.
 
 Diese Nachricht geht an deine bisherige Adresse. Hast du die Änderung nicht
 veranlasst, wende dich bitte an die Verwaltung.
+TEXT;
+
+    private const EMAIL_BESTAETIGEN_HTML = <<<'HTML'
+<p style="margin:0 0 16px;font-size:16px;">Hallo {{ name }}!</p>
+<p style="margin:0 0 16px;">Du möchtest dich im Intranet künftig mit dieser Adresse anmelden:</p>
+<p style="margin:0 0 24px;font-size:18px;font-weight:bold;color:#4f46e5;">{{ neue_mail }}</p>
+<p style="margin:0 0 24px;">
+  <a href="{{ link }}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">Adresse bestätigen</a>
+</p>
+<p style="margin:0;color:#6b7280;font-size:14px;">Der Link ist {{ minuten }} Minuten gültig. Wenn du das nicht warst, ignoriere diese Mail – es ändert sich nichts.</p>
+HTML;
+
+    private const EMAIL_BESTAETIGEN_TEXT = <<<'TEXT'
+Hallo {{ name }}!
+
+Du möchtest dich im Intranet künftig mit dieser Adresse anmelden:
+
+{{ neue_mail }}
+
+Bestätige das über diesen Link:
+
+{{ link }}
+
+Der Link ist {{ minuten }} Minuten gültig. Wenn du das nicht warst, ignoriere
+diese Mail – es ändert sich nichts.
 TEXT;
 }

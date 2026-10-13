@@ -49,6 +49,7 @@ class AuditEintrag extends Model
         'passkey.angelegt' => 'Passkey angelegt',
         'passkey.entfernt' => 'Passkey entfernt',
         'profil.geaendert' => 'Profil geändert',
+        'profil.email_angefragt' => 'Neue E-Mail angefragt',
         'benutzer.angelegt' => 'Benutzer angelegt',
         'benutzer.geaendert' => 'Benutzer geändert',
         'benutzer.geloescht' => 'Benutzer gelöscht',
