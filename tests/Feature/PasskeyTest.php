@@ -136,6 +136,48 @@ class PasskeyTest extends TestCase
         $this->assertDatabaseHas('audit_log', ['aktion' => 'anmeldung', 'beschreibung' => 'Mit Passkey.']);
     }
 
+    public function test_geschuetzter_bereich_bietet_den_passkey_an(): void
+    {
+        $user = User::factory()->create();
+        $this->passkeyFuer($user);
+
+        $this->actingAs($user)->get('/confirm-password')->assertOk()
+            ->assertSee('Mit Passkey bestätigen')->assertSee('Passwort eingeben');
+
+        // Ohne Passkey bleibt es beim Passwort.
+        $this->actingAs(User::factory()->create())->get('/confirm-password')->assertOk()
+            ->assertDontSee('Mit Passkey bestätigen');
+    }
+
+    public function test_geschuetzter_bereich_laesst_sich_mit_passkey_bestaetigen(): void
+    {
+        $user = User::factory()->create();
+        $this->passkeyFuer($user);
+        $this->actingAs($user);
+
+        $challenge = $this->postJson('/confirm-password/passkey/optionen')->assertOk()->json('challenge');
+
+        $this->postJson('/confirm-password/passkey', ['antwort' => $this->anmeldeAntwort($challenge)])
+            ->assertOk()->assertJsonStructure(['weiter']);
+
+        $this->assertIsInt(session('auth.password_confirmed_at'));
+    }
+
+    public function test_fremder_passkey_bestaetigt_nichts(): void
+    {
+        $fremder = User::factory()->create();
+        $this->passkeyFuer($fremder);
+        $ich = User::factory()->create();
+        $this->actingAs($ich);
+
+        $challenge = $this->postJson('/confirm-password/passkey/optionen')->assertOk()->json('challenge');
+
+        $this->postJson('/confirm-password/passkey', ['antwort' => $this->anmeldeAntwort($challenge)])
+            ->assertStatus(422);
+
+        $this->assertNull(session('auth.password_confirmed_at'));
+    }
+
     public function test_falsche_unterschrift_wird_abgewiesen(): void
     {
         $this->passkeyFuer(User::factory()->create());

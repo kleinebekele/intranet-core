@@ -78,6 +78,14 @@ Route::middleware('auth')->group(function () {
 
     Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
 
+    // Statt des Passworts: der eigene Passkey.
+    Route::post('confirm-password/passkey/optionen', [ConfirmablePasswordController::class, 'passkeyOptionen'])
+        ->middleware('throttle:10,1')
+        ->name('password.confirm.passkey.optionen');
+    Route::post('confirm-password/passkey', [ConfirmablePasswordController::class, 'passkeyBestaetigen'])
+        ->middleware('throttle:10,1')
+        ->name('password.confirm.passkey');
+
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
