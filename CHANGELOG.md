@@ -23,6 +23,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Webhook-Signatur je Quelle (optional):** Ekkon → Webhook-Eingang → „Signatur einschalten" erzeugt ein Geheimnis (verschlüsselt, einmal angezeigt). Danach nimmt die Quelle nur noch Aufrufe mit `X-Intranet-Zeit` (±5 min) und `X-Intranet-Signatur: sha256=HMAC(geheimnis, zeit.body)` an, jede Signatur nur einmal. Migration `add_signatur_geheimnis_to_ekkon_webhook_quellen`.
 
 ### Neu
+- **Geschützte Bereiche per Passkey:** Die Passwort-Bestätigung (`password.confirm`) bietet, wenn hinterlegt, zuerst „Mit Passkey bestätigen" an; „Passwort eingeben" klappt das bisherige Formular auf. Routen `password.confirm.passkey(.optionen)`, nur Passkeys des angemeldeten Benutzers.
 - **Footer-Links und eigene Seiten:** Systemeinstellungen → Footer. Links stehen mittig im Footer und unter dem Anmeldefeld. Intern = eigene Seite unter `/seite/{slug}` (Route `seiten.show`, ohne Anmeldung) mit HTML aus dem neuen Editor `<x-html-editor>` (Werkzeugleiste + Quelltext) und optionaler roher Einbindung für Dienstleister-Skripte; extern = Adresse im neuen Tab. Migration `footer_links` legt Impressum und Datenschutz mit Platzhaltertext an. Wiki-Hilfe `20-footer.md`.
 
 ### Geändert
