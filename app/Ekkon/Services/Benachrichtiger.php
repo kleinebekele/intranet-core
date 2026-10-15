@@ -50,12 +50,22 @@ class Benachrichtiger
         ?string $html = null,
         ?array $anhang = null,
     ): array {
-        $anhang = $this->anhangAblegen($anhang);
-
         $routen = NotificationRoute::query()
             ->where('meldungsart', $meldungsart)
             ->where('aktiv', true)
             ->get();
+
+        // Stumm geschaltet (Route vom Typ „ohne"): bewusst niemanden
+        // benachrichtigen und auch nichts als 'ohne_ziel' liegen lassen. Andere
+        // aktive Ziele derselben Meldungsart bekommen sie trotzdem.
+        $stumm = $routen->contains(fn (NotificationRoute $r) => $r->typ === NotificationRoute::TYP_OHNE);
+        $routen = $routen->reject(fn (NotificationRoute $r) => $r->typ === NotificationRoute::TYP_OHNE)->values();
+
+        if ($stumm && $routen->isEmpty()) {
+            return ['angelegt' => 0, 'ohne_ziel' => false, 'uebersprungen' => 0];
+        }
+
+        $anhang = $this->anhangAblegen($anhang);
 
         // Keine Route ⇒ die Meldung wird NICHT verschluckt, sondern sichtbar
         // als 'ohne_ziel' abgelegt. Sonst vergisst man die Route und merkt

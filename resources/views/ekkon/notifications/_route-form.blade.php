@@ -32,7 +32,11 @@
         <select name="typ" x-model="typ" class="w-full rounded-md border-gray-300 text-sm">
             <option value="mail">Mail</option>
             <option value="teams">Teams</option>
+            <option value="ohne">ohne (stumm)</option>
         </select>
+    </div>
+    <div x-show="typ === 'ohne'" x-cloak class="md:col-span-2 text-xs text-gray-500">
+        Meldungen dieser Art werden verworfen – kein Versand, nichts bleibt unter „offen" liegen.
     </div>
     <div x-show="typ === 'mail'" x-cloak>
         <label class="block text-xs font-medium text-gray-600 mb-1">Mail an</label>

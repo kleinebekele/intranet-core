@@ -20,6 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class NotificationRoute extends Model
 {
+    /** Stumm: die Meldungsart ist bewusst ohne Empfänger (nichts versenden, nichts liegen lassen). */
+    public const TYP_OHNE = 'ohne';
+
     protected $table = 'ekkon_notification_routes';
 
     protected $guarded = [];
@@ -64,6 +67,10 @@ class NotificationRoute extends Model
     /** Kurzbeschreibung des Ziels für die Übersicht. */
     public function zielText(): string
     {
+        if ($this->typ === self::TYP_OHNE) {
+            return '🔇 stumm – wird verworfen';
+        }
+
         if ($this->typ === 'teams') {
             return $this->channel?->name ?? '⚠ Channel gelöscht';
         }

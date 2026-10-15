@@ -43,6 +43,7 @@ Route::middleware(['web', 'auth'])
                 Route::post('/route/{route}/toggle', [NotificationController::class, 'routeToggle'])->name('route.toggle');
                 Route::delete('/route/{route}', [NotificationController::class, 'routeDestroy'])->name('route.destroy');
 
+                Route::delete('/ohne-ziel', [NotificationController::class, 'ohneZielLoeschen'])->name('ohne-ziel.destroy');
                 Route::post('/{notification}/retry', [NotificationController::class, 'retry'])->name('retry');
                 Route::delete('/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
             });

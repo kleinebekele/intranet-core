@@ -267,7 +267,7 @@ class NotificationController extends Controller
 
         $daten = $request->validate([
             'meldungsart' => ['required', 'string', Rule::in(array_keys($this->registry->meldungsarten()))],
-            'typ' => ['required', Rule::in(['mail', 'teams'])],
+            'typ' => ['required', Rule::in(['mail', 'teams', NotificationRoute::TYP_OHNE])],
             'teams_channel_id' => ['nullable', 'exists:ekkon_teams_channels,id', 'required_if:typ,teams'],
             'mail_ziel' => ['nullable', Rule::in(['admins', 'benutzer', 'adresse'])],
             // Feste Adresse nur nötig, wenn Mail-Ziel „feste Adresse" ist.
@@ -287,7 +287,9 @@ class NotificationController extends Controller
             'aktiv' => true,
         ];
 
-        if ($daten['typ'] === 'teams') {
+        if ($daten['typ'] === NotificationRoute::TYP_OHNE) {
+            // Stumm: kein Ziel, nur der Vermerk.
+        } elseif ($daten['typ'] === 'teams') {
             $werte['teams_channel_id'] = $daten['teams_channel_id'];
         } elseif ($mailZiel === 'admins') {
             $werte['mail_an_admins'] = true;
@@ -299,7 +301,9 @@ class NotificationController extends Controller
 
         NotificationRoute::create($werte);
 
-        return back()->with('status', 'Route angelegt.');
+        return back()->with('status', $daten['typ'] === NotificationRoute::TYP_OHNE
+            ? 'Meldungsart stumm geschaltet – neue Meldungen werden verworfen.'
+            : 'Route angelegt.');
     }
 
     public function routeToggle(NotificationRoute $route): RedirectResponse
@@ -328,6 +332,37 @@ class NotificationController extends Controller
         ]);
 
         return back()->with('status', 'Benachrichtigung wird beim nächsten Lauf erneut versucht.');
+    }
+
+    /**
+     * Alle liegengebliebenen Meldungen OHNE Ziel einer Meldungsart auf einmal
+     * verwerfen – bzw. beim Altbestand (ohne Meldungsart) die einer Quelle.
+     * Andere Zustände (pending, failed) bleiben unberührt.
+     */
+    public function ohneZielLoeschen(Request $request): RedirectResponse
+    {
+        $daten = $request->validate([
+            'meldungsart' => ['nullable', 'string', 'max:255'],
+            'quelle' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $abfrage = Notification::query()->where('status', 'ohne_ziel');
+
+        if (filled($daten['meldungsart'] ?? null)) {
+            $abfrage->where('meldungsart', $daten['meldungsart']);
+            $was = '„'.($this->registry->meldungsarten()[$daten['meldungsart']] ?? $daten['meldungsart']).'"';
+        } else {
+            // Altbestand: keine Meldungsart, getrennt nach Quelle.
+            $abfrage->where(fn ($q) => $q->whereNull('meldungsart')->orWhere('meldungsart', ''));
+            filled($daten['quelle'] ?? null)
+                ? $abfrage->where('quelle', $daten['quelle'])
+                : $abfrage->where(fn ($q) => $q->whereNull('quelle')->orWhere('quelle', ''));
+            $was = 'Altbestand aus '.(($daten['quelle'] ?? '') ?: 'unbekannter Quelle');
+        }
+
+        $anzahl = $abfrage->delete();
+
+        return back()->with('status', "{$anzahl} Meldungen ohne Ziel gelöscht ({$was}).");
     }
 
     /**

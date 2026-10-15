@@ -148,7 +148,7 @@
                                                     <a href="{{ route('admin.mailvorlagen.edit', 'ekkon:'.$route->meldungsart) }}{{ $route->vorschauMail() ? '?testmail='.urlencode($route->vorschauMail()) : '' }}"
                                                        class="text-indigo-600 hover:underline" title="Mailvorlage bearbeiten">Mail</a>
                                                 @else
-                                                    {{ $route->typ === 'mail' ? 'Mail' : 'Teams' }}
+                                                    {{ ['mail' => 'Mail', 'teams' => 'Teams', 'ohne' => 'ohne'][$route->typ] ?? $route->typ }}
                                                 @endif
                                             </td>
                                             <td class="py-2 pr-4">{{ $route->zielText() }}</td>
@@ -464,6 +464,7 @@
                                     <th class="py-1 pr-4">liegen gelassen</th>
                                     <th class="py-1 pr-4">zuletzt</th>
                                     <th class="py-1 pr-4">Klartext</th>
+                                    <th class="py-1 pr-4"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -476,6 +477,26 @@
                                         </td>
                                         <td class="py-1 pr-4 text-gray-600">
                                             {{ $meldungsarten[$zeile->meldungsart] ?? 'kein Task deklariert diese Meldungsart mehr' }}
+                                        </td>
+                                        <td class="py-1 pr-4">
+                                            <div class="flex flex-wrap justify-end gap-2 whitespace-nowrap">
+                                                {{-- Stumm schalten: künftige Meldungen verwerfen (nur deklarierte Arten). --}}
+                                                @if (isset($meldungsarten[$zeile->meldungsart]))
+                                                    <form method="POST" action="{{ route('module.ekkon.notifications.route.store') }}"
+                                                          data-bestaetigen="„{{ $meldungsarten[$zeile->meldungsart] }}“ stumm schalten? Neue Meldungen dieser Art werden dann verworfen." data-knopf="Stumm schalten">
+                                                        @csrf
+                                                        <input type="hidden" name="meldungsart" value="{{ $zeile->meldungsart }}">
+                                                        <input type="hidden" name="typ" value="ohne">
+                                                        <button class="rounded-md border border-yellow-400 bg-white px-2 py-1 text-xs font-medium text-yellow-900 hover:bg-yellow-100">🔇 stumm schalten</button>
+                                                    </form>
+                                                @endif
+                                                <form method="POST" action="{{ route('module.ekkon.notifications.ohne-ziel.destroy') }}"
+                                                      data-bestaetigen="Alle {{ $zeile->anzahl }} Meldungen ohne Ziel der Art „{{ $meldungsarten[$zeile->meldungsart] ?? $zeile->meldungsart }}“ löschen?" data-knopf="Alle löschen">
+                                                    @csrf @method('DELETE')
+                                                    <input type="hidden" name="meldungsart" value="{{ $zeile->meldungsart }}">
+                                                    <button class="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700">alle {{ $zeile->anzahl }} löschen</button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -495,6 +516,14 @@
                                             @if ($alt->seit)
                                                 (ab {{ \Illuminate\Support\Carbon::parse($alt->seit)->format('d.m.Y') }})
                                             @endif
+                                        </td>
+                                        <td class="py-1 pr-4">
+                                            <form method="POST" action="{{ route('module.ekkon.notifications.ohne-ziel.destroy') }}" class="flex justify-end"
+                                                  data-bestaetigen="Alle {{ $alt->anzahl }} alten Meldungen ohne Ziel aus {{ $alt->quelle ?: 'unbekannter Quelle' }} löschen?" data-knopf="Alle löschen">
+                                                @csrf @method('DELETE')
+                                                <input type="hidden" name="quelle" value="{{ $alt->quelle }}">
+                                                <button class="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700">alle {{ $alt->anzahl }} löschen</button>
+                                            </form>
                                         </td>
                                     </tr>
                                 @endforeach
