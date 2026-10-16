@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Models\MailKonto;
 use App\Models\MailOutbox;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -40,40 +41,17 @@ class MailOutboxController
             ? $request->query('status')
             : null;
 
-        $suche = trim((string) $request->query('suche', ''));
-        // Mehrfachauswahl: ?modul[]=Core&modul[]=Newsletter
-        $modul = collect((array) $request->query('modul', []))
-            ->map(fn ($m) => trim((string) $m))->filter()->unique()->values()->all();
-        $ausloeser = collect((array) $request->query('ausloeser', []))
-            ->map(fn ($a) => trim((string) $a))->filter()->unique()->values()->all();
-        $absender = (string) $request->query('absender', '');
+        [$suche, $modul, $ausloeser, $absender] = $this->filterWerte($request);
 
         $konten = MailKonto::all()->keyBy(fn (MailKonto $k) => $k->mailerName());
 
-        $mails = MailOutbox::query()
+        $mails = $this->gefiltert(MailOutbox::query(), $request)
             // „Alle" heißt: alles außer Verworfenem – das ist abgehakt und steht
             // nur unter seinem eigenen Reiter.
             ->when($status === self::UNZUGESTELLT,
                 fn ($q) => $q->whereIn('zustellung', [MailOutbox::VERZOEGERT, MailOutbox::ABGEWIESEN]),
                 fn ($q) => $q->when($status, fn ($q) => $q->where('status', $status),
                     fn ($q) => $q->where('status', '!=', MailOutbox::VERWORFEN)))
-            ->when($suche !== '', function ($q) use ($suche) {
-                $muster = '%'.addcslashes($suche, '%_\\').'%';
-                $q->where(fn ($w) => $w->where('betreff', 'like', $muster)->orWhere('an', 'like', $muster));
-            })
-            // „Core" steht in alten Zeilen als NULL.
-            ->when($modul !== [], fn ($q) => $q->where(function ($w) use ($modul) {
-                $w->whereIn('modul', $modul);
-                if (in_array('Core', $modul, true)) {
-                    $w->orWhereNull('modul');
-                }
-            }))
-            ->when($ausloeser !== [], fn ($q) => $q->whereIn('quelle', $ausloeser))
-            // Absender = der Zugang, über den die Mail rausgeht: ein SMTP-Konto
-            // oder der Standard-Mailer (leer bzw. ein Mailer aus config/mail.php).
-            ->when($absender === self::STANDARD, fn ($q) => $q->where(fn ($w) => $w->whereNull('mailer')
-                ->orWhere('mailer', 'not like', MailKonto::PRAEFIX.'%')))
-            ->when($absender !== '' && $absender !== self::STANDARD, fn ($q) => $q->where('mailer', $absender))
             // Noch nicht versendete (wartend, gescheitert, verworfen) oben, dann
             // nach Versandzeit absteigend; bei Gleichstand die neuere zuerst.
             ->orderByRaw('versendet_am IS NULL DESC')
@@ -160,6 +138,68 @@ class MailOutboxController
      * Der Versuchszähler wird zurückgesetzt, sonst wäre sie nach dem ersten
      * neuen Fehlschlag sofort wieder endgültig gescheitert.
      */
+    /**
+     * Suche, Modul, Auslöser, Absender aus der Anfrage (Liste per GET, Sammelaktion per POST).
+     *
+     * @return array{0: string, 1: list<string>, 2: list<string>, 3: string}
+     */
+    private function filterWerte(Request $request): array
+    {
+        // Mehrfachauswahl: ?modul[]=Core&modul[]=Newsletter
+        return [
+            trim((string) $request->input('suche', '')),
+            collect((array) $request->input('modul', []))->map(fn ($m) => trim((string) $m))->filter()->unique()->values()->all(),
+            collect((array) $request->input('ausloeser', []))->map(fn ($a) => trim((string) $a))->filter()->unique()->values()->all(),
+            (string) $request->input('absender', ''),
+        ];
+    }
+
+    /** Die Filter der Liste (ohne Status) – dieselben für Anzeige und Sammelaktion. */
+    private function gefiltert(Builder $query, Request $request): Builder
+    {
+        [$suche, $modul, $ausloeser, $absender] = $this->filterWerte($request);
+
+        return $query
+            ->when($suche !== '', function ($q) use ($suche) {
+                $muster = '%'.addcslashes($suche, '%_\\').'%';
+                $q->where(fn ($w) => $w->where('betreff', 'like', $muster)->orWhere('an', 'like', $muster));
+            })
+            // „Core" steht in alten Zeilen als NULL.
+            ->when($modul !== [], fn ($q) => $q->where(function ($w) use ($modul) {
+                $w->whereIn('modul', $modul);
+                if (in_array('Core', $modul, true)) {
+                    $w->orWhereNull('modul');
+                }
+            }))
+            ->when($ausloeser !== [], fn ($q) => $q->whereIn('quelle', $ausloeser))
+            // Absender = der Zugang, über den die Mail rausgeht: ein SMTP-Konto
+            // oder der Standard-Mailer (leer bzw. ein Mailer aus config/mail.php).
+            ->when($absender === self::STANDARD, fn ($q) => $q->where(fn ($w) => $w->whereNull('mailer')
+                ->orWhere('mailer', 'not like', MailKonto::PRAEFIX.'%')))
+            ->when($absender !== '' && $absender !== self::STANDARD, fn ($q) => $q->where('mailer', $absender));
+    }
+
+    /**
+     * Alle fehlgeschlagenen Mails im aktuellen Filter wieder in die Warteschlange –
+     * z. B. nach einer falschen Einstellung am SMTP-Konto, die einen ganzen
+     * Newsletter scheitern ließ. Das Stundenlimit gilt beim Ausliefern wie immer.
+     */
+    public function alleErneut(Request $request): RedirectResponse
+    {
+        $anzahl = $this->gefiltert(MailOutbox::query(), $request)
+            ->where('status', MailOutbox::FEHLGESCHLAGEN)
+            ->update([
+                'status' => MailOutbox::WARTEND,
+                'versuche' => 0,
+                'naechster_versuch_am' => null,
+                'fehler' => null,
+                'updated_at' => now(),
+            ]);
+
+        return redirect()->route('admin.mail.index', array_filter(['status' => MailOutbox::WARTEND] + $request->only('suche', 'modul', 'ausloeser', 'absender')))
+            ->with('status', "{$anzahl} Mail(s) stehen wieder in der Warteschlange.");
+    }
+
     public function erneut(MailOutbox $mail): RedirectResponse
     {
         if ($mail->status === MailOutbox::VERSENDET) {

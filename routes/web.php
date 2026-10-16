@@ -131,6 +131,7 @@ Route::middleware('auth')->group(function () {
 
         // Mail-Ausgangskorb: Versand-Protokoll und Warteschlange.
         Route::get('mails', [MailOutboxController::class, 'index'])->name('mail.index');
+        Route::post('mails/alle-erneut', [MailOutboxController::class, 'alleErneut'])->name('mail.alle-erneut');
         Route::post('mails/{mail}/erneut', [MailOutboxController::class, 'erneut'])->name('mail.erneut');
         Route::post('mails/{mail}/verwerfen', [MailOutboxController::class, 'verwerfen'])->name('mail.verwerfen');
 

@@ -97,6 +97,22 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
+                {{-- Sammelaktion: alle Gescheiterten im aktuellen Filter erneut einreihen. --}}
+                @if ($status === 'fehlgeschlagen' && $mails->total() > 0)
+                    <form method="POST" action="{{ route('admin.mail.alle-erneut') }}"
+                          data-bestaetigen="{{ $mails->total() }} fehlgeschlagene Mail(s) im aktuellen Filter kommen wieder in die Warteschlange und gehen im erlaubten Takt raus. Vorher die Ursache beheben (z. B. am SMTP-Absender), sonst scheitern sie erneut."
+                          data-titel="Alle erneut senden?" data-knopf="Erneut senden">
+                        @csrf
+                        @if ($suche !== '')<input type="hidden" name="suche" value="{{ $suche }}">@endif
+                        @foreach ($modul as $m)<input type="hidden" name="modul[]" value="{{ $m }}">@endforeach
+                        @foreach ($ausloeser as $a)<input type="hidden" name="ausloeser[]" value="{{ $a }}">@endforeach
+                        @if ($absender !== '')<input type="hidden" name="absender" value="{{ $absender }}">@endif
+                        <button class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
+                            <i class='bx bx-revision text-base leading-none'></i>
+                            Alle {{ $mails->total() }} erneut senden
+                        </button>
+                    </form>
+                @endif
                 <a href="{{ route('admin.mail.absender') }}"
                    class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                     <i class='bx bx-envelope text-base leading-none'></i>
