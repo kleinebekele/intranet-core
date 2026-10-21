@@ -6,10 +6,13 @@ use App\Listeners\AnmeldungenProtokollieren;
 use App\Listeners\MailInDieOutbox;
 use App\Mail\Vorlagen\VorlagenRegister;
 use App\Models\Setting;
+use App\Models\User;
 use App\Modules\Support\ModuleRegistry;
 use App\Modules\Support\Modulzugriff;
 use App\Modules\Support\Zugriffsstufe;
+use App\Support\Hinweise;
 use App\Support\Mailausloeser;
+use App\Support\SchedulerTakt;
 use App\View\Composers\NavigationComposer;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
@@ -59,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
      */
     private function minutengrenzeAbwarten(): void
     {
-        if (! $this->app->runningInConsole() || (($_SERVER['argv'][1] ?? '') !== 'schedule:run')) {
+        if (! $this->istScheduleRun()) {
             return;
         }
 
@@ -72,11 +75,40 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * Pro Minute nur EIN `schedule:run`. Holt Cron eine verpasste Minute nach,
+     * startet er den Scheduler zweimal in derselben Sekunde (RAV, 2026-10-21) –
+     * der zweite Start beendet sich hier, bevor er irgendetwas einplant. Muss nach
+     * {@see minutengrenzeAbwarten()} laufen, damit die belegte Minute die ist,
+     * die Laravel gleich auswertet. Details: {@see SchedulerTakt}.
+     */
+    private function schedulerMinuteBelegen(): void
+    {
+        if (! $this->istScheduleRun() || SchedulerTakt::belegen()) {
+            return;
+        }
+
+        fwrite(STDERR, "schedule:run fuer diese Minute laeuft bereits - zweiter Start beendet.\n");
+        exit(0);
+    }
+
+    private function istScheduleRun(): bool
+    {
+        return $this->app->runningInConsole() && (($_SERVER['argv'][1] ?? '') === 'schedule:run');
+    }
+
+    /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
         $this->minutengrenzeAbwarten();
+        $this->schedulerMinuteBelegen();
+
+        // Glocke: Cron steht oder läuft unregelmäßig (Doppelstarts, ausgefallene
+        // Minuten) – sonst merkt man es erst an doppelten Mails oder fehlenden Läufen.
+        Hinweise::anbieten(fn (User $user): array => $user->isAdmin()
+            ? SchedulerTakt::hinweise(route('module.ekkon.index').'#cron-takt')
+            : []);
 
         // Hinter TLS-Terminierung (nginx/Proxy) erkennt Laravel https nicht
         // immer selbst. Im Produktivbetrieb Links/Assets zwingend als https

@@ -15,6 +15,7 @@ use App\Ekkon\Support\TaskRegistry;
 use App\Ekkon\Support\TaskRunner;
 use App\Ekkon\Tasks\EkkonTask;
 use App\Modules\Support\ModuleRegistry;
+use App\Support\SchedulerTakt;
 
 class TaskController extends Controller
 {
@@ -73,7 +74,26 @@ class TaskController extends Controller
             // Doppelt vergebene Task-Keys: die verworfenen Tasks laufen NICHT.
             // Das muss man sehen – sonst fehlt lautlos ein Task.
             'kollisionen' => $this->registry->kollisionen(),
+            ...$this->cronTakt(),
         ]);
+    }
+
+    /**
+     * Wie gleichmäßig Cron den Scheduler startet (Kasten „Cron-Takt", Ziel des
+     * Glocken-Hinweises). Ohne Tabelle (Migration noch nicht gelaufen) kein Kasten.
+     *
+     * @return array{takt: array<string, mixed>|null, taktStarts: Collection<int, object>}
+     */
+    private function cronTakt(): array
+    {
+        try {
+            return [
+                'takt' => SchedulerTakt::auswertung(),
+                'taktStarts' => DB::table('scheduler_takt')->orderByDesc('minute')->limit(15)->get(),
+            ];
+        } catch (\Throwable) {
+            return ['takt' => null, 'taktStarts' => collect()];
+        }
     }
 
     /**

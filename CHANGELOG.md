@@ -7,6 +7,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- **Cron-Takt (nur ein `schedule:run` je Minute):** Jeder Start belegt seine Minute in der neuen Tabelle `scheduler_takt` (Migration `create_scheduler_takt_table`, `App\Support\SchedulerTakt`). Ein zweiter Start derselben Minute beendet sich sofort und wird als `doppelt` gezählt. Hintergrund: Auf dem RAV-Server dauerte eine cron-Runde 67 statt 60 Sekunden, cron holte etwa alle 9 Minuten eine ausgefallene Minute nach und startete jeden Minuten-Job doppelt (Ekkon3-Mails kamen doppelt). Die Glocke meldet Admins einen unregelmäßigen Takt (Doppelstart oder ab 2 ausgefallenen Minuten in der letzten Stunde) und einen stehenden Scheduler (über 5 Minuten kein Start); Kasten „Cron-Takt" mit den letzten Startzeiten oben auf Ekkon → Aufgaben. Protokoll 2 Tage.
+
 ### Geändert
 - **Einladungen nicht an schon Angemeldete:** Beim Verschicken (einzeln oder „Alle verschicken") wird eine wartende Einladung an jemanden, der sich bereits angemeldet hat (`users.zuletzt_angemeldet_am`, z. B. über „Passwort vergessen"), nicht mehr verschickt, sondern mit Status `schon angemeldet` abgeschlossen; die Meldung nennt die Zahl der Aussortierten.
 

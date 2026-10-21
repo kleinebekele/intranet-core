@@ -31,6 +31,46 @@
                     </p>
                 </div>
             @endif
+
+            {{-- Cron-Takt: startet Cron den Scheduler jede Minute genau einmal? Doppelstarts
+                 weist der Core ab (SchedulerTakt), ausgefallene Minuten holt nur ekkon:nachholen nach. --}}
+            @if ($takt !== null && $takt['letzter'] !== null)
+                @php
+                    $taktFarbe = $takt['steht'] ? 'bg-red-100 text-red-900'
+                        : ($takt['unregelmaessig'] ? 'bg-yellow-100 text-yellow-800' : 'bg-white text-gray-700');
+                @endphp
+                <section id="cron-takt" class="shadow-sm sm:rounded-lg px-4 py-3 text-sm {{ $taktFarbe }}">
+                    <p class="font-semibold">
+                        @if ($takt['steht'])
+                            ⚠ Cron startet den Scheduler nicht mehr – letzter Start vor {{ $takt['still_minuten'] }} Min.
+                        @elseif ($takt['unregelmaessig'])
+                            ⚠ Cron läuft unregelmäßig
+                        @else
+                            Cron-Takt in Ordnung
+                        @endif
+                    </p>
+                    <p class="mt-1">
+                        Letzte Stunde: {{ $takt['starts'] }} von {{ $takt['erwartet'] }} Minuten gestartet
+                        · {{ $takt['fehlend'] }} ausgefallen
+                        · {{ $takt['doppelt'] }} Doppelstart(s) abgewiesen
+                        @if ($takt['sekunde_max'] !== null)
+                            · späteste Startsekunde :{{ str_pad((string) $takt['sekunde_max'], 2, '0', STR_PAD_LEFT) }}
+                        @endif
+                    </p>
+                    @if ($takt['steht'] || $takt['unregelmaessig'])
+                        <p class="mt-1 text-xs">
+                            Wandert die Startsekunde von Minute zu Minute nach hinten, hinkt der Cron-Dienst und holt Minuten nach
+                            (RAV 21.10.2026: Abhilfe <span class="font-mono">systemctl restart cron</span>).
+                        </p>
+                    @endif
+                    <p class="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs opacity-80">
+                        @foreach ($taktStarts as $start)
+                            <span>{{ substr($start->minute, 11) }}:{{ str_pad((string) $start->sekunde, 2, '0', STR_PAD_LEFT) }}@if ($start->doppelt > 0)<b class="text-red-700"> ×{{ $start->doppelt + 1 }}</b>@endif</span>
+                        @endforeach
+                    </p>
+                </section>
+            @endif
+
             @forelse ($module as $modul)
                 @php
                     $anzahl = array_sum(array_map('count', $modul['kategorien']));

@@ -222,6 +222,11 @@ Oberfläche und auch nicht `artisan ekkon:task`. In Entwicklungsumgebungen bewus
 Der Laravel-Scheduler braucht außerdem genau **einen** Cron-Eintrag
 (`* * * * * php artisan schedule:run`) — ohne ihn läuft kein Task.
 
+⚠️ Cron kann denselben Eintrag zweimal in einer Sekunde starten, wenn er hinkt und eine Minute
+nachholt (RAV 2026-10-21: Runde 67 s, Abhilfe `systemctl restart cron`). Der Core lässt je Minute
+nur einen `schedule:run` durch (`App\Support\SchedulerTakt`, Tabelle `scheduler_takt`) und meldet
+einen unregelmäßigen oder stehenden Takt an die Glocke; Kasten „Cron-Takt" auf Ekkon → Aufgaben.
+
 ## MSSQL: immer über PDO_ODBC
 
 Nie nativ, sondern über `MSSQL_ODBC_DSN` — so haben alle Umgebungen dieselben Treiber-Macken.
