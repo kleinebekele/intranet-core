@@ -50,13 +50,13 @@
             <div class="rounded-xl border border-gray-200 bg-white p-4">
                 <div class="text-xs font-medium uppercase tracking-wide text-gray-500">Wartet</div>
                 <div class="mt-1 text-2xl font-semibold text-gray-800">{{ $anzahl['wartend'] }}</div>
-                <div class="mt-2 text-xs text-gray-400">Geht beim nächsten Lauf raus</div>
+                <div class="mt-2 text-xs text-gray-400">Im Ausgangskorb oder vom Empfänger verzögert</div>
             </div>
 
             <div class="rounded-xl border border-gray-200 bg-white p-4">
                 <div class="text-xs font-medium uppercase tracking-wide text-gray-500">Versendet</div>
                 <div class="mt-1 text-2xl font-semibold text-green-700">{{ $anzahl['versendet'] }}</div>
-                <div class="mt-2 text-xs text-gray-400">Vom Mailserver angenommen</div>
+                <div class="mt-2 text-xs text-gray-400">Zugestellt bzw. ohne Rückmeldung</div>
             </div>
 
             <div class="rounded-xl border border-gray-200 bg-white p-4">
@@ -65,7 +65,7 @@
                     {{ $anzahl['fehlgeschlagen'] }}
                 </div>
                 <div class="mt-2 text-xs text-gray-400">
-                    Nach mehreren Versuchen aufgegeben
+                    Aufgegeben oder vom Empfänger abgewiesen
                     @if ($anzahl['verworfen'])
                         · {{ $anzahl['verworfen'] }} verworfen
                     @endif
@@ -82,9 +82,7 @@
                         'wartend' => 'Wartet',
                         'versendet' => 'Versendet',
                         'fehlgeschlagen' => 'Fehlgeschlagen',
-                        'verworfen' => 'Verworfen',
-                        'unzugestellt' => 'Nicht zugestellt'.($anzahl['unzugestellt'] ? ' ('.$anzahl['unzugestellt'].')' : ''),
-                    ];
+                        'verworfen' => 'Verworfen',                    ];
                 @endphp
                 @foreach ($filter as $wert => $beschriftung)
                     <a href="{{ route('admin.mail.index', array_filter(['status' => $wert, 'suche' => $suche, 'modul' => $modul, 'ausloeser' => $ausloeser, 'absender' => $absender])) }}"
@@ -98,9 +96,9 @@
 
             <div class="flex flex-wrap gap-2">
                 {{-- Sammelaktion: alle Gescheiterten im aktuellen Filter erneut einreihen. --}}
-                @if ($status === 'fehlgeschlagen' && $mails->total() > 0)
+                @if ($erneutBar > 0)
                     <form method="POST" action="{{ route('admin.mail.alle-erneut') }}"
-                          data-bestaetigen="{{ $mails->total() }} fehlgeschlagene Mail(s) im aktuellen Filter kommen wieder in die Warteschlange und gehen im erlaubten Takt raus. Vorher die Ursache beheben (z. B. am SMTP-Absender), sonst scheitern sie erneut."
+                          data-bestaetigen="{{ $erneutBar }} Mail(s) im aktuellen Filter, die gar nicht erst an den Mailserver übergeben werden konnten, kommen wieder in die Warteschlange und gehen im erlaubten Takt raus. Vorher die Ursache beheben (z. B. am SMTP-Absender), sonst scheitern sie erneut."
                           data-titel="Alle erneut senden?" data-knopf="Erneut senden">
                         @csrf
                         @if ($suche !== '')<input type="hidden" name="suche" value="{{ $suche }}">@endif
@@ -109,7 +107,7 @@
                         @if ($absender !== '')<input type="hidden" name="absender" value="{{ $absender }}">@endif
                         <button class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
                             <i class='bx bx-revision text-base leading-none'></i>
-                            Alle {{ $mails->total() }} erneut senden
+                            Alle {{ $erneutBar }} erneut senden
                         </button>
                     </form>
                 @endif
@@ -200,11 +198,15 @@
                         @foreach ($mails as $mail)
                             <tr class="align-top">
                                 <td class="px-4 py-3 whitespace-nowrap">
-                                    @if ($mail->status === 'versendet')
+                                    {{-- Stand beim Empfänger (MailOutbox::stand()): verzögert = wartet, abgewiesen = fehlgeschlagen. --}}
+                                    @php
+                                        $stand = $mail->stand();
+                                    @endphp
+                                    @if ($stand === 'versendet')
                                         <span class="inline-flex rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">versendet</span>
-                                    @elseif ($mail->status === 'fehlgeschlagen')
+                                    @elseif ($stand === 'fehlgeschlagen')
                                         <span class="inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">fehlgeschlagen</span>
-                                    @elseif ($mail->status === 'verworfen')
+                                    @elseif ($stand === 'verworfen')
                                         <span class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-400 line-through">verworfen</span>
                                         <span class="mt-1 block text-xs text-gray-400">{{ $mail->verworfen_am?->format('d.m.Y') }}</span>
                                     @else
@@ -217,9 +219,9 @@
                                     @if ($mail->zustellung === 'zugestellt')
                                         <span class="mt-1 block text-xs font-medium text-green-700" title="Der Server des Empfängers hat die Mail angenommen ({{ $mail->zustellung_am?->format('d.m.Y H:i') }})">✓ zugestellt</span>
                                     @elseif ($mail->zustellung === 'verzoegert')
-                                        <span class="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700" title="Der Mailserver versucht es weiter">verzögert</span>
+                                        <span class="mt-1 block text-xs text-amber-700" title="Unser Mailserver hat sie angenommen und versucht es beim Empfänger weiter (bis 5 Tage)">beim Empfänger verzögert</span>
                                     @elseif ($mail->zustellung === 'abgewiesen')
-                                        <span class="mt-1 inline-flex rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">abgewiesen</span>
+                                        <span class="mt-1 block text-xs text-red-700" title="Unser Mailserver hat sie angenommen, der Server des Empfängers hat sie abgewiesen">vom Empfänger abgewiesen</span>
                                     @endif
                                 </td>
 
@@ -348,10 +350,10 @@
         @endif
 
         <p class="mt-6 text-xs text-gray-400">
-            „Versendet" heißt: der Mailserver hat die Nachricht angenommen. Meldet er zurück, wie es
-            weiterging, steht das darunter: „zugestellt" (der Server des Empfängers hat sie angenommen),
-            „verzögert" (wird weiter versucht) oder „abgewiesen". Ohne Rückmeldung weiß die Plattform
-            nicht, ob die Mail ankam.
+            Der Stand gilt bis zum Empfänger, soweit unser Mailserver zurückmeldet: „wartet" heißt noch im
+            Ausgangskorb oder vom Server des Empfängers verzögert (unser Mailserver versucht es bis 5 Tage
+            weiter), „fehlgeschlagen" heißt nicht übergeben oder vom Empfänger abgewiesen, „versendet"
+            heißt zugestellt (✓) bzw. angenommen, wenn kein Mailserver zurückmeldet.
         </p>
         <p class="mt-2 text-xs text-gray-400">
             Fehlgeschlagene Mails werden nach {{ \App\Models\MailOutbox::VERWERFEN_NACH_TAGEN }} Tagen

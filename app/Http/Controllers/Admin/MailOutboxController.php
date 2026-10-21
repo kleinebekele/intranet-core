@@ -26,11 +26,7 @@ class MailOutboxController
         MailOutbox::VERSENDET,
         MailOutbox::FEHLGESCHLAGEN,
         MailOutbox::VERWORFEN,
-        self::UNZUGESTELLT,
     ];
-
-    /** Filter „Nicht zugestellt": versendet, aber der Mailserver meldet verzögert/abgewiesen. */
-    private const UNZUGESTELLT = 'unzugestellt';
 
     /** Wert des Absender-Filters für „über den Standard-Mailer". */
     private const STANDARD = 'standard';
@@ -47,11 +43,10 @@ class MailOutboxController
 
         $mails = $this->gefiltert(MailOutbox::query(), $request)
             // „Alle" heißt: alles außer Verworfenem – das ist abgehakt und steht
-            // nur unter seinem eigenen Reiter.
-            ->when($status === self::UNZUGESTELLT,
-                fn ($q) => $q->whereIn('zustellung', [MailOutbox::VERZOEGERT, MailOutbox::ABGEWIESEN]),
-                fn ($q) => $q->when($status, fn ($q) => $q->where('status', $status),
-                    fn ($q) => $q->where('status', '!=', MailOutbox::VERWORFEN)))
+            // nur unter seinem eigenen Reiter. Wartend/fehlgeschlagen schließt Mails ein,
+            // die der Server des Empfängers verzögert bzw. abgewiesen hat (MailOutbox::stand()).
+            ->when($status, fn ($q) => $q->imStand($status),
+                fn ($q) => $q->where('status', '!=', MailOutbox::VERWORFEN))
             // Noch nicht versendete (wartend, gescheitert, verworfen) oben, dann
             // nach Versandzeit absteigend; bei Gleichstand die neuere zuerst.
             ->orderByRaw('versendet_am IS NULL DESC')
@@ -96,13 +91,18 @@ class MailOutboxController
             'letzteStunde' => MailOutbox::where('status', MailOutbox::VERSENDET)
                 ->where('versendet_am', '>=', now()->subHour())
                 ->count(),
+            // Kacheln und Reiter zählen den Stand beim Empfänger (MailOutbox::stand()).
             'anzahl' => [
-                MailOutbox::WARTEND => MailOutbox::where('status', MailOutbox::WARTEND)->count(),
-                MailOutbox::VERSENDET => MailOutbox::where('status', MailOutbox::VERSENDET)->count(),
-                MailOutbox::FEHLGESCHLAGEN => MailOutbox::where('status', MailOutbox::FEHLGESCHLAGEN)->count(),
+                MailOutbox::WARTEND => MailOutbox::imStand(MailOutbox::WARTEND)->count(),
+                MailOutbox::VERSENDET => MailOutbox::imStand(MailOutbox::VERSENDET)->count(),
+                MailOutbox::FEHLGESCHLAGEN => MailOutbox::imStand(MailOutbox::FEHLGESCHLAGEN)->count(),
                 MailOutbox::VERWORFEN => MailOutbox::where('status', MailOutbox::VERWORFEN)->count(),
-                self::UNZUGESTELLT => MailOutbox::whereIn('zustellung', [MailOutbox::VERZOEGERT, MailOutbox::ABGEWIESEN])->count(),
             ],
+            // „Alle erneut senden" betrifft nur Mails, die gar nicht erst übergeben wurden –
+            // eine vom Empfänger abgewiesene Mail noch einmal zu schicken, ändert nichts.
+            'erneutBar' => $status === MailOutbox::FEHLGESCHLAGEN
+                ? $this->gefiltert(MailOutbox::query(), $request)->where('status', MailOutbox::FEHLGESCHLAGEN)->count()
+                : 0,
         ]);
     }
 

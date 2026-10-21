@@ -95,6 +95,41 @@ class MailOutbox extends Model
     }
 
     /**
+     * Der Stand aus Sicht des Empfängers (Maillog): Verzögert der Server des Empfängers
+     * eine schon übergebene Mail, wartet sie noch; weist er sie ab, ist sie
+     * fehlgeschlagen. `status` selbst bleibt der Stand der Übergabe an unseren
+     * Mailserver (Auslieferung, Wiederholen, Aufräumen richten sich danach).
+     */
+    public function stand(): string
+    {
+        if ($this->status === self::VERSENDET) {
+            return match ($this->zustellung) {
+                self::VERZOEGERT => self::WARTEND,
+                self::ABGEWIESEN => self::FEHLGESCHLAGEN,
+                default => self::VERSENDET,
+            };
+        }
+
+        return $this->status;
+    }
+
+    /** Filter nach {@see stand()} – wartend/versendet/fehlgeschlagen/verworfen. */
+    public function scopeImStand(Builder $query, string $stand): Builder
+    {
+        $nachZustellung = fn (Builder $q, string $zustellung) => $q->where('status', self::VERSENDET)->where('zustellung', $zustellung);
+
+        return match ($stand) {
+            self::WARTEND => $query->where(fn (Builder $q) => $q->where('status', self::WARTEND)
+                ->orWhere(fn (Builder $w) => $nachZustellung($w, self::VERZOEGERT))),
+            self::FEHLGESCHLAGEN => $query->where(fn (Builder $q) => $q->where('status', self::FEHLGESCHLAGEN)
+                ->orWhere(fn (Builder $w) => $nachZustellung($w, self::ABGEWIESEN))),
+            self::VERSENDET => $query->where('status', self::VERSENDET)
+                ->where(fn (Builder $q) => $q->whereNull('zustellung')->orWhere('zustellung', self::ZUGESTELLT)),
+            default => $query->where('status', $stand),
+        };
+    }
+
+    /**
      * Offene Posten, deren Wartezeit abgelaufen ist – eilige zuerst, sonst in
      * der Reihenfolge des Eingangs.
      */
