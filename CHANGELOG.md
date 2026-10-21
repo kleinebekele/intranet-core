@@ -25,6 +25,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - Teams-Webhook: `sig=` aus Fehlermeldungen im Log entfernt.
 - **Webhook-Signatur je Quelle (optional):** Ekkon → Webhook-Eingang → „Signatur einschalten" erzeugt ein Geheimnis (verschlüsselt, einmal angezeigt). Danach nimmt die Quelle nur noch Aufrufe mit `X-Intranet-Zeit` (±5 min) und `X-Intranet-Signatur: sha256=HMAC(geheimnis, zeit.body)` an, jede Signatur nur einmal. Migration `add_signatur_geheimnis_to_ekkon_webhook_quellen`.
 
+### Behoben
+- **„Einladungen senden" brach bei vielen Einladungen ab** („Maximum execution time of 30 seconds exceeded" in `BcryptHasher`): Jeder Zugangslink wird mit bcrypt gespeichert (≈ ¼ s). Jetzt je Klick höchstens 20 s (`EinladungController::SEKUNDEN_JE_KLICK`, rund 70 Einladungen); der Rest bleibt „wartend", die Meldung nennt die Zahl und bittet um einen weiteren Klick.
+
 ### Neu
 - **Maillog: „Alle erneut senden":** Unter „Fehlgeschlagen" stellt ein Knopf alle gescheiterten Mails des aktuellen Filters (Suche, Modul, Auslöser, Absender) auf einmal zurück in die Warteschlange (`POST admin/mails/alle-erneut`), mit Rückfrage. Anlass: ein ganzer Newsletter (415 Mails) scheiterte an einem falsch eingetragenen SMTP-Server.
 - **Ekkon-Benachrichtigungen stumm schalten und sammeln löschen:** Routen-Typ „ohne (stumm)" (`NotificationRoute::TYP_OHNE`) verwirft Meldungen dieser Art – kein Versand, kein `ohne_ziel`; andere aktive Ziele derselben Art gelten weiter. Unter „Offene Meldungen → Meldungsarten ohne Route" je Art „🔇 stumm schalten" und „alle N löschen" (Route `module.ekkon.notifications.ohne-ziel.destroy`, nur Status `ohne_ziel`; Altbestand je Quelle).
