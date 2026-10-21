@@ -3,6 +3,12 @@
 # Deploy-Skript fuer eine Intranet-Instanz.
 #
 # Aufruf auf dem Server (im Projektverzeichnis):   ./deploy.sh
+#                                                   ./deploy.sh --immer
+#
+# Ohne Neuigkeiten (kein neuer Code, keine neuen Modulversionen, keine offenen
+# Migrationen) hoert das Skript nach dem Pruefen auf - kein Asset-Bau, kein
+# Wartungsmodus. --immer erzwingt den kompletten Lauf (z. B. nach Aenderungen an
+# der .env oder wenn ein Lauf mittendrin abgebrochen ist).
 #
 # Die serverspezifischen Pfade (PHP, Composer, npm) stehen NICHT hier, sondern
 # in einer nicht versionierten deploy.env daneben. Vorlage: deploy.env.example
@@ -23,6 +29,9 @@ COMPOSER="${COMPOSER:-composer}"
 NPM="${NPM:-npm}"
 
 artisan() { $PHP artisan "$@"; }
+
+IMMER=0
+[ "${1:-}" = "--immer" ] && IMMER=1
 
 schritt() { echo; echo "==> $*"; }
 
@@ -56,7 +65,11 @@ fi
 
 schritt "Code holen"
 vorher_deploy="$(git rev-parse "HEAD:$(basename "$0")" 2>/dev/null || true)"
+vorher_head="$(git rev-parse HEAD)"
 git pull --ff-only
+# Neuer Code? (Nach einem Neustart wegen geaenderter deploy.sh steht das in der Umgebung.)
+CODE_NEU="${DEPLOY_CODE_NEU:-0}"
+[ "$vorher_head" != "$(git rev-parse HEAD)" ] && CODE_NEU=1
 
 # Hat der Pull DIESES Skript veraendert, mit der neuen Fassung NEU starten - sonst
 # liefe der Rest des Deploys noch mit der alten Logik (etwa einem alten composer-
@@ -66,7 +79,7 @@ git pull --ff-only
 if [ -n "$vorher_deploy" ] \
     && [ "$vorher_deploy" != "$(git rev-parse "HEAD:$(basename "$0")" 2>/dev/null || true)" ]; then
     schritt "deploy.sh wurde aktualisiert - Neustart mit der neuen Fassung"
-    exec "$0" "$@"
+    DEPLOY_CODE_NEU=1 exec "$0" "$@"
 fi
 
 schritt "PHP-Abhaengigkeiten"
@@ -78,7 +91,25 @@ schritt "PHP-Abhaengigkeiten"
 #
 # Kein --prefer-dist: Instanzen setzen preferred-install teils bewusst auf "source"
 # (private VCS-Repos ohne API). Das Flag wuerde diese Einstellung ueberstimmen.
+lock_vorher="$(sha1sum composer.lock 2>/dev/null || true)"
 $COMPOSER update "do1emu/*" --no-dev --optimize-autoloader --no-interaction
+MODULE_NEU=0
+[ "$lock_vorher" != "$(sha1sum composer.lock 2>/dev/null || true)" ] && MODULE_NEU=1
+
+# Nichts Neues? Dann ist hier Schluss - offene Migrationen (etwa nach einem
+# abgebrochenen Lauf) zaehlen als Neuigkeit, damit nichts liegen bleibt.
+OFFEN=0
+if artisan migrate:status --pending 2>/dev/null | grep -q 'Pending'; then
+    OFFEN=1
+fi
+if [ "$IMMER" = 0 ] && [ "$CODE_NEU" = 0 ] && [ "$MODULE_NEU" = 0 ] && [ "$OFFEN" = 0 ]; then
+    echo
+    echo "Nichts Neues: kein neuer Code, keine neuen Modulversionen, keine offenen Migrationen."
+    echo "Kein Wartungsmodus, nichts weiter zu tun. (Alles trotzdem: ./deploy.sh --immer)"
+    echo "Aktueller Stand: $(git log --oneline -1)"
+    exit 0
+fi
+echo "Neu: Code=$CODE_NEU Module=$MODULE_NEU offene Migrationen=$OFFEN (1 = ja)"
 
 schritt "Assets bauen"
 if command -v "${NPM%% *}" >/dev/null 2>&1; then
