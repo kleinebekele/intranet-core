@@ -173,6 +173,7 @@
                                         'bg-emerald-50 text-emerald-700' => $einladung->status === \App\Models\Einladung::VERSCHICKT,
                                         'bg-gray-100 text-gray-600' => $einladung->status === \App\Models\Einladung::VERWORFEN,
                                         'bg-amber-50 text-amber-700' => $einladung->status === \App\Models\Einladung::UNZUSTELLBAR,
+                                        'bg-sky-50 text-sky-700' => $einladung->status === \App\Models\Einladung::SCHON_ANGEMELDET,
                                     ])>{{ $einladung->status }}</span>
                                 </td>
                                 <td class="px-4 py-2 text-xs text-gray-400">{{ $einladung->entschieden_am?->format('d.m.Y H:i') }}</td>

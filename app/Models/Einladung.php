@@ -28,6 +28,9 @@ class Einladung extends Model
     /** Künstliche Adresse (`…@schueler.intern`) – eine Mail kann dort nie ankommen. */
     public const UNZUSTELLBAR = 'unzustellbar';
 
+    /** Hat sich schon angemeldet (z. B. über „Passwort vergessen") – braucht keinen Zugangslink mehr. */
+    public const SCHON_ANGEMELDET = 'schon angemeldet';
+
     protected $table = 'einladungen';
 
     protected $fillable = ['user_id', 'status', 'quelle'];
@@ -105,6 +108,14 @@ class Einladung extends Model
     public function freigeben(?User $entschiedenVon = null): bool
     {
         if ($this->status !== self::WARTEND) {
+            return false;
+        }
+
+        // Wer sich schon angemeldet hat, bekommt keinen Zugangslink mehr – er würde nur
+        // verwundern (und das Passwort neu setzen lassen).
+        if ($this->user->zuletzt_angemeldet_am !== null) {
+            $this->abschliessen(self::SCHON_ANGEMELDET, $entschiedenVon);
+
             return false;
         }
 

@@ -62,9 +62,11 @@ class EinladungController extends Controller
     {
         $verschickt = $einladung->freigeben($request->user());
 
-        return back()->with('status', $verschickt
-            ? "Einladung an {$einladung->user->email} ist im Ausgangskorb."
-            : "Einladung an {$einladung->user->email} konnte nicht verschickt werden (keine echte Adresse oder Konto gesperrt).");
+        return back()->with('status', match (true) {
+            $verschickt => "Einladung an {$einladung->user->email} ist im Ausgangskorb.",
+            $einladung->status === Einladung::SCHON_ANGEMELDET => "{$einladung->user->email} hat sich schon angemeldet – keine Einladung nötig.",
+            default => "Einladung an {$einladung->user->email} konnte nicht verschickt werden (keine echte Adresse oder Konto gesperrt).",
+        });
     }
 
     /**
@@ -78,13 +80,21 @@ class EinladungController extends Controller
     {
         $verschickt = 0;
         $uebersprungen = 0;
+        $schonDa = 0;
         $rolle = trim((string) $request->input('rolle', ''));
 
         foreach ($this->nachRolle(Einladung::with('user')->wartend(), $rolle)->get() as $einladung) {
-            $einladung->freigeben($request->user()) ? $verschickt++ : $uebersprungen++;
+            if ($einladung->freigeben($request->user())) {
+                $verschickt++;
+            } elseif ($einladung->status === Einladung::SCHON_ANGEMELDET) {
+                $schonDa++;
+            } else {
+                $uebersprungen++;
+            }
         }
 
         $meldung = "{$verschickt} Einladung(en) in den Ausgangskorb gelegt.";
+        $meldung .= $schonDa ? " {$schonDa} aussortiert (schon angemeldet)." : '';
         $meldung .= $uebersprungen ? " {$uebersprungen} übersprungen (keine echte Adresse oder Konto gesperrt)." : '';
 
         return back()->with('status', $meldung);
