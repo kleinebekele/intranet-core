@@ -23,6 +23,15 @@ class AuditController extends Controller
     {
         $userId = (int) $request->query('user', 0);
         $aktion = trim((string) $request->query('aktion', ''));
+        $modul = trim((string) $request->query('modul', ''));
+        $module = Audit::bekannteModule();
+        if (! isset($module[$modul])) {
+            $modul = '';
+        }
+        // Gewählte Aktion gehört nicht zum gewählten Modul → Aktion verwerfen.
+        if ($modul !== '' && $aktion !== '' && Audit::modulVon($aktion) !== $modul) {
+            $aktion = '';
+        }
         $suche = trim((string) $request->query('search', ''));
         $von = $request->date('von');
         $bis = $request->date('bis');
@@ -30,6 +39,7 @@ class AuditController extends Controller
         $eintraege = AuditEintrag::query()
             ->when($userId > 0, fn (Builder $q) => $q->zuBenutzer($userId))
             ->when($aktion !== '', fn (Builder $q) => $q->where('aktion', $aktion))
+            ->when($modul !== '' && $aktion === '', fn (Builder $q) => $q->whereIn('aktion', Audit::aktionenVon($modul)))
             ->when($suche !== '', function (Builder $q) use ($suche) {
                 $q->where(fn (Builder $w) => $w
                     ->where('akteur', 'like', "%{$suche}%")
@@ -47,13 +57,16 @@ class AuditController extends Controller
         return view('admin.audit.index', [
             'eintraege' => $eintraege,
             'aktionen' => Audit::bekannteAktionen(),
+            'aktionModul' => collect(Audit::bekannteAktionen())->mapWithKeys(fn ($t, $a) => [$a => Audit::modulVon($a)])->all(),
+            'module' => $module,
+            'modul' => $modul,
             'benutzer' => $userId > 0 ? User::find($userId) : null,
             'userId' => $userId,
             'aktion' => $aktion,
             'search' => $suche,
             'von' => $von?->format('Y-m-d') ?? '',
             'bis' => $bis?->format('Y-m-d') ?? '',
-            'gefiltert' => $userId > 0 || $aktion !== '' || $suche !== '' || $von || $bis,
+            'gefiltert' => $userId > 0 || $aktion !== '' || $modul !== '' || $suche !== '' || $von || $bis,
             'aufbewahrungTage' => (int) config('intranet.audit_aufbewahrung_tage'),
         ]);
     }

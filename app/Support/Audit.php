@@ -28,6 +28,12 @@ final class Audit
     /** @var array<string, string> */
     private static array $bezeichnungen = [];
 
+    /** @var array<string, string> Aktionsschlüssel → Modul-Key (aus dem Namensraum des Anmelders) */
+    private static array $module = [];
+
+    /** Modul-Key für die eigenen Aktionen des Cores. */
+    public const CORE = 'core';
+
     /**
      * @param  array<string, mixed>  $daten  Details für die Anzeige (Vorher/Nachher o. ä.)
      * @param  User|false|null  $akteur  null = angemeldeter Benutzer, false = ausdrücklich niemand (System)
@@ -68,6 +74,53 @@ final class Audit
     public static function benennen(array $bezeichnungen): void
     {
         self::$bezeichnungen = [...self::$bezeichnungen, ...$bezeichnungen];
+
+        // Zu welchem Modul gehören die Aktionen? Aus dem Namensraum des Aufrufers
+        // (Intranet\Modules\<Name>\…) – so müssen Module nichts zusätzlich angeben.
+        $klasse = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['class'] ?? '';
+        $teile = explode('\\', $klasse);
+        $modul = ($teile[0] ?? '') === 'Intranet' && ($teile[1] ?? '') === 'Modules' && isset($teile[2])
+            ? strtolower($teile[2])
+            : self::CORE;
+        foreach (array_keys($bezeichnungen) as $aktion) {
+            self::$module[$aktion] = $modul;
+        }
+    }
+
+    /** Modul-Key einer Aktion: core, ein Modul-Key oder null (unbekannt, z. B. Modul entfernt). */
+    public static function modulVon(string $aktion): ?string
+    {
+        return self::$module[$aktion] ?? (isset(AuditEintrag::AKTIONEN[$aktion]) ? self::CORE : null);
+    }
+
+    /**
+     * Module mit Aktionen für den Filter: Key → Anzeigename (Core zuerst, dann nach Name).
+     *
+     * @return array<string, string>
+     */
+    public static function bekannteModule(): array
+    {
+        $keys = array_unique([self::CORE, ...array_values(self::$module)]);
+        $namen = \App\Models\Module::whereIn('key', $keys)->pluck('name', 'key')->all();
+        $liste = [];
+        foreach ($keys as $key) {
+            $liste[$key] = $key === self::CORE ? 'Intranet (Kern)' : ($namen[$key] ?? ucfirst($key));
+        }
+        $kern = [self::CORE => $liste[self::CORE]];
+        unset($liste[self::CORE]);
+        asort($liste);
+
+        return $kern + $liste;
+    }
+
+    /**
+     * Aktionsschlüssel eines Moduls.
+     *
+     * @return list<string>
+     */
+    public static function aktionenVon(string $modul): array
+    {
+        return array_values(array_filter(array_keys(self::bekannteAktionen()), fn ($a) => self::modulVon($a) === $modul));
     }
 
     public static function bezeichnung(string $aktion): string

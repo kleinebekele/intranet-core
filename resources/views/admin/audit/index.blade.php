@@ -44,15 +44,31 @@
                 <input id="search" name="search" type="text" value="{{ $search }}"
                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
             </div>
-            <div>
-                <label for="aktion" class="block text-xs font-medium text-gray-500">Aktion</label>
-                <select id="aktion" name="aktion"
-                        class="mt-1 block rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-                    <option value="">Alle Aktionen</option>
-                    @foreach ($aktionen as $schluessel => $text)
-                        <option value="{{ $schluessel }}" @selected($aktion === $schluessel)>{{ $text }}</option>
-                    @endforeach
-                </select>
+            {{-- Modul grenzt die Aktionen ein: Mit Modul sind nur dessen Aktionen wählbar. --}}
+            <div x-data="{ modul: @js($modul) }" class="contents">
+                <div>
+                    <label for="modul" class="block text-xs font-medium text-gray-500">Modul</label>
+                    <select id="modul" name="modul" x-model="modul"
+                            @change="const a = $refs.aktion; if (a.selectedOptions[0] && a.selectedOptions[0].dataset.modul && modul && a.selectedOptions[0].dataset.modul !== modul) a.value = ''"
+                            class="mt-1 block rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <option value="">Alle Module</option>
+                        @foreach ($module as $schluessel => $name)
+                            <option value="{{ $schluessel }}" @selected($modul === $schluessel)>{{ $name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="aktion" class="block text-xs font-medium text-gray-500">Aktion</label>
+                    <select id="aktion" name="aktion" x-ref="aktion"
+                            class="mt-1 block rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        <option value="">Alle Aktionen</option>
+                        @foreach ($aktionen as $schluessel => $text)
+                            <option value="{{ $schluessel }}" data-modul="{{ $aktionModul[$schluessel] ?? '' }}" @selected($aktion === $schluessel)
+                                    x-show="! modul || modul === @js($aktionModul[$schluessel] ?? '')"
+                                    :disabled="modul && modul !== @js($aktionModul[$schluessel] ?? '')">{{ $text }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
             <div>
                 <label for="von" class="block text-xs font-medium text-gray-500">Von</label>
