@@ -17,6 +17,9 @@ use Illuminate\View\View;
  */
 class EinladungController extends Controller
 {
+    /** „Einladungen senden" arbeitet je Klick höchstens so lange (Grenze je Anfrage: 30 s). */
+    private const SEKUNDEN_JE_KLICK = 20;
+
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
@@ -83,7 +86,15 @@ class EinladungController extends Controller
         $schonDa = 0;
         $rolle = trim((string) $request->input('rolle', ''));
 
+        // Jeder Zugangslink wird mit bcrypt gespeichert (≈ ¼ s je Stück) – bei Hunderten
+        // reißt das die 30 s je Anfrage. Daher je Klick höchstens ~20 s; der Rest bleibt
+        // „wartend" und geht beim nächsten Klick raus (nichts wird doppelt verschickt).
+        $ende = microtime(true) + self::SEKUNDEN_JE_KLICK;
+
         foreach ($this->nachRolle(Einladung::with('user')->wartend(), $rolle)->get() as $einladung) {
+            if (microtime(true) > $ende) {
+                break;
+            }
             if ($einladung->freigeben($request->user())) {
                 $verschickt++;
             } elseif ($einladung->status === Einladung::SCHON_ANGEMELDET) {
@@ -96,6 +107,9 @@ class EinladungController extends Controller
         $meldung = "{$verschickt} Einladung(en) in den Ausgangskorb gelegt.";
         $meldung .= $schonDa ? " {$schonDa} aussortiert (schon angemeldet)." : '';
         $meldung .= $uebersprungen ? " {$uebersprungen} übersprungen (keine echte Adresse oder Konto gesperrt)." : '';
+
+        $offen = $this->nachRolle(Einladung::query()->wartend(), $rolle)->count();
+        $meldung .= $offen ? " Noch {$offen} warten – bitte erneut auf „Einladungen senden“ klicken." : '';
 
         return back()->with('status', $meldung);
     }
