@@ -191,6 +191,7 @@
                             <th class="px-4 py-3">Auslöser</th>
                             <th class="px-4 py-3 whitespace-nowrap">Eingang</th>
                             <th class="px-4 py-3 whitespace-nowrap">Versendet</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Zugestellt</th>
                             <th class="px-4 py-3"></th>
                         </tr>
                     </thead>
@@ -314,6 +315,11 @@
 
                                 <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
                                     {{ $mail->versendet_am?->format('d.m.Y H:i') ?? '—' }}
+                                </td>
+
+                                {{-- Nur wenn der Server des Empfängers die Mail angenommen hat. --}}
+                                <td class="px-4 py-3 whitespace-nowrap {{ $mail->zustellung === 'zugestellt' ? 'text-green-700' : 'text-gray-400' }}">
+                                    {{ $mail->zustellung === 'zugestellt' ? $mail->zustellung_am?->format('d.m.Y H:i') : '—' }}
                                 </td>
 
                                 <td class="px-4 py-3 text-right whitespace-nowrap">
