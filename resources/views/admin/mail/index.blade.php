@@ -229,8 +229,10 @@
                                 <td class="px-4 py-3 font-medium text-gray-800">
                                     {{ $mail->betreff ?: '—' }}
                                     @if (in_array($mail->zustellung, ['verzoegert', 'abgewiesen'], true) && $mail->zustellung_grund)
-                                        <div class="mt-1 text-xs font-normal {{ $mail->zustellung === 'abgewiesen' ? 'text-red-600' : 'text-amber-700' }}">
-                                            Zustellung: {{ \Illuminate\Support\Str::limit($mail->zustellung_grund, 200) }}
+                                        {{-- Kurzform (App\Support\Zustellgrund), die volle Antwort des Servers beim Darüberfahren. --}}
+                                        <div class="mt-1 text-xs font-normal cursor-help {{ $mail->zustellung === 'abgewiesen' ? 'text-red-600' : 'text-amber-700' }}"
+                                             title="{{ $mail->zustellung_grund }}">
+                                            {{ \App\Support\Zustellgrund::kurz($mail->zustellung_grund) }}
                                             <span class="text-gray-400">({{ $mail->zustellung_am?->format('d.m. H:i') }})</span>
                                         </div>
                                     @endif
