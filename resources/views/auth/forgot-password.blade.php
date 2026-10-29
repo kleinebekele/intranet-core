@@ -11,13 +11,13 @@
             <x-auth-session-status class="mb-4" :status="session('status')" />
 
             <div x-show="rest > 0" class="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-4 text-center">
-                <div class="text-sm text-gray-700">Bitte warte bis zu 3 Minuten, bis die Mail bei dir eintrifft.</div>
+                <div class="text-sm text-gray-700">Bitte warten Sie bis zu 3 Minuten, bis die Mail bei Ihnen eintrifft.</div>
                 <div class="mt-2 text-3xl font-bold tabular-nums text-indigo-700" x-text="anzeige">3:00</div>
-                <div class="mt-2 text-xs text-gray-500">Schau auch im Spam-Ordner nach.</div>
+                <div class="mt-2 text-xs text-gray-500">Schauen Sie auch im Spam-Ordner nach.</div>
             </div>
 
             <div x-show="rest <= 0" x-cloak class="rounded-lg border border-amber-100 bg-amber-50 px-4 py-4 text-center text-sm text-gray-700">
-                Noch keine Mail angekommen? Prüfe den Spam-Ordner und die Schreibweise der Adresse.
+                Noch keine Mail angekommen? Prüfen Sie den Spam-Ordner und die Schreibweise der Adresse.
                 <div class="mt-3">
                     <a href="{{ route('password.request') }}" class="font-semibold text-indigo-700 underline hover:text-indigo-900">Link erneut anfordern</a>
                 </div>
