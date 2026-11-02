@@ -98,6 +98,39 @@
             </button>
         </form>
 
+        {{-- Passwort direkt setzen – wenn der Link nicht ankommt (kein/falsches Postfach). --}}
+        <form method="POST" action="{{ route('admin.users.passwort', $user) }}"
+              x-data="{ zeigen: false }"
+              class="mt-4 rounded-xl border border-gray-200 bg-white px-6 py-4">
+            @csrf
+            <div class="text-sm text-gray-600">
+                Oder Passwort direkt vergeben – dann bitte persönlich mitteilen.
+            </div>
+            <div class="mt-3 flex flex-wrap items-end gap-3">
+                <div>
+                    <label for="neues_passwort" class="block text-xs font-medium text-gray-500">Neues Passwort</label>
+                    <input id="neues_passwort" name="password" :type="zeigen ? 'text' : 'password'" type="password" autocomplete="new-password" required
+                           class="mt-1 block w-56 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label for="neues_passwort_wdh" class="block text-xs font-medium text-gray-500">Wiederholen</label>
+                    <input id="neues_passwort_wdh" name="password_confirmation" :type="zeigen ? 'text' : 'password'" type="password" autocomplete="new-password" required
+                           class="mt-1 block w-56 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <label class="mb-2 inline-flex items-center gap-1.5 text-xs text-gray-500">
+                    <input type="checkbox" x-model="zeigen" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"> anzeigen
+                </label>
+                <button type="submit"
+                        class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50">
+                    <i class='bx bx-key text-base'></i>
+                    Passwort setzen
+                </button>
+            </div>
+            @if ($errors->passwort->any())
+                <p class="mt-2 text-sm text-red-600">{{ $errors->passwort->first() }}</p>
+            @endif
+        </form>
+
         {{-- TOTP-Reset: nur anzeigen, wenn der Benutzer eine Authenticator-App eingerichtet hat. --}}
         @if ($user->hasTotp())
             <form method="POST" action="{{ route('admin.users.reset-totp', $user) }}"

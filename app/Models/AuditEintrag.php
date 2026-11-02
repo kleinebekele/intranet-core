@@ -42,6 +42,7 @@ class AuditEintrag extends Model
         'passwort.zurueckgesetzt' => 'Passwort zurückgesetzt',
         'passwort.geaendert' => 'Passwort geändert',
         'passwort.link' => 'Passwort-Link verschickt',
+        'passwort.gesetzt' => 'Passwort vom Admin gesetzt',
         'zweifaktor.aktiviert' => '2FA aktiviert',
         'zweifaktor.deaktiviert' => '2FA deaktiviert',
         'zweifaktor.totp' => 'TOTP eingerichtet',

@@ -107,6 +107,7 @@ Route::middleware('auth')->group(function () {
         // Benutzer-Verwaltung (CRUD) + Passwort-Reset-Link.
         Route::resource('users', UserController::class)->except(['show']);
         Route::post('users/{user}/reset', [UserController::class, 'sendReset'])->name('users.reset');
+        Route::post('users/{user}/passwort', [UserController::class, 'passwortSetzen'])->name('users.passwort');
         Route::post('users/{user}/reset-totp', [UserController::class, 'resetTotp'])->name('users.reset-totp');
         Route::post('users/{user}/sperre', [UserController::class, 'sperreUmschalten'])->name('users.sperre');
         Route::post('users/{user}/anmeldeweg', [UserController::class, 'anmeldewegUmschalten'])->name('users.anmeldeweg');

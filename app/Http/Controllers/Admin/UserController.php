@@ -19,7 +19,8 @@ use Illuminate\View\View;
  *  - E-Mail darf der Admin ändern (Eindeutigkeit, gilt danach als bestätigt, Audit).
  *  - Rollen können zugewiesen/entzogen werden (n:n über user_roles).
  *  - Neue Benutzer erhalten eine Willkommens-Mail zum Passwort-Setzen.
- *  - Für bestehende Benutzer kann ein Passwort-Reset-Link versendet werden.
+ *  - Für bestehende Benutzer kann ein Passwort-Reset-Link versendet oder das
+ *    Passwort direkt gesetzt werden.
  */
 class UserController extends Controller
 {
@@ -224,6 +225,26 @@ class UserController extends Controller
         Audit::schreiben('passwort.link', "Reset-Link an {$user->email} verschickt.", $user);
 
         return back()->with('status', "Passwort-Reset-Link an {$user->email} versendet.");
+    }
+
+    /**
+     * Passwort direkt setzen – für Leute ohne erreichbares Postfach (Link kommt nicht an).
+     * Der Admin teilt es persönlich mit; der Benutzer kann es danach im Profil ändern.
+     */
+    public function passwortSetzen(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validateWithBag('passwort', [
+            'password' => ['required', 'confirmed', \Illuminate\Validation\Rules\Password::defaults()],
+        ]);
+
+        $user->forceFill([
+            'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
+            'remember_token' => \Illuminate\Support\Str::random(60),
+        ])->save();
+
+        Audit::schreiben('passwort.gesetzt', null, $user);
+
+        return back()->with('status', "Neues Passwort für {$user->name} gesetzt.");
     }
 
     /**
