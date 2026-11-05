@@ -21,7 +21,15 @@ class NewPasswordController extends Controller
      */
     public function create(Request $request): View
     {
-        return view('auth.reset-password', ['request' => $request]);
+        // Abgelaufene oder schon benutzte Links gleich erkennen: Statt erst nach dem
+        // Eintippen des Passworts zu scheitern, zeigt die Seite dann nur den Knopf
+        // „Neuen Link senden" (wie „Passwort vergessen", Adresse schon eingetragen).
+        $token = (string) $request->route('token');
+        $user = User::query()->whereRaw('LOWER(email) = ?', [strtolower((string) $request->email)])->first();
+        $gueltig = $user !== null && (Password::broker()->tokenExists($user, $token)
+            || Password::broker('einladungen')->tokenExists($user, $token));
+
+        return view('auth.reset-password', ['request' => $request, 'abgelaufen' => ! $gueltig]);
     }
 
     /**

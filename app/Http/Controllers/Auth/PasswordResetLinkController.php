@@ -45,6 +45,9 @@ class PasswordResetLinkController extends Controller
             Password::sendResetLink($request->only('email'));
         }
 
-        return back()->with('status', __(Password::RESET_LINK_SENT));
+        // Fest auf die „Passwort vergessen"-Seite (Wartezeit mit Zähler): Der Knopf
+        // „Neuen Link senden" auf einer abgelaufenen Link-Seite käme mit back()
+        // wieder dorthin zurück.
+        return redirect()->route('password.request')->with('status', __(Password::RESET_LINK_SENT));
     }
 }

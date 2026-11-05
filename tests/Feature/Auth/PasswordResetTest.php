@@ -47,6 +47,48 @@ class PasswordResetTest extends TestCase
         });
     }
 
+    public function test_gueltiger_link_zeigt_passwortformular(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $this->post('/forgot-password', ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+            $this->get('/reset-password/'.$notification->token.'?email='.urlencode($user->email))
+                ->assertSee('password_confirmation', false)
+                ->assertDontSee('Neuen Link per E-Mail senden');
+
+            return true;
+        });
+    }
+
+    public function test_abgelaufener_link_bietet_neuen_link_an(): void
+    {
+        $user = User::factory()->create();
+
+        $this->get('/reset-password/veraltet?email='.urlencode($user->email))
+            ->assertOk()
+            ->assertSee('Neuen Link per E-Mail senden')
+            ->assertSee('value="'.$user->email.'"', false)
+            ->assertDontSee('password_confirmation', false);
+    }
+
+    public function test_neuer_link_von_abgelaufener_seite_wird_verschickt(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $this->from('/reset-password/veraltet?email='.urlencode($user->email))
+            ->post('/forgot-password', ['email' => $user->email])
+            ->assertRedirect(route('password.request'))
+            ->assertSessionHas('status');
+
+        Notification::assertSentTo($user, ResetPassword::class);
+    }
+
     public function test_password_can_be_reset_with_valid_token(): void
     {
         Notification::fake();
