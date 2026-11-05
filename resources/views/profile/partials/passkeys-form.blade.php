@@ -43,7 +43,7 @@
         </div>
         <div>
             <x-input-label for="passkey_password" value="Aktuelles Passwort" />
-            <x-text-input id="passkey_password" type="password" autocomplete="current-password" class="mt-1 block w-full max-w-xs" />
+            <x-password-input id="passkey_password" autocomplete="current-password" class="mt-1 block w-full max-w-xs" />
         </div>
         <p id="passkey-meldung" class="text-sm text-red-600" hidden></p>
         <x-primary-button type="button" id="passkey-anlegen-knopf">Passkey auf diesem Gerät anlegen</x-primary-button>

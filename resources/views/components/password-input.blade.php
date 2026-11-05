@@ -1,10 +1,11 @@
-﻿{{-- Passwortfeld mit Augensymbol zum Ein- und Ausblenden. Attribute wie bei
-     x-text-input; type ist fest "password". --}}
+﻿{{-- Passwortfeld mit Augensymbol zum Ein- und Ausblenden. "class" gilt für die
+     Hülle (Abstand, Breite wie max-w-xs), alle übrigen Attribute fürs Feld;
+     type ist fest "password". --}}
 @props(['disabled' => false])
 
-<div class="relative mt-1">
+<div {{ $attributes->only('class')->merge(['class' => 'relative']) }}>
     <input type="password" @disabled($disabled)
-           {{ $attributes->merge(['class' => 'block w-full pr-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm']) }}>
+           {{ $attributes->except('class')->merge(['class' => 'block w-full pr-10 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm']) }}>
     <button type="button" tabindex="-1" aria-label="Passwort anzeigen" title="Passwort anzeigen"
             class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 focus:outline-none"
             onclick="(function (b) {

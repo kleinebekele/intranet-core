@@ -55,7 +55,7 @@
         @if (! $nurMicrosoft && $mitPasswort)
             <div x-show="email.trim().toLowerCase() !== original.toLowerCase()" x-cloak>
                 <x-input-label for="current_password_profil" value="Aktuelles Passwort" />
-                <x-text-input id="current_password_profil" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
+                <x-password-input id="current_password_profil" name="current_password" class="mt-1 block w-full" autocomplete="current-password" />
                 <p class="mt-2 text-sm text-gray-600">Zum Ändern der E-Mail brauchen wir dein Passwort.</p>
                 <x-input-error class="mt-2" :messages="$errors->get('current_password')" />
             </div>

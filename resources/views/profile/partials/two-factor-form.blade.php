@@ -67,7 +67,7 @@
                 @method('DELETE')
                 <div>
                     <x-input-label for="totp_remove_password" value="Authenticator-App entfernen — aktuelles Passwort" />
-                    <x-text-input id="totp_remove_password" name="password" type="password" class="mt-1 block w-full max-w-xs" />
+                    <x-password-input id="totp_remove_password" name="password" class="mt-1 block w-full max-w-xs" />
                     <x-input-error :messages="$errors->totp->get('password')" class="mt-2" />
                 </div>
                 <x-secondary-button type="submit">App entfernen (zurück zu Mail-Codes)</x-secondary-button>
@@ -140,7 +140,7 @@
                     @method('DELETE')
                     <div>
                         <x-input-label for="tf_disable_password" value="Zum Deaktivieren aktuelles Passwort eingeben" />
-                        <x-text-input id="tf_disable_password" name="password" type="password" class="mt-1 block w-full max-w-xs" />
+                        <x-password-input id="tf_disable_password" name="password" class="mt-1 block w-full max-w-xs" />
                         <x-input-error :messages="$errors->totp->get('password')" class="mt-2" />
                     </div>
                     <x-danger-button>2FA deaktivieren</x-danger-button>
