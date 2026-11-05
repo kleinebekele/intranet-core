@@ -8,6 +8,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 ## [Unveröffentlicht]
 
 ### Hinzugefügt
+- **Passwort einblenden per Auge:** Neue Komponente `x-password-input` mit Augensymbol zum Ein- und Ausblenden; genutzt auf der Anmeldeseite und beim Zurücksetzen des Passworts.
 - **Abgelaufener Passwort-Link → ein Klick zum neuen:** Ist ein Link zum Zurücksetzen bzw. Einladungslink abgelaufen oder schon benutzt, zeigt die Seite statt des Passwortformulars gleich den Hinweis und den Knopf „Neuen Link per E-Mail senden" mit der Adresse aus dem Link (wie „Passwort vergessen"). Erkannt wird das schon beim Öffnen (`NewPasswordController::create`, beide Broker). „Passwort vergessen" leitet nach dem Absenden fest auf seine Warteseite statt `back()`.
 - **Admin vergibt Passwort direkt:** Auf der Bearbeiten-Seite eines Benutzers steht unter „Link senden" ein Formular „Passwort setzen" (Passwort + Wiederholung, anzeigbar). Für Benutzer, bei denen der Link nicht ankommt. Route `admin.users.passwort`, Audit-Aktion `passwort.gesetzt`.
 - **Deploy ohne Neuigkeiten hört früh auf:** `deploy.sh` prüft nach Pull und `composer update` (neuer Commit, geänderte `composer.lock`, offene Migrationen). Ohne Neuigkeit endet es mit „Nichts Neues" – kein Asset-Bau, kein Wartungsmodus, keine Caches. `./deploy.sh --immer` erzwingt den vollen Lauf (z. B. nach `.env`-Änderungen).
