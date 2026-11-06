@@ -82,6 +82,13 @@ if [ -n "$vorher_deploy" ] \
     DEPLOY_CODE_NEU=1 exec "$0" "$@"
 fi
 
+# Versionsangabe der Fusszeile (App\Support\Version): letzter Tag + Commits danach.
+# Tags ausdruecklich holen - pull bringt einen Tag nicht mit, wenn sein Commit
+# schon da war.
+git fetch --tags --quiet || true
+git describe --tags --long --match "v[0-9]*" > storage/app/version.txt 2>/dev/null \
+    || rm -f storage/app/version.txt
+
 schritt "PHP-Abhaengigkeiten"
 # update statt install: Die eigenen Module (do1emu/*) sollen bei jedem Deploy
 # automatisch auf die neueste per Constraint erlaubte Version ziehen (^1.0 =

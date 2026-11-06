@@ -2,6 +2,7 @@
      Versionsangabe rechts. Auf schmalen Bildschirmen untereinander. --}}
 @php
     $footerLinks = \App\Models\FooterLink::fuerFooter();
+    $footerModule = \App\Support\Version::module();
 @endphp
 
 <footer class="border-t border-gray-200 bg-white">
@@ -16,6 +17,21 @@
             @endforeach
         </nav>
 
-        <span class="text-center sm:text-right text-gray-400">Intranet-Plattform &middot; v1.0</span>
+        <div class="relative text-center sm:text-right text-gray-400" x-data="{ offen: false }" @click.outside="offen = false">
+            <button type="button" @click="offen = ! offen" class="hover:text-gray-600" title="Installierte Module anzeigen">
+                Intranet-Plattform &middot; {{ \App\Support\Version::plattform() }}
+            </button>
+            @if ($footerModule !== [])
+                <div x-show="offen" x-cloak x-transition
+                     class="absolute bottom-full right-0 z-20 mb-2 w-72 rounded-lg border border-gray-200 bg-white p-3 text-left text-xs text-gray-600 shadow-lg">
+                    <div class="mb-1 font-semibold text-gray-700">Module</div>
+                    <table class="w-full">
+                        @foreach ($footerModule as $name => $version)
+                            <tr><td class="py-0.5 pr-2">{{ $name }}</td><td class="py-0.5 text-right font-mono">{{ $version }}</td></tr>
+                        @endforeach
+                    </table>
+                </div>
+            @endif
+        </div>
     </div>
 </footer>

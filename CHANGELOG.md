@@ -7,7 +7,10 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+## [1.0.0] – 2026-11-06
+
 ### Hinzugefügt
+- **Versionsangabe in der Fußzeile zählt mit:** Statt fest „v1.0" steht dort die Plattform-Version aus `git describe` – letzter Tag plus Commits danach als Patch-Stufe (`v1.0.0` + 12 Commits = `v1.0.12`). `deploy.sh` holt die Tags und schreibt den Wert nach `storage/app/version.txt`; lokal fragt `App\Support\Version` git selbst. Ein Klick auf die Angabe zeigt die installierten `do1emu/*`-Module mit Version.
 - **Passwort einblenden per Auge:** Neue Komponente `x-password-input` mit Augensymbol zum Ein- und Ausblenden; genutzt bei Anmeldung, Registrierung, Passwort bestätigen/zurücksetzen und im Profil (Passwort ändern, aktuelles Passwort, 2FA, Passkey, Konto löschen). `class` gilt für die Hülle, übrige Attribute fürs Feld.
 - **Abgelaufener Passwort-Link → ein Klick zum neuen:** Ist ein Link zum Zurücksetzen bzw. Einladungslink abgelaufen oder schon benutzt, zeigt die Seite statt des Passwortformulars gleich den Hinweis und den Knopf „Neuen Link per E-Mail senden" mit der Adresse aus dem Link (wie „Passwort vergessen"). Erkannt wird das schon beim Öffnen (`NewPasswordController::create`, beide Broker). „Passwort vergessen" leitet nach dem Absenden fest auf seine Warteseite statt `back()`.
 - **Admin vergibt Passwort direkt:** Auf der Bearbeiten-Seite eines Benutzers steht unter „Link senden" ein Formular „Passwort setzen" (Passwort + Wiederholung, anzeigbar). Für Benutzer, bei denen der Link nicht ankommt. Route `admin.users.passwort`, Audit-Aktion `passwort.gesetzt`.
@@ -758,6 +761,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - Entwickler-/KI-Wissen nach `CLAUDE.md` ausgelagert, öffentliche `README.md` neutralisiert;
   Modul-Vorlage und Lock auf PHP `^8.3` angepasst.
 
-[Unveröffentlicht]: https://github.com/kleinebekele/intranet-core/compare/v0.2.0...HEAD
+[Unveröffentlicht]: https://github.com/kleinebekele/intranet-core/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/kleinebekele/intranet-core/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/kleinebekele/intranet-core/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kleinebekele/intranet-core/releases/tag/v0.1.0
