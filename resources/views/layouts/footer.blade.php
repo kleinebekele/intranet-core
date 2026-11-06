@@ -1,8 +1,10 @@
 {{-- Fußzeile: Copyright links, Links aus Systemeinstellungen → Footer mittig,
-     Versionsangabe rechts. Auf schmalen Bildschirmen untereinander. --}}
+     Versionsangabe rechts. Auf schmalen Bildschirmen untereinander.
+     Die Liste der installierten Module sehen nur Administratoren – sie wird für
+     alle anderen gar nicht erst ins HTML geschrieben. --}}
 @php
     $footerLinks = \App\Models\FooterLink::fuerFooter();
-    $footerModule = \App\Support\Version::module();
+    $footerModule = auth()->user()?->is_admin ? \App\Support\Version::module() : [];
 @endphp
 
 <footer class="border-t border-gray-200 bg-white">
@@ -17,11 +19,11 @@
             @endforeach
         </nav>
 
-        <div class="relative text-center sm:text-right text-gray-400" x-data="{ offen: false }" @click.outside="offen = false">
-            <button type="button" @click="offen = ! offen" class="hover:text-gray-600" title="Installierte Module anzeigen">
-                Intranet-Plattform &middot; {{ \App\Support\Version::plattform() }}
-            </button>
-            @if ($footerModule !== [])
+        @if ($footerModule !== [])
+            <div class="relative text-center sm:text-right text-gray-400" x-data="{ offen: false }" @click.outside="offen = false">
+                <button type="button" @click="offen = ! offen" class="hover:text-gray-600" title="Installierte Module anzeigen">
+                    Intranet-Plattform &middot; {{ \App\Support\Version::plattform() }}
+                </button>
                 <div x-show="offen" x-cloak x-transition
                      class="absolute bottom-full right-0 z-20 mb-2 w-72 rounded-lg border border-gray-200 bg-white p-3 text-left text-xs text-gray-600 shadow-lg">
                     <div class="mb-1 font-semibold text-gray-700">Module</div>
@@ -31,7 +33,9 @@
                         @endforeach
                     </table>
                 </div>
-            @endif
-        </div>
+            </div>
+        @else
+            <span class="text-center sm:text-right text-gray-400">Intranet-Plattform &middot; {{ \App\Support\Version::plattform() }}</span>
+        @endif
     </div>
 </footer>
