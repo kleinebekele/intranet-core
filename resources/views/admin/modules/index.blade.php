@@ -5,6 +5,9 @@
 
     <div>
         @include('admin.partials.tabs')
+        @php
+            $modulVersionen = \App\Support\Version::jeModul();
+        @endphp
 
         {{-- Erfolgsmeldungen rendert das Layout; Fehler aus dem Entfernen-Dialog hier. --}}
         @if (session('error'))
@@ -51,7 +54,7 @@
 
                             <div class="min-w-0 flex-1">
                                 <div class="font-medium text-gray-800">{{ $module->name }}</div>
-                                <div class="text-xs text-gray-400">{{ $module->key }} &middot; {{ $module->menuItems->count() }} Unterseiten</div>
+                                <div class="text-xs text-gray-400">{{ $module->key }} &middot; {{ $module->menuItems->count() }} Unterseiten @isset($modulVersionen[$module->key]) &middot; <span class="font-mono">{{ $modulVersionen[$module->key] }}</span>@endisset</div>
                             </div>
 
                             <!-- An/aus -->

@@ -7,6 +7,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+- **Modulversion in der Modul-Verwaltung:** Unter jedem Modul steht neben Schlüssel und Unterseiten die installierte Paketversion (`App\Support\Version::jeModul()` – Paket = das, in dessen Ordner der Provider liegt). Module im Core (Ekkon) zeigen keine.
+
 ## [1.0.0] – 2026-11-06
 
 ### Hinzugefügt
