@@ -10,7 +10,7 @@
         $istRahmen = $definition->istRahmen();
         // Das Logo ist ein fertiges <img>-Tag aus den Einstellungen, kein Text,
         // den man in ein Vorschau-Feld tippen würde.
-        $werteFelder = array_diff_key($definition->platzhalter, ['logo' => true]);
+        $werteFelder = array_diff_key($definition->platzhalter, ['logo' => true, 'konto_einrichten' => true]);
     @endphp
 
     <div x-data="mailEditor({

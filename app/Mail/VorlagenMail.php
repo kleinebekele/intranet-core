@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Vorlagen\KontoEinrichten;
 use App\Mail\Vorlagen\VorlagenMailer;
 use App\Mail\Vorlagen\VorlagenRegister;
 use Illuminate\Mail\Mailable;
@@ -25,7 +26,15 @@ class VorlagenMail extends Mailable
 
     public function build(): self
     {
-        $fertig = app(VorlagenMailer::class)->rendern($this->schluessel, $this->werte);
+        // Empfänger ist hier schon gesetzt (Notification-Kanal) – für {{ konto_einrichten }}.
+        $werte = $this->werte;
+        $textWerte = [];
+        if (! array_key_exists(KontoEinrichten::PLATZHALTER, $werte)) {
+            $konto = KontoEinrichten::fuer($this->to[0]['address'] ?? null);
+            $werte[KontoEinrichten::PLATZHALTER] = $konto['html'];
+            $textWerte[KontoEinrichten::PLATZHALTER] = $konto['text'];
+        }
+        $fertig = app(VorlagenMailer::class)->rendern($this->schluessel, $werte, $textWerte);
 
         $this->subject($fertig['betreff'])
             ->html($fertig['html'])

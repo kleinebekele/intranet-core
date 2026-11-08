@@ -50,6 +50,11 @@ Route::middleware('guest')->group(function () {
     Route::get('forgot-password',[PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
+    // Link aus dem Mail-Platzhalter {{ konto_einrichten }}: „Passwort vergessen" mit vorbelegter Adresse.
+    Route::get('konto/einrichten/{user}', \App\Http\Controllers\Auth\KontoEinrichtenController::class)
+        ->middleware(['signed', 'throttle:20,1'])
+        ->name('konto.einrichten');
+
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
         ->middleware('throttle:6,1')
         ->name('password.email');

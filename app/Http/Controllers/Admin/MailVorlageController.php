@@ -112,6 +112,7 @@ class MailVorlageController extends Controller
             $fassung,
             $definition,
             $this->werteAusRequest($definition, $request),
+            [\App\Mail\Vorlagen\KontoEinrichten::PLATZHALTER => \App\Mail\Vorlagen\KontoEinrichten::beispiel()['text']],
         );
 
         return response()->json($fertig);
@@ -153,6 +154,7 @@ class MailVorlageController extends Controller
             $fassung,
             $definition,
             $this->werteAusRequest($definition, $request),
+            [\App\Mail\Vorlagen\KontoEinrichten::PLATZHALTER => \App\Mail\Vorlagen\KontoEinrichten::beispiel()['text']],
         );
 
         Mail::html($fertig['html'], function ($nachricht) use ($daten, $fertig) {
@@ -213,6 +215,8 @@ class MailVorlageController extends Controller
             'ueberschrift' => 'Beispiel-Überschrift der Meldung',
             'text' => "Beispieltext der Meldung.\nKann mehrere Zeilen und einen Link enthalten.",
             'quelle' => 'Beispiel/Task',
+            // Vorschau so, als hätte der Empfänger noch kein Passwort.
+            'konto_einrichten' => \App\Mail\Vorlagen\KontoEinrichten::beispiel()['html'],
         ];
 
         $beispiele = $definition->beispiele + $beispiele;

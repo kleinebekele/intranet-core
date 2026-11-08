@@ -22,6 +22,11 @@ class VorlagenRegister
 
     public function registrieren(VorlagenDefinition $definition): void
     {
+        // In jeder versendbaren Vorlage verfügbar (siehe KontoEinrichten).
+        if (! $definition->istRahmen()) {
+            $definition->platzhalter += [KontoEinrichten::PLATZHALTER => KontoEinrichten::ERKLAERUNG];
+        }
+
         $this->definitionen[$definition->schluessel] = $definition;
     }
 

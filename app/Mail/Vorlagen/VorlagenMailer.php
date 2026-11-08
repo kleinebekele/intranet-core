@@ -83,7 +83,8 @@ class VorlagenMailer
         // Titel und Jahr darf der Editor zum Ausprobieren überschreiben ($werte
         // gewinnt). Das Logo NICHT: dessen Wert ist ein fertiges <img>-Tag, kein
         // Text, den man sinnvoll eintippen könnte.
-        $alle = $werte + $rahmenWerte;
+        // Ohne bekannten Empfänger bleibt {{ konto_einrichten }} leer statt roh stehen.
+        $alle = $werte + $rahmenWerte + [KontoEinrichten::PLATZHALTER => ''];
         $alle['logo'] = $rahmenWerte['logo'];
 
         $betreff = $this->ersetzen($this->wert($fassung?->betreff, $definition->betreff ?? ''), $alle);
@@ -135,6 +136,12 @@ class VorlagenMailer
      */
     public function senden(string $schluessel, string $an, array $werte, array $textWerte = [], ?string $quelle = null, ?string $referenz = null, ?string $modul = null, array $anhaenge = []): void
     {
+        if (! array_key_exists(KontoEinrichten::PLATZHALTER, $werte)) {
+            $konto = KontoEinrichten::fuer($an);
+            $werte[KontoEinrichten::PLATZHALTER] = $konto['html'];
+            $textWerte[KontoEinrichten::PLATZHALTER] = $konto['text'];
+        }
+
         $fertig = $this->rendern($schluessel, $werte, $textWerte);
 
         Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig, $quelle, $referenz, $modul, $anhaenge) {
