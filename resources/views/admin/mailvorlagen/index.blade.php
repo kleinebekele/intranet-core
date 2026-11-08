@@ -7,7 +7,7 @@
         // Je Modul ein Reiter: Core vorn, danach die Module alphabetisch.
         $gruppen = collect($rahmen)->map(fn ($v) => ['art' => 'rahmen', 'vorlage' => $v])
             ->concat(collect($vorlagen)->map(fn ($v) => ['art' => 'mail', 'vorlage' => $v]))
-            ->groupBy(fn ($z) => $z['vorlage']->modul ?: 'Core')
+            ->groupBy(fn ($z) => $reiter[$z['vorlage']->schluessel] ?? 'Core')
             ->sortBy(fn ($z, $modul) => ($modul === 'Core' ? '0' : '1').mb_strtolower($modul));
         $reiterKlasse = 'whitespace-nowrap border-b-2 -mb-px px-4 py-2 text-sm font-medium transition';
     @endphp

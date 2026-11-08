@@ -311,6 +311,27 @@ class TaskRegistry
      *
      * @return array<string, string>
      */
+    /**
+     * Anzeigename des Moduls, dessen Task diese Meldungsart deklariert –
+     * null für System-Meldungsarten oder Tasks ohne Modul.
+     */
+    public function modulNameFuerMeldungsart(string $art): ?string
+    {
+        foreach ($this->all() as $key => $task) {
+            if (! array_key_exists($art, $task->meldungsarten)) {
+                continue;
+            }
+            $modul = $this->modulFuer($key);
+            if ($modul === null || $modul === self::SYSTEM) {
+                return null;
+            }
+
+            return app(ModuleRegistry::class)->manifest($modul)?->name ?? $modul;
+        }
+
+        return null;
+    }
+
     public function meldungsarten(): array
     {
         // Meldungsarten des Systems selbst - sie gehoeren keinem Task, sondern

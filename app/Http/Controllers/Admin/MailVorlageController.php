@@ -31,10 +31,35 @@ class MailVorlageController extends Controller
     {
         // Rahmen und Mails getrennt: Seit Module eigene Rahmen anmelden dürfen
         // (z. B. der Newsletter), stünden sie sonst irgendwo zwischen den Mails.
+        $rahmen = $this->register->rahmen();
+        $vorlagen = $this->register->versendbare();
+
         return view('admin.mailvorlagen.index', [
-            'rahmen' => $this->register->rahmen(),
-            'vorlagen' => $this->register->versendbare(),
+            'rahmen' => $rahmen,
+            'vorlagen' => $vorlagen,
+            'reiter' => collect($rahmen)->concat($vorlagen)
+                ->mapWithKeys(fn (VorlagenDefinition $d) => [$d->schluessel => $this->reiter($d)])->all(),
         ]);
+    }
+
+    /**
+     * Unter welchem Reiter (Modul) steht eine Vorlage in der Übersicht?
+     *
+     * Nur für die Anzeige – `VorlagenDefinition::$modul` bleibt unberührt, weil
+     * daran auch die Absender-Einstellung je Modul/Auslöser hängt.
+     * Ekkon-Benachrichtigungen gehören zum Modul des meldenden Tasks; eine
+     * Modul-Vorlage ohne eigenes `modul` wird über ihr Schlüssel-Präfix erkannt.
+     */
+    private function reiter(VorlagenDefinition $d): string
+    {
+        if (str_starts_with($d->schluessel, 'ekkon:') && class_exists(\App\Ekkon\Support\TaskRegistry::class)) {
+            return app(\App\Ekkon\Support\TaskRegistry::class)->modulNameFuerMeldungsart(substr($d->schluessel, 6)) ?? 'Ekkon';
+        }
+        if ($d->modul !== '' && $d->modul !== 'Core') {
+            return $d->modul;
+        }
+
+        return app(\App\Modules\Support\ModuleRegistry::class)->manifest((string) strtok($d->schluessel, '_:'))?->name ?? 'Core';
     }
 
     public function edit(string $schluessel): View
