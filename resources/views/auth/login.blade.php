@@ -98,6 +98,28 @@
             <x-password-input class="mt-1" id="password" name="password" required autocomplete="current-password" />
 
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
+
+            {{-- Falsche Zugangsdaten: Meldung unter BEIDEN Feldern und gleich
+                 der Weg zum neuen Passwort – sonst fragen die Leute per Mail
+                 nach, statt „Passwort vergessen" unten zu sehen. --}}
+            @if ($errors->has('zugangsdaten'))
+                <div class="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm" role="alert">
+                    <p class="text-red-700">
+                        {{ $errors->first('zugangsdaten') }}
+                        Entweder ist die E-Mail-Adresse oder das Passwort falsch.
+                    </p>
+                    @if (Route::has('password.request'))
+                        <p class="mt-2 text-gray-700">Passwort vergessen? Fordern Sie selbst ein neues an – der Link kommt sofort per E-Mail:</p>
+                        <a href="{{ route('password.request') }}"
+                           class="mt-2 inline-flex items-center gap-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            Neues Passwort anfordern
+                            <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd"/>
+                            </svg>
+                        </a>
+                    @endif
+                </div>
+            @endif
         </div>
 
         <!-- Remember Me -->

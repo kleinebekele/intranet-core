@@ -14,6 +14,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ### Geändert
 - **Modulliste in der Fußzeile nur für Admins:** Die Versionsangabe sehen alle, die aufklappbare Liste der installierten Module nur Administratoren – für alle anderen steht sie nicht im HTML.
+- **Falsche Zugangsdaten → Weg zum neuen Passwort:** Die Meldung steht nicht mehr unter dem E-Mail-Feld (wirkte, als sei nur die Adresse falsch), sondern unter dem Passwortfeld in einem roten Kasten mit „E-Mail-Adresse oder Passwort falsch" und dem Knopf „Neues Passwort anfordern". Fehlerschlüssel dafür `zugangsdaten` statt `email` (`LoginRequest`); gesperrt/Microsoft/Drosselung bleiben am E-Mail-Feld.
 
 ## [1.0.0] – 2026-11-06
 

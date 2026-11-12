@@ -54,8 +54,11 @@ class LoginRequest extends FormRequest
             RateLimiter::hit($this->throttleKey());
             $this->fehlversuch('Falsches Passwort oder unbekannte Adresse.');
 
+            // Eigener Schlüssel statt „email": Die Anmeldeseite zeigt die
+            // Meldung unter dem Passwortfeld samt „Passwort vergessen" – unter
+            // der Adresse sah es so aus, als sei nur die Adresse falsch.
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'zugangsdaten' => trans('auth.failed'),
             ]);
         }
 
