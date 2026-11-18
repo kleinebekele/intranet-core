@@ -7,6 +7,10 @@
 /* Dunkles Farbschema (Profil → Darstellung), erzeugt von tools/dunkel-css.mjs. */
 @import './dunkel.css' layer(utilities);
 
+/* Ersatzfarben für Browser ohne oklch (ältere Samsung-Tablets u. a.), erzeugt von
+   tools/farben-alt-css.mjs. Bewusst ohne Layer, damit sie dort sicher greifen. */
+@import './farben-alt.css';
+
 @plugin '@tailwindcss/forms';
 
 /*

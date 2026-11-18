@@ -16,6 +16,9 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 - **Modulliste in der Fußzeile nur für Admins:** Die Versionsangabe sehen alle, die aufklappbare Liste der installierten Module nur Administratoren – für alle anderen steht sie nicht im HTML.
 - **Falsche Zugangsdaten → Weg zum neuen Passwort:** Die Meldung steht nicht mehr unter dem E-Mail-Feld (wirkte, als sei nur die Adresse falsch), sondern unter dem Passwortfeld in einem roten Kasten mit „E-Mail-Adresse oder Passwort falsch" und dem Knopf „Neues Passwort anfordern". Fehlerschlüssel dafür `zugangsdaten` statt `email` (`LoginRequest`); gesperrt/Microsoft/Drosselung bleiben am E-Mail-Feld.
 
+### Behoben
+- **Unsichtbare Knöpfe in älteren Browsern (Samsung-Tablet):** Tailwind 4 schreibt Farben als `oklch()`; Browser ohne oklch verwarfen sie, Knöpfe (Anmelden, Cookie-Hinweis …) hatten weiße Schrift auf Weiß. `resources/css/farben-alt.css` (erzeugt von `tools/farben-alt-css.mjs` aus theme.css und dunkel.css) liefert die Palette als Hex in `@supports not (color: oklch(…))` – moderne Browser sehen sie nicht. Nach Tailwind-Update oder neuer dunkel.css neu erzeugen.
+
 ## [1.0.0] – 2026-11-06
 
 ### Hinzugefügt
