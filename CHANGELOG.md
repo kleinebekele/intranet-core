@@ -9,6 +9,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ### Hinzugefügt
 - **Briefanrede je Benutzer:** neue Spalte `users.anrede` (z. B. „Frau Dr. Muster"), gesetzt von Importen; leer = unbekannt. Module nutzen sie für persönliche Mails und fallen ohne sie auf eine neutrale Anrede zurück.
+- **„Antworten an" für Vorlagen-Mails:** `VorlagenMailer::senden(..., antwortAn: [adresse, name])` setzt den Reply-To-Header – für Mails, die im Namen einer Person gehen.
 - **Mail-Platzhalter `{{ konto_einrichten }}`:** in jeder Mailvorlage verfügbar (nicht im Rahmen). Hat der Empfänger noch kein Passwort und meldet sich nicht über Microsoft an, erscheint ein gelb markierter Absatz mit Anleitung und Link „Passwort festlegen"; sonst bleibt er leer. Der Link (`konto.einrichten`, signiert, ohne Mailadresse in der URL) führt auf „Passwort vergessen" mit vorbelegter Adresse. Ermittelt in `VorlagenMailer::senden()` und `VorlagenMail` anhand der Empfängeradresse (`App\Mail\Vorlagen\KontoEinrichten`).
 - **Mailvorlagen nach Modul in Reitern:** Die Übersicht gruppiert Rahmen und Mails je Modul (Core zuerst); der zuletzt gewählte Reiter bleibt gemerkt.
 - **Modulversion in der Modul-Verwaltung:** Unter jedem Modul steht neben Schlüssel und Unterseiten die installierte Paketversion (`App\Support\Version::jeModul()` – Paket = das, in dessen Ordner der Provider liegt). Module im Core (Ekkon) zeigen keine.

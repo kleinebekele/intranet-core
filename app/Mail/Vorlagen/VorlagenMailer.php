@@ -133,8 +133,12 @@ class VorlagenMailer
      *                              Der Ausgangskorb speichert die fertige Nachricht
      *                              samt Anhang – die Datei muss nur bis zum Anlegen
      *                              existieren.
+     * @param  array{0: string, 1?: string}|null  $antwortAn  Adresse (und Name)
+     *                              für „Antworten an" – z. B. wenn die Mail im
+     *                              Namen einer Person geht und Antworten bei ihr
+     *                              landen sollen statt beim Intranet.
      */
-    public function senden(string $schluessel, string $an, array $werte, array $textWerte = [], ?string $quelle = null, ?string $referenz = null, ?string $modul = null, array $anhaenge = []): void
+    public function senden(string $schluessel, string $an, array $werte, array $textWerte = [], ?string $quelle = null, ?string $referenz = null, ?string $modul = null, array $anhaenge = [], ?array $antwortAn = null): void
     {
         if (! array_key_exists(KontoEinrichten::PLATZHALTER, $werte)) {
             $konto = KontoEinrichten::fuer($an);
@@ -144,8 +148,11 @@ class VorlagenMailer
 
         $fertig = $this->rendern($schluessel, $werte, $textWerte);
 
-        Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig, $quelle, $referenz, $modul, $anhaenge) {
+        Mail::html($fertig['html'], function ($nachricht) use ($an, $fertig, $quelle, $referenz, $modul, $anhaenge, $antwortAn) {
             $nachricht->to($an)->subject($fertig['betreff'])->text($fertig['text']);
+            if ($antwortAn !== null && filter_var($antwortAn[0] ?? '', FILTER_VALIDATE_EMAIL)) {
+                $nachricht->replyTo($antwortAn[0], $antwortAn[1] ?? null);
+            }
             self::quelleMarkieren($nachricht, $quelle, $referenz, $modul);
 
             foreach ($anhaenge as $anhang) {

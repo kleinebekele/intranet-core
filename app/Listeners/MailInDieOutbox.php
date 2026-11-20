@@ -249,7 +249,9 @@ class MailInDieOutbox
             $email->from(new Address($konfig->absender_mail, (string) ($konfig->absender_name ?? '')));
         }
 
-        if (filled($konfig->antwort_an)) {
+        // Ausnahme „Antworten an": bringt die Mail schon eine mit (im Namen einer
+        // Person verschickt, Antworten gehören zu ihr), bleibt diese.
+        if (filled($konfig->antwort_an) && $email->getReplyTo() === []) {
             $email->replyTo(new Address($konfig->antwort_an));
         }
     }
