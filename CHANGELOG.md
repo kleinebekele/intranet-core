@@ -20,6 +20,7 @@ Datumsangaben nach ISO (JJJJ-MM-TT). Module (z. B. `do1emu/module-news`,
 
 ### Behoben
 - **Unsichtbare Knöpfe in älteren Browsern (Samsung-Tablet):** Tailwind 4 schreibt Farben als `oklch()`; Browser ohne oklch verwarfen sie, Knöpfe (Anmelden, Cookie-Hinweis …) hatten weiße Schrift auf Weiß. `resources/css/farben-alt.css` (erzeugt von `tools/farben-alt-css.mjs` aus theme.css und dunkel.css) liefert die Palette als Hex in `@supports not (color: oklch(…))` – moderne Browser sehen sie nicht. Nach Tailwind-Update oder neuer dunkel.css neu erzeugen.
+- **Ekkon: Deadlock beim Aufräumen der Debug-Daten (Waldorf, Waechter/Lebenszeichen):** `TaskRunner::pruneDebug` ändert nur noch einzelne Zeilen per Primärschlüssel statt eines Bereichs-UPDATE; ein Deadlock dort wird übergangen und beim nächsten Lauf nachgeholt.
 
 ## [1.0.0] – 2026-11-06
 

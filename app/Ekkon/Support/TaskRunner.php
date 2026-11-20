@@ -3,6 +3,7 @@
 namespace App\Ekkon\Support;
 
 use App\Ekkon\Ekkon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Ekkon\Models\TaskRun;
@@ -365,20 +366,34 @@ Sobald er nachgeholt ist, kommt eine zweite Meldung.",
         }
     }
 
-    /** Debug-Spalte älterer Läufe leeren – die Zeilen selbst bleiben erhalten. */
+    /**
+     * Debug-Spalte älterer Läufe leeren – die Zeilen selbst bleiben erhalten.
+     *
+     * Waldorf 2026-11-20: Das frühere UPDATE … WHERE task_key = ? AND debug IS NOT NULL
+     * AND id NOT IN (…) sperrte unter MySQL einen ganzen Indexbereich und lief in einen
+     * Deadlock mit parallel schreibenden Läufen (Waechter/Lebenszeichen). Deshalb erst die
+     * IDs lesen, dann nur diese Zeilen per Primärschlüssel ändern. Aufräumen ist Nebensache:
+     * scheitert es, holt der nächste Lauf es nach – der Lauf selbst darf daran nie kippen.
+     */
     private function pruneDebug(string $taskKey): void
     {
-        $keepIds = TaskRun::query()
-            ->where('task_key', $taskKey)
-            ->whereNotNull('debug')
-            ->latest('id')
-            ->limit(self::KEEP_DEBUG_RUNS)
-            ->pluck('id');
+        try {
+            $alteIds = TaskRun::query()
+                ->where('task_key', $taskKey)
+                ->whereNotNull('debug')
+                ->orderByDesc('id')
+                ->pluck('id')
+                ->slice(self::KEEP_DEBUG_RUNS)
+                ->values();
 
-        TaskRun::query()
-            ->where('task_key', $taskKey)
-            ->whereNotNull('debug')
-            ->whereNotIn('id', $keepIds)
-            ->update(['debug' => null]);
+            foreach ($alteIds->chunk(200) as $teil) {
+                TaskRun::query()->whereIn('id', $teil->all())->update(['debug' => null]);
+            }
+        } catch (QueryException $e) {
+            // 40001 = Deadlock/Serialisierung: beim nächsten Lauf erneut.
+            if ($e->getCode() !== '40001') {
+                report($e);
+            }
+        }
     }
 }
